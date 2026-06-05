@@ -1,0 +1,110 @@
+@import "tailwindcss";
+
+/* ── BBA brand tokens ───────────────────────────────────────────────────────── */
+:root {
+  --background: #eae6e5;   /* warm off-white canvas */
+  --foreground: #1a0030;   /* very dark purple — primary text */
+  --bba-primary:    #4e008e;
+  --bba-secondary:  #d4bebe;
+  --bba-highlight:  #b20476;
+
+  /* Surface tokens used by CSS rules below */
+  --surface-card:   #ffffff;
+  --surface-tint:   #f5eeed;   /* warm-pink input bg / alt row */
+  --surface-border: #c8aab0;   /* mauve-pink border */
+}
+
+/* ── Tailwind theme ─────────────────────────────────────────────────────────── */
+@theme inline {
+  --color-background:    var(--background);
+  --color-foreground:    var(--foreground);
+  --color-bba-primary:   var(--bba-primary);
+  --color-bba-secondary: var(--bba-secondary);
+  --color-bba-highlight: var(--bba-highlight);
+
+  /* Remap slate palette → BBA light theme.
+     Every bg-slate-*, text-slate-*, border-slate-* utility in every component
+     automatically picks up these values — no component edits needed. */
+  --color-slate-950: #eae6e5;   /* canvas background */
+  --color-slate-900: #ffffff;   /* card / panel base */
+  --color-slate-800: #f5eeed;   /* subtle warm-pink: input bg, alt rows, hover */
+  --color-slate-700: #c8aab0;   /* mauve-pink: borders, dividers, bar tracks */
+  --color-slate-600: #a8899e;   /* muted decorative */
+  --color-slate-500: #8a6a90;   /* muted text — passes WCAG AA at large/bold */
+  --color-slate-400: #6a4c80;   /* secondary text */
+  --color-slate-300: #4a2870;   /* body text */
+  --color-slate-200: #4e008e;   /* section titles — BBA deep purple */
+  --color-slate-100: #1a0030;   /* primary text (was white in dark mode) */
+  --color-slate-50:  #fdf9f8;   /* near-white accent */
+
+  --font-sans:  var(--font-comfortaa);
+  --font-inter: var(--font-inter);
+}
+
+/* ── Base layout ────────────────────────────────────────────────────────────── */
+html, body { height: 100%; }
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+/* ── Typography ─────────────────────────────────────────────────────────────── */
+
+/* Table data cells: Inter for numeric precision and data density */
+table td {
+  font-family: var(--font-inter);
+}
+
+/* Column header cells — solid white, bold, uppercase for all data tables.
+   !important required to override the former bba-highlight !important rule
+   that was in place here. DnD drag handles and sort buttons inherit white
+   via color inheritance, so no changes are needed in individual components. */
+thead th {
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+}
+
+/* Page-level h1 titles inside the main content area — BBA highlight pink */
+main h1 {
+  color: var(--bba-highlight);
+}
+
+/* Data table card header bars — BBA pink background with white title text.
+   Targets the header div (border-b + contains h3) that sits above table bodies. */
+div.border-b:has(> h3) {
+  background-color: var(--bba-highlight) !important;
+  border-bottom-color: rgba(178, 4, 118, 0.35) !important;
+}
+div.border-b:has(> h3) h3 {
+  color: white !important;
+}
+
+/* Select option lists — deep BBA plum background so names are clearly readable
+   on all operating systems regardless of system color scheme. */
+select option {
+  background-color: #2d0050;
+  color: #f1f5f9;
+}
+
+/* ── Table alternating rows ─────────────────────────────────────────────────── */
+/* These are unlayered (outside @layer) so they take cascade priority over
+   Tailwind's @layer utilities, giving us alternating rows without !important. */
+
+table tbody tr:nth-child(even) {
+  background-color: rgba(212, 190, 190, 0.1);
+}
+
+/* Preserve a visible hover on even rows */
+table tbody tr:nth-child(even):hover {
+  background-color: rgba(212, 190, 190, 0.22);
+}
+
+/* ── Scrollbar ──────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(200, 170, 176, 0.55);   /* surface-border at 55% */
+  border-radius: 9999px;
+}

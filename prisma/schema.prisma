@@ -1,0 +1,336 @@
+// ─────────────────────────────────────────────────────────────────
+// Generator & Datasource
+// ─────────────────────────────────────────────────────────────────
+
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─────────────────────────────────────────────────────────────────
+// ENUMs
+// ─────────────────────────────────────────────────────────────────
+
+enum ProcessingCadence {
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
+  QUARTERLY
+}
+
+enum ArchiveStatus {
+  ACTIVE
+  ARCHIVED
+  INACTIVE
+  OFF_BOARDING
+  PENDING_ARCHIVE
+}
+
+enum AccountantStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum BillingType {
+  FLAT
+  HOURLY
+}
+
+enum BillingCadence {
+  MONTHLY
+  QUARTERLY
+  ANNUAL
+}
+
+enum EntityType {
+  LLC
+  S_CORP
+  C_CORP
+  SOLE_PROPRIETOR
+  PARTNERSHIP
+  NON_PROFIT
+  OTHER
+}
+
+enum OfficeType {
+  PHYSICAL
+  HOME_OFFICE
+}
+
+enum ProjectType {
+  ANNUAL
+  CLEAN_UP
+  MONTHLY_MAINTENANCE
+  QBO_ONLY
+  RECURRING
+}
+
+enum RevenueType {
+  CLEANUP
+  FREE
+  HOURLY_CLEANUP
+  QBO_ONLY_ANCHOR
+  QBO_ONLY_QBO
+  RECURRING_MONTHLY_ACH
+  RECURRING_MONTHLY_HOURLY
+  RECURRING_MONTHLY_INVOICED
+}
+
+enum TimeLogType {
+  BOOKKEEPER
+  QA
+  CUSTOMER_SUCCESS
+  MANAGEMENT
+  YEAR_END
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Client
+// ─────────────────────────────────────────────────────────────────
+
+model Client {
+  id String @id @default(cuid())
+
+  name                     String
+  harvestProjectCode       String         @unique
+  autoPriceIncreasePercent Decimal?       @db.Decimal(5, 2)
+  priceAdjustmentDate      DateTime?
+  accountantName           String?
+  guaranteedDeadlineDay    Int?
+  processingCadence        ProcessingCadence
+  archiveStatus            ArchiveStatus  @default(ACTIVE)
+
+  // Administration fields
+  contractStartDate        DateTime?
+  entityType               EntityType     @default(LLC)
+  einNumber                String?
+  officeType               OfficeType     @default(HOME_OFFICE)
+  hasPayroll               Boolean        @default(false)
+  payrollProvider          String?
+  referredBy               String?
+  projectType              ProjectType    @default(MONTHLY_MAINTENANCE)
+  revenueType              RevenueType?
+
+  // Compliance & billing tracking
+  hasContractedLoom        Boolean        @default(false)
+  hasScheduledMeetings     Boolean        @default(false)
+  hasSignedAutoIncrease    Boolean        @default(false)
+  softwareRate             Decimal?       @db.Decimal(10, 2)
+  totalMonthlyAmount       Decimal?       @db.Decimal(10, 2)
+
+  // Accountant consent
+  okToContactAccountant Boolean @default(false)
+
+  // Rolodex / contact fields
+  primaryContact   String?
+  phone            String?
+  email            String?
+  address          String?
+  contractEndDate  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  sows              SOW[]
+  subscriptions     ClientSubscription[]
+  timeLogs          TimeLog[]
+  callLogs          CallLog[]
+  tags              ClientTag[]
+
+  @@map("clients")
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Statement of Work (SOW)
+// ─────────────────────────────────────────────────────────────────
+
+model SOW {
+  id String @id @default(cuid())
+
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  billingType       BillingType
+  fixedMonthlyRate  Decimal?    @db.Decimal(10, 2)
+  targetHours       Decimal?    @db.Decimal(8, 2)
+  expectedHours     Decimal?    @db.Decimal(8, 2)
+  billingRate       Decimal?    @db.Decimal(10, 2)
+  isRefined         Boolean     @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  timeLogs TimeLog[]
+
+  @@map("sows")
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Employee
+// ─────────────────────────────────────────────────────────────────
+
+model Employee {
+  id String @id @default(cuid())
+
+  name                 String
+  contractedHours      Decimal  @db.Decimal(6, 2)
+  adminTimePercent     Decimal  @db.Decimal(5, 2)
+  effectiveHourlyRate  Decimal  @db.Decimal(10, 2)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  timeLogs TimeLog[]
+
+  @@map("employees")
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Client Subscription
+// ─────────────────────────────────────────────────────────────────
+
+model ClientSubscription {
+  id String @id @default(cuid())
+
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  softwareName   String
+  tier           String?
+  ourCost        Decimal @db.Decimal(10, 2)
+  clientPrice    Decimal @db.Decimal(10, 2)
+  billingCadence BillingCadence
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("client_subscriptions")
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Time Log  (Harvest hours)
+// ─────────────────────────────────────────────────────────────────
+
+model TimeLog {
+  id String @id @default(cuid())
+
+  clientId   String
+  client     Client   @relation(fields: [clientId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  sowId      String?
+  sow        SOW?     @relation(fields: [sowId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  hoursLogged Decimal     @db.Decimal(6, 2)
+  logDate     DateTime    @db.Date
+  logType     TimeLogType @default(BOOKKEEPER)
+  notes       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("time_logs")
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Call Log  (AI-generated meeting summaries)
+// ─────────────────────────────────────────────────────────────────
+
+model CallLog {
+  id String @id @default(cuid())
+
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  callDate  DateTime @db.Date
+  summary   String   @db.Text
+  rawNotes  String?  @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("call_logs")
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Accountant
+// ─────────────────────────────────────────────────────────────────
+
+model Accountant {
+  id           String          @id @default(cuid())
+  name         String
+  businessName String?
+  email        String?
+  phoneNumber  String?
+  status       AccountantStatus @default(ACTIVE)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("accountants")
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Tag
+// ─────────────────────────────────────────────────────────────────
+
+model Tag {
+  id String @id @default(cuid())
+
+  name  String @unique
+  color String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  clients ClientTag[]
+
+  @@map("tags")
+}
+
+// ─────────────────────────────────────────────────────────────────
+// PillTheme  (admin-configurable badge styles)
+// ─────────────────────────────────────────────────────────────────
+
+model PillTheme {
+  id       String @id @default(cuid())
+
+  /// One of: projectType | revenueType | cadence | clientStatus
+  category String
+  /// Enum key, e.g. ANNUAL, CLEAN_UP, RECURRING_MONTHLY_ACH
+  key      String
+  /// Display label rendered inside the badge
+  label    String
+  /// 6-digit hex color, e.g. #4e008e
+  color    String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([category, key])
+  @@map("pill_themes")
+}
+
+// ─────────────────────────────────────────────────────────────────
+// ClientTag  (many-to-many: Client ↔ Tag)
+// ─────────────────────────────────────────────────────────────────
+
+model ClientTag {
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  tagId String
+  tag   Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  assignedAt DateTime @default(now())
+
+  @@id([clientId, tagId])
+  @@map("client_tags")
+}

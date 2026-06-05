@@ -1,0 +1,61 @@
+import Link from 'next/link'
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = { title: 'Settings — Management Dashboard' }
+
+const sections = [
+  {
+    href: '/settings/pills',
+    icon: (
+      <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75}
+          d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+      </svg>
+    ),
+    title: 'Visual Pill Manager',
+    description: 'Customize badge labels and colors for project types, revenue types, cadences, and client statuses system-wide.',
+  },
+  {
+    href: '/settings/tags',
+    icon: (
+      <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75}
+          d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+      </svg>
+    ),
+    title: 'Client Tags',
+    description: 'Create, color, and delete global tags that appear on client cards and dashboard filters.',
+  },
+]
+
+export default function SettingsPage() {
+  return (
+    <div className="max-w-2xl space-y-6">
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
+        <p className="mt-1 text-sm text-[#8a6a90]">Manage global configuration for the dashboard.</p>
+      </div>
+
+      <div className="space-y-3">
+        {sections.map(s => (
+          <Link
+            key={s.href}
+            href={s.href}
+            className="group flex items-start gap-4 rounded-xl border border-[#7020b8]/40 bg-[#2d0050] p-5 transition-colors hover:bg-[#3d0068]"
+          >
+            <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#b20476]/20 text-[#b20476] transition-colors group-hover:bg-[#b20476]/30">
+              {s.icon}
+            </span>
+            <div className="flex-1">
+              <p className="font-semibold text-white">{s.title}</p>
+              <p className="mt-0.5 text-sm text-white/50">{s.description}</p>
+            </div>
+            <svg className="ml-auto mt-1 h-4 w-4 shrink-0 text-white/30 transition-colors group-hover:text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </Link>
+        ))}
+      </div>
+    </div>
+  )
+}
