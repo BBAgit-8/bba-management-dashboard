@@ -3,8 +3,24 @@
 import { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd'
-import { CLIENTS, TAGS, ALERTS, SOWS } from '@/lib/mock-data'
-import type { Tag, ProcessingCadence, ProjectType } from '@/lib/mock-data'
+type Tag = { id: string; name: string; color: string }
+type ProcessingCadence = 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY' | 'QUARTERLY'
+type ProjectType = 'ANNUAL' | 'CLEAN_UP' | 'MONTHLY_MAINTENANCE' | 'QBO_ONLY' | 'RECURRING'
+
+// Shape returned by GET /api/clients
+type ApiClient = {
+  id: string
+  name: string
+  harvestProjectCode: string
+  archiveStatus: string
+  processingCadence: string
+  contractEndDate?: string | null
+  projectType?: string | null
+  revenueType?: string | null
+  qboOnly?: boolean
+  tags: Tag[]
+  sows: Array<{ billingType: string; fixedMonthlyRate?: number | null; billingRate?: number | null }>
+}
 import AddClientPanel from './AddClientPanel'
 
 // ── Column / status types ─────────────────────────────────────────────────────
@@ -55,7 +71,7 @@ const STATUS_PILL: Record<StatusKey, { bg: string; text: string; ring: string; l
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-function deriveStatus(client: typeof CLIENTS[0]): StatusKey {
+function deriveStatus(client: ApiClient): StatusKey {
   if (client.contractEndDate) {
     const now = new Date()
     now.setHours(0, 0, 0, 0)
@@ -77,8 +93,8 @@ function initials(name: string) {
   return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
 }
 
-function clientRate(clientId: string): { value: number; suffix: string } | null {
-  const sow = SOWS.find(s => s.clientId === clientId)
+function clientRate(sows: ApiClient['sows']): { value: number; suffix: string } | null {
+  const sow = sows?.[0]
   if (!sow) return null
   if (sow.billingType === 'FLAT' && sow.fixedMonthlyRate != null) {
     return { value: sow.fixedMonthlyRate, suffix: '/mo' }
@@ -95,8 +111,6 @@ export default function ClientDirectory() {
   const [panelOpen,     setPanelOpen]    = useState(false)
   const [sortKey,       setSortKey]      = useState<SortKey>('name')
   const [sortDir,       setSortDir]      = useState<'asc' | 'desc'>('asc')
-  const [alertsOpen,    setAlertsOpen]   = useState(false)
-
   // Filters
   const [tagFilters,    setTagFilters]   = useState<Set<string>>(new Set())
   const [cadenceFilter, setCadenceFilter] = useState<ProcessingCadence | 'all'>('all')
@@ -119,7 +133,10 @@ export default function ClientDirectory() {
     return DEFAULT_COL_ORDER
   })
 
-  const [tags, setTags] = useState<Tag[]>(TAGS)
+  const [tags,    setTags]    = useState<Tag[]>([])
+  const [clients, setClients] = useState<ApiClient[]>([])
+  const [loading, setLoading] = useState(true)
+  const [fetchKey, setFetchKey] = useState(0)
 
   useEffect(() => {
     fetch('/api/tags')
@@ -127,6 +144,17 @@ export default function ClientDirectory() {
       .then(d => { if (Array.isArray(d.tags) && d.tags.length > 0) setTags(d.tags) })
       .catch(() => {})
   }, [])
+
+  useEffect(() => {
+    setLoading(true)
+    fetch('/api/clients')
+      .then(r => r.json())
+      .then(d => { if (Array.isArray(d.clients)) setClients(d.clients) })
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [fetchKey])
+
+  function refetchClients() { setFetchKey(k => k + 1) }
 
   function onDragEnd(result: DropResult) {
     if (!result.destination) return
@@ -150,11 +178,11 @@ export default function ClientDirectory() {
     })
   }
 
-  const activeCount = CLIENTS.filter(c => c.archiveStatus === 'ACTIVE' && !c.qboOnly).length
-  const qboCount    = CLIENTS.filter(c => c.qboOnly).length
+  const activeCount = clients.filter(c => c.archiveStatus === 'ACTIVE' && !c.qboOnly).length
+  const qboCount    = clients.filter(c => c.qboOnly).length
 
   const filtered = useMemo(() => {
-    const list = CLIENTS.filter(c => {
+    const list = clients.filter(c => {
       if (tagFilters.size > 0 && !c.tags.some(t => tagFilters.has(t.id))) return false
       if (cadenceFilter !== 'all' && c.processingCadence !== cadenceFilter) return false
       if (ptFilter !== 'all' && (c.projectType ?? 'MONTHLY_MAINTENANCE') !== ptFilter) return false
@@ -170,8 +198,8 @@ export default function ClientDirectory() {
       if (sortKey === 'projectType')     cmp = (a.projectType ?? '').localeCompare(b.projectType ?? '')
       if (sortKey === 'revenueType')     cmp = (a.revenueType ?? '').localeCompare(b.revenueType ?? '')
       if (sortKey === 'bookkeepingRate') {
-        const ra = clientRate(a.id)?.value ?? -1
-        const rb = clientRate(b.id)?.value ?? -1
+        const ra = clientRate(a.id as any)?.value ?? -1
+        const rb = clientRate(b.id as any)?.value ?? -1
         cmp = ra - rb
       }
       if (sortKey === 'status') {
@@ -179,7 +207,7 @@ export default function ClientDirectory() {
       }
       return sortDir === 'asc' ? cmp : -cmp
     })
-  }, [search, tagFilters, cadenceFilter, ptFilter, statusFilter, sortKey, sortDir])
+  }, [clients, search, tagFilters, cadenceFilter, ptFilter, statusFilter, sortKey, sortDir])
 
   const anyFilter = tagFilters.size > 0 || cadenceFilter !== 'all' || ptFilter !== 'all' || statusFilter !== 'all' || !!search.trim()
 
@@ -221,53 +249,6 @@ export default function ClientDirectory() {
         </button>
       </div>
 
-      {/* ── Priority Alerts (collapsed by default) ── */}
-      {ALERTS.length > 0 && (
-        <section className="rounded-xl border border-amber-500/30 bg-amber-500/5">
-          <button
-            onClick={() => setAlertsOpen(o => !o)}
-            className="w-full flex items-center gap-2 px-4 py-3 text-left"
-          >
-            <span className="text-base leading-none">⚠️</span>
-            <h2 className="text-xs font-bold uppercase tracking-widest text-amber-500 flex-1">
-              Priority Action Required / Needs Attention
-            </h2>
-            <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-[11px] font-bold text-amber-400 tabular-nums">
-              {ALERTS.length}
-            </span>
-            <svg
-              className={`h-4 w-4 text-amber-400 transition-transform ${alertsOpen ? '' : '-rotate-90'}`}
-              fill="none" stroke="currentColor" viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
-          {alertsOpen && (
-            <div className="space-y-1.5 px-4 pb-4">
-              {ALERTS.map(alert => {
-                const client = CLIENTS.find(c => c.id === alert.clientId)
-                const isCritical = alert.severity === 'critical'
-                return (
-                  <div
-                    key={alert.id}
-                    className={`flex items-center gap-3 rounded-lg px-3 py-2 text-xs ${isCritical ? 'bg-red-500/10 border border-red-500/20' : 'bg-amber-500/8 border border-amber-500/15'}`}
-                  >
-                    <div className={`h-1.5 w-1.5 shrink-0 rounded-full ${isCritical ? 'bg-red-400' : 'bg-amber-400'}`} />
-                    <span className={`shrink-0 font-semibold ${isCritical ? 'text-red-400' : 'text-amber-400'}`}>{alert.clientName}</span>
-                    <span className="text-slate-400">—</span>
-                    <span className="flex-1 text-slate-300 min-w-0 truncate">{alert.message}</span>
-                    {client && (
-                      <Link href={`/clients/${client.harvestProjectCode}`} className="shrink-0 text-slate-400 hover:text-slate-200 underline underline-offset-2 transition-colors">
-                        View →
-                      </Link>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </section>
-      )}
 
       {/* ── Filters ── */}
       <div className="space-y-3">
@@ -280,7 +261,7 @@ export default function ClientDirectory() {
             All Tags
           </button>
           {tags.map(tag => {
-            const count = CLIENTS.filter(c => c.tags.some(t => t.id === tag.id)).length
+            const count = clients.filter(c => c.tags.some(t => t.id === tag.id)).length
             if (!count) return null
             const active = tagFilters.has(tag.id)
             return (
@@ -414,16 +395,24 @@ export default function ClientDirectory() {
               </Droppable>
             </thead>
             <tbody>
-              {filtered.length === 0 ? (
+              {loading ? (
                 <tr>
                   <td colSpan={colOrder.length} className="px-4 py-12 text-center text-sm" style={{ color: 'rgba(212,190,190,0.45)', backgroundColor: '#2d0050' }}>
-                    No clients match your filters.{' '}
-                    {anyFilter && <button onClick={clearFilters} className="underline text-bba-highlight">Clear filters</button>}
+                    Loading clients…
+                  </td>
+                </tr>
+              ) : filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={colOrder.length} className="px-4 py-12 text-center text-sm" style={{ color: 'rgba(212,190,190,0.45)', backgroundColor: '#2d0050' }}>
+                    {anyFilter
+                      ? <><span>No clients match your filters. </span><button onClick={clearFilters} className="underline text-bba-highlight">Clear filters</button></>
+                      : 'No active clients found. Click Add New Client to begin!'
+                    }
                   </td>
                 </tr>
               ) : filtered.map((client, idx) => {
                 const baseBg = idx % 2 === 0 ? '#2d0050' : '#330060'
-                const rate      = clientRate(client.id)
+                const rate      = clientRate(client.sows)
                 const statusKey = deriveStatus(client)
                 const pill      = STATUS_PILL[statusKey]
                 const pt        = client.projectType ?? 'MONTHLY_MAINTENANCE'
@@ -526,7 +515,7 @@ export default function ClientDirectory() {
         </DragDropContext>
       </div>
 
-      <AddClientPanel open={panelOpen} onClose={() => setPanelOpen(false)} />
+      <AddClientPanel open={panelOpen} onClose={() => setPanelOpen(false)} onSuccess={refetchClients} />
     </div>
   )
 }
