@@ -130,13 +130,13 @@ export default function EmployeesPage() {
           <td key={key} className="px-5 py-3">
             <div className="flex items-center gap-2.5">
               <div
-                className="h-7 w-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0"
+                className="h-7 w-7 rounded-full flex items-center justify-center text-[10px] font-bold text-bba-primary shrink-0"
                 style={{ backgroundColor: 'rgba(78,0,142,0.1)' }}
               >
                 {initials(emp.name)}
               </div>
               <div>
-                <span className="font-medium text-white block">{emp.name}</span>
+                <span className="font-medium text-slate-800 block">{emp.name}</span>
                 <span
                   className="text-[10px] rounded-full px-1.5 py-0.5 font-semibold"
                   style={{
@@ -260,13 +260,13 @@ export default function EmployeesPage() {
               {/* ── Avatar + name ── */}
               <div className="flex items-center gap-3">
                 <div
-                  className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-sm font-bold ${over ? 'text-red-900' : 'text-white'}`}
+                  className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-sm font-bold ${over ? 'text-red-900' : 'text-bba-primary'}`}
                   style={{ backgroundColor: over ? 'rgba(239,68,68,0.18)' : 'rgba(78,0,142,0.1)' }}
                 >
                   {initials(emp.name)}
                 </div>
                 <div>
-                  <p className={`font-semibold ${over ? 'text-red-950' : 'text-white'}`}>{emp.name}</p>
+                  <p className={`font-semibold ${over ? 'text-red-950' : 'text-slate-800'}`}>{emp.name}</p>
                   <div className="flex items-center gap-2 mt-0.5">
                     <p className="text-xs" style={{ color: over ? '#7f1d1d' : '#8a6a90' }}>
                       {emp.contractedHours}h/wk · 80% billable · ${emp.effectiveHourlyRate}/hr
@@ -317,7 +317,7 @@ export default function EmployeesPage() {
                   { label: 'Labor Cost', value: `$${(laborCost / 1000).toFixed(1)}k` },
                 ].map(s => (
                   <div key={s.label} className="text-center">
-                    <p className={`text-sm font-bold tabular-nums ${over ? 'text-red-900' : 'text-white'}`}>{s.value}</p>
+                    <p className={`text-sm font-bold tabular-nums ${over ? 'text-red-900' : 'text-bba-primary'}`}>{s.value}</p>
                     <p className="text-[10px] mt-0.5" style={{ color: over ? '#7f1d1d' : '#8a6a90' }}>{s.label}</p>
                   </div>
                 ))}

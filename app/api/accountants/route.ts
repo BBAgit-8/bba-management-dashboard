@@ -1,19 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
-import { ACCOUNTANTS } from '@/lib/mock-data'
-import type { Accountant } from '@/lib/mock-data'
 
 export async function GET(): Promise<NextResponse> {
   const { data, error } = await supabase
     .from('accountants')
     .select('*')
+    .eq('status', 'ACTIVE')
     .order('name')
 
-  if (error || !data || data.length === 0) {
-    // Fall back to mock data if table is empty or missing
-    return NextResponse.json({ accountants: ACCOUNTANTS })
+  if (error) {
+    console.error('[GET /api/accountants]', error)
+    return NextResponse.json({ accountants: [] })
   }
-  return NextResponse.json({ accountants: data })
+  return NextResponse.json({ accountants: data ?? [] })
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
@@ -29,9 +28,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     .from('accountants')
     .insert({
       name:         name.trim(),
-      business_name: typeof businessName === 'string' ? businessName.trim() || null : null,
+      businessName: typeof businessName === 'string' ? businessName.trim() || null : null,
       email:        typeof email        === 'string' ? email.trim()        || null : null,
-      phone_number: typeof phoneNumber  === 'string' ? phoneNumber.trim()  || null : null,
+      phoneNumber:  typeof phoneNumber  === 'string' ? phoneNumber.trim()  || null : null,
       status:       'ACTIVE',
     })
     .select()

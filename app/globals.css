@@ -2,15 +2,14 @@
 
 /* ── BBA brand tokens ───────────────────────────────────────────────────────── */
 :root {
-  --background:     #f0eeed;   /* warm off-white canvas — matches BBA Tools */
-  --foreground:     #1a0030;   /* very dark purple — primary text */
-  --bba-primary:    #4e008e;   /* deep BBA purple */
-  --bba-secondary:  #8a6a90;   /* muted purple-mauve */
-  --bba-highlight:  #b20476;   /* BBA pink */
-
+  --background:     #f0eeed;
+  --foreground:     #1a0030;
+  --bba-primary:    #4e008e;
+  --bba-secondary:  #8a6a90;
+  --bba-highlight:  #b20476;
   --surface-card:   #ffffff;
   --surface-tint:   #faf8f8;
-  --surface-border: #e2d8e8;   /* soft purple-tinted border */
+  --surface-border: #e2d8e8;
 }
 
 /* ── Tailwind theme ─────────────────────────────────────────────────────────── */
@@ -21,18 +20,17 @@
   --color-bba-secondary: var(--bba-secondary);
   --color-bba-highlight: var(--bba-highlight);
 
-  /* Slate palette → BBA light theme */
-  --color-slate-950: #f0eeed;   /* page canvas */
-  --color-slate-900: #ffffff;   /* card base */
-  --color-slate-800: #faf8f8;   /* input bg, alt rows, subtle hover */
-  --color-slate-700: #e2d8e8;   /* borders, dividers */
-  --color-slate-600: #b8a0c0;   /* muted decorative */
-  --color-slate-500: #8a6a90;   /* muted text */
-  --color-slate-400: #6a4c80;   /* secondary text */
-  --color-slate-300: #4a2870;   /* body text */
-  --color-slate-200: #4e008e;   /* section titles */
-  --color-slate-100: #1a0030;   /* primary text */
-  --color-slate-50:  #fdf9f8;   /* near-white */
+  --color-slate-950: #f0eeed;
+  --color-slate-900: #ffffff;
+  --color-slate-800: #faf8f8;
+  --color-slate-700: #e2d8e8;
+  --color-slate-600: #b8a0c0;
+  --color-slate-500: #8a6a90;
+  --color-slate-400: #6a4c80;
+  --color-slate-300: #4a2870;
+  --color-slate-200: #4e008e;
+  --color-slate-100: #1a0030;
+  --color-slate-50:  #fdf9f8;
 
   --font-sans:  var(--font-comfortaa);
   --font-inter: var(--font-inter);
@@ -40,16 +38,14 @@
 
 /* ── Base ───────────────────────────────────────────────────────────────────── */
 html, body { height: 100%; }
-
 body {
   background: var(--background);
   color: var(--foreground);
+  color-scheme: light;
 }
 
 /* ── Typography ─────────────────────────────────────────────────────────────── */
-table td {
-  font-family: var(--font-inter);
-}
+table td { font-family: var(--font-inter); }
 
 thead th {
   color: #ffffff !important;
@@ -57,9 +53,13 @@ thead th {
   text-transform: uppercase !important;
 }
 
-main h1 {
-  color: var(--bba-primary);
+/* Light thead rows get dark purple text */
+thead tr[style*="f9f5ff"] th,
+thead tr[style*="f9f5ff"] th button span {
+  color: #4e008e !important;
 }
+
+main h1 { color: var(--bba-primary); }
 
 /* ── Table header bars ──────────────────────────────────────────────────────── */
 div.border-b:has(> h3) {
@@ -71,19 +71,27 @@ div.border-b:has(> h3) span {
   color: white !important;
 }
 
-/* ── Select options ─────────────────────────────────────────────────────────── */
+/* ── Inputs and selects — force light theme ─────────────────────────────────── */
+input, select, textarea {
+  color-scheme: light;
+  color: #1a0030;
+}
+
+input::placeholder { color: #b8a0c0; }
+
+select {
+  background-color: #ffffff;
+  color: #1a0030;
+}
+
 select option {
-  background-color: #2d0050;
-  color: #f1f5f9;
+  background-color: #ffffff;
+  color: #1a0030;
 }
 
 /* ── Table alternating rows ─────────────────────────────────────────────────── */
-table tbody tr:nth-child(even) {
-  background-color: #faf5ff;
-}
-table tbody tr:nth-child(even):hover {
-  background-color: #f3e8ff;
-}
+table tbody tr:nth-child(even) { background-color: #faf5ff; }
+table tbody tr:nth-child(even):hover { background-color: #f3e8ff; }
 
 /* ── Scrollbar ──────────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 4px; }
@@ -91,10 +99,4 @@ table tbody tr:nth-child(even):hover {
 ::-webkit-scrollbar-thumb {
   background: rgba(78, 0, 142, 0.25);
   border-radius: 9999px;
-}
-
-/* ── Light thead: dark purple text (overrides the white rule for dark headers) ── */
-thead tr[style*="f9f5ff"] th,
-thead tr[style*="f9f5ff"] th button span {
-  color: #4e008e !important;
 }
