@@ -40,7 +40,7 @@ const ALL_COLUMNS: { key: ColKey; label: string; sortKey?: SortKey; align?: 'rig
 const DEFAULT_COL_ORDER: ColKey[] = ALL_COLUMNS.map(c => c.key)
 
 // ── Style maps ────────────────────────────────────────────────────────────────
-const dropSel = 'rounded-lg bg-[#4e008e] border border-bba-secondary/30 px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-bba-highlight [color-scheme:dark]'
+const dropSel = 'rounded-lg bg-white border border-surface-border px-3 py-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-bba-primary'
 
 const PTYPE_STYLE: Record<string, { bg: string; text: string; label: string }> = {
   ANNUAL:              { bg: 'bg-blue-500/15',    text: 'text-blue-400',      label: 'Annual'      },
@@ -318,7 +318,7 @@ export default function ClientDirectory() {
             <input
               type="text" value={search} onChange={e => setSearch(e.target.value)}
               placeholder="Search by client name or project code…"
-              className="w-full rounded-lg bg-[#4e008e] border border-bba-secondary/30 pl-9 pr-9 py-2.5 text-sm text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-bba-highlight focus:border-transparent"
+              className="w-full rounded-lg bg-white border border-surface-border pl-9 pr-9 py-2.5 text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-bba-primary focus:border-transparent"
               style={{ colorScheme: 'dark' }}
             />
             {search && (
@@ -338,10 +338,10 @@ export default function ClientDirectory() {
       </div>
 
       {/* ── Table ── */}
-      <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(212,190,190,0.18)' }}>
+      <div className="rounded-xl overflow-hidden" style={{ border: '1px solid #e2d8e8' }}>
         <div
           className="border-b px-5 py-3.5 flex items-center justify-between"
-          style={{ backgroundColor: '#4e008e', borderColor: 'rgba(212,190,190,0.18)' }}
+          style={{ backgroundColor: 'var(--bba-primary)', borderColor: 'rgba(78,0,142,0.2)' }}
         >
           <h3 className="text-sm font-semibold text-white">
             {filtered.length} Client{filtered.length !== 1 ? 's' : ''}{anyFilter ? ' — filtered' : ''}
@@ -364,7 +364,7 @@ export default function ClientDirectory() {
                   <tr
                     ref={provided.innerRef}
                     {...provided.droppableProps}
-                    style={{ backgroundColor: '#3d0070', borderBottom: '1px solid rgba(212,190,190,0.13)' }}
+                    style={{ backgroundColor: '#f9f5ff', borderBottom: '1px solid #e2d8e8' }}
                   >
                     {colOrder.map((colKey, index) => {
                       const col = ALL_COLUMNS.find(c => c.key === colKey)!
@@ -397,13 +397,13 @@ export default function ClientDirectory() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={colOrder.length} className="px-4 py-12 text-center text-sm" style={{ color: 'rgba(212,190,190,0.45)', backgroundColor: '#2d0050' }}>
+                  <td colSpan={colOrder.length} className="px-4 py-12 text-center text-sm" style={{ color: '#8a6a90', backgroundColor: '#faf8f8' }}>
                     Loading clients…
                   </td>
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={colOrder.length} className="px-4 py-12 text-center text-sm" style={{ color: 'rgba(212,190,190,0.45)', backgroundColor: '#2d0050' }}>
+                  <td colSpan={colOrder.length} className="px-4 py-12 text-center text-sm" style={{ color: '#8a6a90', backgroundColor: '#faf8f8' }}>
                     {anyFilter
                       ? <><span>No clients match your filters. </span><button onClick={clearFilters} className="underline text-bba-highlight">Clear filters</button></>
                       : 'No active clients found. Click Add New Client to begin!'
@@ -411,7 +411,7 @@ export default function ClientDirectory() {
                   </td>
                 </tr>
               ) : filtered.map((client, idx) => {
-                const baseBg = idx % 2 === 0 ? '#2d0050' : '#330060'
+                const baseBg = idx % 2 === 0 ? '#ffffff' : '#faf5ff'
                 const rate      = clientRate(client.sows)
                 const statusKey = deriveStatus(client)
                 const pill      = STATUS_PILL[statusKey]
@@ -422,8 +422,8 @@ export default function ClientDirectory() {
                 return (
                   <tr
                     key={client.id}
-                    style={{ backgroundColor: baseBg, borderBottom: '1px solid rgba(212,190,190,0.07)' }}
-                    onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#4e008e' }}
+                    style={{ backgroundColor: baseBg, borderBottom: '1px solid #f0e8f8' }}
+                    onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#f3e8ff' }}
                     onMouseLeave={e => { e.currentTarget.style.backgroundColor = baseBg }}
                   >
                     {colOrder.map(colKey => {
@@ -432,7 +432,7 @@ export default function ClientDirectory() {
                           return (
                             <td key={colKey} className="px-4 py-3">
                               <div className="flex items-center gap-3">
-                                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white" style={{ backgroundColor: 'rgba(212,190,190,0.15)' }}>
+                                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white" style={{ backgroundColor: 'rgba(78,0,142,0.12)' }}>
                                   {initials(client.name)}
                                 </div>
                                 <div className="flex items-center gap-2 min-w-0">
@@ -445,9 +445,9 @@ export default function ClientDirectory() {
                                   <Link
                                     href={`/clients/${client.harvestProjectCode}`}
                                     className="shrink-0 inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium transition-colors"
-                                    style={{ backgroundColor: 'rgba(212,190,190,0.1)', color: '#d4bebe', border: '1px solid rgba(212,190,190,0.15)' }}
+                                    style={{ backgroundColor: 'rgba(78,0,142,0.08)', color: '#6a4c80', border: '1px solid rgba(78,0,142,0.2)' }}
                                     onMouseEnter={e => { const el = e.currentTarget as HTMLAnchorElement; el.style.backgroundColor = '#b20476'; el.style.color = '#fff' }}
-                                    onMouseLeave={e => { const el = e.currentTarget as HTMLAnchorElement; el.style.backgroundColor = 'rgba(212,190,190,0.1)'; el.style.color = '#d4bebe' }}
+                                    onMouseLeave={e => { const el = e.currentTarget as HTMLAnchorElement; el.style.backgroundColor = 'rgba(78,0,142,0.08)'; el.style.color = '#6a4c80' }}
                                   >
                                     Open
                                     <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -461,7 +461,7 @@ export default function ClientDirectory() {
                         case 'code':
                           return (
                             <td key={colKey} className="px-4 py-3">
-                              <span className="font-mono text-xs rounded px-1.5 py-0.5" style={{ backgroundColor: 'rgba(212,190,190,0.08)', color: '#d4bebe' }}>
+                              <span className="font-mono text-xs rounded px-1.5 py-0.5" style={{ backgroundColor: 'rgba(78,0,142,0.08)', color: '#4e008e' }}>
                                 {client.harvestProjectCode}
                               </span>
                             </td>
@@ -479,7 +479,7 @@ export default function ClientDirectory() {
                             <td key={colKey} className="px-4 py-3">
                               {rt
                                 ? <span className="text-xs whitespace-nowrap" style={{ color: 'rgba(255,255,255,0.75)' }}>{RTYPE_LABEL[rt] ?? rt}</span>
-                                : <span className="text-xs" style={{ color: 'rgba(212,190,190,0.3)' }}>—</span>
+                                : <span className="text-xs" style={{ color: '#c4b0d0' }}>—</span>
                               }
                             </td>
                           )
@@ -489,9 +489,9 @@ export default function ClientDirectory() {
                               {rate != null
                                 ? <span className="font-semibold tabular-nums text-white">
                                     ${rate.value.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
-                                    <span className="text-xs ml-0.5" style={{ color: 'rgba(212,190,190,0.5)' }}>{rate.suffix}</span>
+                                    <span className="text-xs ml-0.5" style={{ color: '#8a6a90' }}>{rate.suffix}</span>
                                   </span>
-                                : <span className="text-xs" style={{ color: 'rgba(212,190,190,0.3)' }}>—</span>
+                                : <span className="text-xs" style={{ color: '#c4b0d0' }}>—</span>
                               }
                             </td>
                           )

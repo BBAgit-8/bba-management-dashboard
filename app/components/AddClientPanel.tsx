@@ -136,14 +136,14 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
   return (
     <>
       <div onClick={handleClose} className={`fixed inset-0 z-40 bg-black/60 transition-opacity duration-300 ${open ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} />
-      <aside className={`fixed inset-y-0 right-0 z-50 flex w-full max-w-lg flex-col bg-slate-900 border-l border-slate-700/60 shadow-2xl transition-transform duration-300 ${open ? 'translate-x-0' : 'translate-x-full'}`}>
+      <aside className={`fixed inset-y-0 right-0 z-50 flex w-full max-w-lg flex-col bg-white border-l border-surface-border shadow-2xl transition-transform duration-300 ${open ? 'translate-x-0' : 'translate-x-full'}`}>
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700/60 shrink-0">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-surface-border shrink-0">
           <div>
-            <h2 className="text-base font-semibold text-slate-100">Add New Client</h2>
+            <h2 className="text-base font-semibold text-slate-800">Add New Client</h2>
             <p className="text-xs text-slate-500 mt-0.5">Fields marked <span className="text-red-400">*</span> are required</p>
           </div>
-          <button onClick={handleClose} className="rounded-md p-1.5 text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-colors">
+          <button onClick={handleClose} className="rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors">
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
         </div>
@@ -203,13 +203,13 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
                 </div>
               )}
             </Field>
-            <div className="flex items-center justify-between rounded-lg bg-slate-800/60 border border-slate-700 px-4 py-3">
+            <div className="flex items-center justify-between rounded-lg bg-slate-50 border border-surface-border px-4 py-3">
               <div>
-                <span className="text-sm text-slate-300">Okay to contact accountant directly?</span>
+                <span className="text-sm text-slate-700">Okay to contact accountant directly?</span>
                 <p className="text-[11px] text-slate-500 mt-0.5">Client authorises BBA to contact their accountant</p>
               </div>
               <button type="button" onClick={() => set('okToContactAccountant', !form.okToContactAccountant)}
-                className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors ${form.okToContactAccountant ? 'bg-bba-primary' : 'bg-slate-600'}`}>
+                className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors ${form.okToContactAccountant ? 'bg-bba-primary' : 'bg-slate-300'}`}>
                 <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${form.okToContactAccountant ? 'translate-x-5' : 'translate-x-0'}`} />
               </button>
             </div>
@@ -228,11 +228,11 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
                 <input type="number" min={1} max={31} value={form.guaranteedDeadlineDay} onChange={e => set('guaranteedDeadlineDay', e.target.value)} placeholder="1–31" className={inp} />
               </Field>
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1.5">Office Type</label>
-                <div className="flex rounded-lg border border-slate-700 overflow-hidden">
+                <label className="block text-xs font-medium text-slate-500 mb-1.5">Office Type</label>
+                <div className="flex rounded-lg border border-surface-border overflow-hidden">
                   {(['HOME_OFFICE', 'PHYSICAL'] as OfficeType[]).map(v => (
                     <button key={v} type="button" onClick={() => set('officeType', v)}
-                      className={`flex-1 py-2 text-xs font-medium transition-colors ${form.officeType === v ? 'bg-bba-primary text-white' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'}`}>
+                      className={`flex-1 py-2 text-xs font-medium transition-colors ${form.officeType === v ? 'bg-bba-primary text-white' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'}`}>
                       {v === 'HOME_OFFICE' ? '🏠 Home' : '🏢 Physical'}
                     </button>
                   ))}
@@ -258,10 +258,10 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
 
           {/* ── Payroll ── */}
           <Section label="Payroll">
-            <div className="flex items-center justify-between rounded-lg bg-slate-800/60 border border-slate-700 px-4 py-3">
-              <span className="text-sm text-slate-300">Has Payroll</span>
+            <div className="flex items-center justify-between rounded-lg bg-slate-50 border border-surface-border px-4 py-3">
+              <span className="text-sm text-slate-700">Has Payroll</span>
               <button type="button" onClick={() => set('hasPayroll', !form.hasPayroll)}
-                className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors ${form.hasPayroll ? 'bg-bba-primary' : 'bg-slate-600'}`}>
+                className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors ${form.hasPayroll ? 'bg-bba-primary' : 'bg-slate-300'}`}>
                 <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${form.hasPayroll ? 'translate-x-5' : 'translate-x-0'}`} />
               </button>
             </div>
@@ -281,13 +281,13 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
 
           {/* ── QBO Only ── */}
           <Section label="QBO Only">
-            <div className="flex items-center justify-between rounded-lg bg-slate-800/60 border border-slate-700 px-4 py-3">
+            <div className="flex items-center justify-between rounded-lg bg-slate-50 border border-surface-border px-4 py-3">
               <div>
-                <span className="text-sm text-slate-300">QBO Only Client</span>
+                <span className="text-sm text-slate-700">QBO Only Client</span>
                 <p className="text-[11px] text-slate-500 mt-0.5">Only needs QuickBooks Online subscription tracking</p>
               </div>
               <button type="button" onClick={() => set('qboOnly', !form.qboOnly)}
-                className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors ${form.qboOnly ? 'bg-bba-primary' : 'bg-slate-600'}`}>
+                className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors ${form.qboOnly ? 'bg-bba-primary' : 'bg-slate-300'}`}>
                 <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${form.qboOnly ? 'translate-x-5' : 'translate-x-0'}`} />
               </button>
             </div>
@@ -325,8 +325,8 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
           )}
         </form>
 
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-700/60 shrink-0">
-          <button type="button" onClick={handleClose} disabled={saving} className="rounded-lg px-4 py-2 text-sm font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors disabled:opacity-50">Cancel</button>
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-surface-border shrink-0">
+          <button type="button" onClick={handleClose} disabled={saving} className="rounded-lg px-4 py-2 text-sm font-medium text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors disabled:opacity-50">Cancel</button>
           <button type="submit" form="add-client-form" disabled={saving}
             className="rounded-lg bg-bba-primary px-5 py-2 text-sm font-semibold text-white hover:bg-bba-primary/85 transition-colors disabled:opacity-60 flex items-center gap-2">
             {saving && <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>}
@@ -338,13 +338,13 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
   );
 }
 
-const inp = 'w-full rounded-lg bg-[#4e008e] border border-bba-secondary/30 px-3 py-2 text-sm text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-bba-highlight focus:border-transparent';
-const sel = 'w-full rounded-lg bg-[#4e008e] border border-bba-secondary/30 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-bba-primary focus:border-transparent [color-scheme:dark]';
+const inp = 'w-full rounded-lg bg-white border border-surface-border px-3 py-2 text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-bba-primary focus:border-transparent';
+const sel = 'w-full rounded-lg bg-white border border-surface-border px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-bba-primary focus:border-transparent';
 
 function Section({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-3">{label}</p>
+      <p className="text-[10px] font-bold uppercase tracking-widest text-bba-secondary mb-3">{label}</p>
       <div className="space-y-4">{children}</div>
     </div>
   );
@@ -353,7 +353,7 @@ function Section({ label, children }: { label: string; children: React.ReactNode
 function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
     <div>
-      <label className="block text-xs font-medium text-slate-400 mb-1.5">
+      <label className="block text-xs font-medium text-slate-500 mb-1.5">
         {label}{required && <span className="ml-0.5 text-red-400">*</span>}
       </label>
       {children}

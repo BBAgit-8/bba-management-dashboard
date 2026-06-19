@@ -23,12 +23,12 @@ const ALL_COLS: { key: ColKey; label: string }[] = [
 const DEFAULT_COL_ORDER: ColKey[] = ALL_COLS.map(c => c.key)
 
 // ── Dark purple palette ───────────────────────────────────────────────────────
-const BG_CARD_HEADER = '#4e008e'
-const BG_TABLE       = '#2d0050'
-const BG_THEAD       = '#3d0070'
-const ROW_ODD        = '#2d0050'
-const ROW_EVEN       = '#330060'
-const ROW_HOVER      = '#4e008e'
+const BG_CARD_HEADER = 'var(--bba-primary)'
+const BG_TABLE       = '#ffffff'
+const BG_THEAD       = '#f9f5ff'
+const ROW_ODD        = '#ffffff'
+const ROW_EVEN       = '#faf5ff'
+const ROW_HOVER      = '#f3e8ff'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function r2(n: number) { return Math.round((n + Number.EPSILON) * 100) / 100 }
@@ -131,7 +131,7 @@ export default function EmployeesPage() {
             <div className="flex items-center gap-2.5">
               <div
                 className="h-7 w-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0"
-                style={{ backgroundColor: 'rgba(212,190,190,0.15)' }}
+                style={{ backgroundColor: 'rgba(78,0,142,0.1)' }}
               >
                 {initials(emp.name)}
               </div>
@@ -140,8 +140,8 @@ export default function EmployeesPage() {
                 <span
                   className="text-[10px] rounded-full px-1.5 py-0.5 font-semibold"
                   style={{
-                    backgroundColor: emp.role === 'contractor' ? 'rgba(251,191,36,0.12)' : 'rgba(212,190,190,0.1)',
-                    color: emp.role === 'contractor' ? '#fbbf24' : '#d4bebe',
+                    backgroundColor: emp.role === 'contractor' ? 'rgba(251,191,36,0.15)' : 'rgba(78,0,142,0.08)',
+                    color: emp.role === 'contractor' ? '#d97706' : '#6a4c80',
                   }}
                 >
                   {emp.role === 'contractor' ? 'Contractor' : 'Employee'}
@@ -152,19 +152,19 @@ export default function EmployeesPage() {
         )
       case 'clients':
         return (
-          <td key={key} className="px-5 py-3 tabular-nums" style={{ color: '#d4bebe' }}>
+          <td key={key} className="px-5 py-3 tabular-nums" style={{ color: '#4a2870' }}>
             {assignedClients.length}
           </td>
         )
       case 'totalHrs':
         return (
-          <td key={key} className="px-5 py-3 tabular-nums" style={{ color: '#d4bebe' }}>
+          <td key={key} className="px-5 py-3 tabular-nums" style={{ color: '#4a2870' }}>
             {assignedHrs.toFixed(1)} hrs
           </td>
         )
       case 'capacity':
         return (
-          <td key={key} className="px-5 py-3 tabular-nums" style={{ color: '#d4bebe' }}>
+          <td key={key} className="px-5 py-3 tabular-nums" style={{ color: '#4a2870' }}>
             {capacityHrs.toFixed(1)} hrs/mo
           </td>
         )
@@ -208,17 +208,17 @@ export default function EmployeesPage() {
       {/* ── Search + Role filter ── */}
       <div className="flex items-center gap-3 flex-wrap">
         <div className="relative flex-1 min-w-[220px] max-w-xs">
-          <svg className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: 'rgba(212,190,190,0.5)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: '#b8a0c0' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
           <input
             type="text" value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Search by name…"
-            className="w-full rounded-lg pl-9 pr-9 py-2.5 text-sm text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-bba-highlight focus:border-transparent border"
-            style={{ backgroundColor: '#4e008e', borderColor: 'rgba(212,190,190,0.25)', colorScheme: 'dark' }}
+            className="w-full rounded-lg pl-9 pr-9 py-2.5 text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-bba-primary focus:border-transparent border"
+            style={{ backgroundColor: '#ffffff', borderColor: '#e2d8e8' }}
           />
           {search && (
-            <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 hover:opacity-70 transition-opacity" style={{ color: 'rgba(212,190,190,0.5)' }}>
+            <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 hover:opacity-70 transition-opacity" style={{ color: '#b8a0c0' }}>
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
           )}
@@ -227,8 +227,8 @@ export default function EmployeesPage() {
         <select
           value={roleFilter}
           onChange={e => setRoleFilter(e.target.value as 'all' | EmployeeRole)}
-          className="rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-bba-highlight border [color-scheme:dark]"
-          style={{ backgroundColor: '#4e008e', borderColor: 'rgba(212,190,190,0.25)' }}
+          className="rounded-lg px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-bba-primary border border-surface-border bg-white"
+          style={{ backgroundColor: '#ffffff', borderColor: '#e2d8e8' }}
         >
           <option value="all">All Roles</option>
           <option value="employee">Employees</option>
@@ -255,20 +255,20 @@ export default function EmployeesPage() {
             <div
               key={emp.id}
               className={`rounded-xl border p-5 space-y-4 ${borderCol}`}
-              style={{ backgroundColor: over ? 'rgba(239,68,68,0.06)' : '#2d0050', borderColor: borderCol ? undefined : 'rgba(212,190,190,0.18)' }}
+              style={{ backgroundColor: over ? 'rgba(239,68,68,0.06)' : '#ffffff', borderColor: borderCol ? undefined : '#e2d8e8' }}
             >
               {/* ── Avatar + name ── */}
               <div className="flex items-center gap-3">
                 <div
                   className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-sm font-bold ${over ? 'text-red-900' : 'text-white'}`}
-                  style={{ backgroundColor: over ? 'rgba(239,68,68,0.18)' : 'rgba(212,190,190,0.15)' }}
+                  style={{ backgroundColor: over ? 'rgba(239,68,68,0.18)' : 'rgba(78,0,142,0.1)' }}
                 >
                   {initials(emp.name)}
                 </div>
                 <div>
                   <p className={`font-semibold ${over ? 'text-red-950' : 'text-white'}`}>{emp.name}</p>
                   <div className="flex items-center gap-2 mt-0.5">
-                    <p className="text-xs" style={{ color: over ? '#7f1d1d' : 'rgba(212,190,190,0.6)' }}>
+                    <p className="text-xs" style={{ color: over ? '#7f1d1d' : '#8a6a90' }}>
                       {emp.contractedHours}h/wk · 80% billable · ${emp.effectiveHourlyRate}/hr
                     </p>
                     <span
@@ -291,16 +291,16 @@ export default function EmployeesPage() {
               {/* ── Utilization bar ── */}
               <div>
                 <div className="flex justify-between text-xs mb-1">
-                  <span style={{ color: over ? '#7f1d1d' : 'rgba(212,190,190,0.6)' }}>Capacity Utilization</span>
+                  <span style={{ color: over ? '#7f1d1d' : '#8a6a90' }}>Capacity Utilization</span>
                   {/* Keep pct in bold crimson — switch to dark red on light bg */}
                   <span className={`font-semibold tabular-nums ${over ? 'text-red-700' : textColor(utilPct)}`}>
                     {utilPct.toFixed(1)}%
                   </span>
                 </div>
-                <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: over ? 'rgba(239,68,68,0.2)' : 'rgba(212,190,190,0.12)' }}>
+                <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: over ? 'rgba(239,68,68,0.2)' : 'rgba(78,0,142,0.1)' }}>
                   <div className={`h-full rounded-full transition-all ${barColor(utilPct)}`} style={{ width: `${Math.min(utilPct, 100)}%` }} />
                 </div>
-                <div className="flex justify-between text-[10px] mt-1" style={{ color: over ? '#991b1b' : 'rgba(212,190,190,0.4)' }}>
+                <div className="flex justify-between text-[10px] mt-1" style={{ color: over ? '#991b1b' : '#b8a0c0' }}>
                   <span>{assignedHrs.toFixed(1)} hrs assigned</span>
                   <span>{capacityHrs.toFixed(1)} hrs capacity</span>
                 </div>
@@ -309,7 +309,7 @@ export default function EmployeesPage() {
               {/* ── Stats grid ── */}
               <div
                 className="grid grid-cols-3 gap-2 pt-3"
-                style={{ borderTop: `1px solid ${over ? 'rgba(127,29,29,0.2)' : 'rgba(212,190,190,0.12)'}` }}
+                style={{ borderTop: `1px solid ${over ? 'rgba(127,29,29,0.2)' : '#f0e8f8'}` }}
               >
                 {[
                   { label: 'Clients',    value: assignedClients.length.toString() },
@@ -318,7 +318,7 @@ export default function EmployeesPage() {
                 ].map(s => (
                   <div key={s.label} className="text-center">
                     <p className={`text-sm font-bold tabular-nums ${over ? 'text-red-900' : 'text-white'}`}>{s.value}</p>
-                    <p className="text-[10px] mt-0.5" style={{ color: over ? '#7f1d1d' : 'rgba(212,190,190,0.45)' }}>{s.label}</p>
+                    <p className="text-[10px] mt-0.5" style={{ color: over ? '#7f1d1d' : '#8a6a90' }}>{s.label}</p>
                   </div>
                 ))}
               </div>
@@ -327,18 +327,18 @@ export default function EmployeesPage() {
         })}
 
         {filteredEmployees.length === 0 && (
-          <div className="col-span-full rounded-xl p-8 text-center text-sm" style={{ border: '1px solid rgba(212,190,190,0.18)', backgroundColor: '#2d0050', color: 'rgba(212,190,190,0.45)' }}>
+          <div className="col-span-full rounded-xl p-8 text-center text-sm" style={{ border: '1px solid #e2d8e8', backgroundColor: '#faf8f8', color: '#8a6a90' }}>
             No team members match your filters.
           </div>
         )}
       </div>
 
       {/* ── Client Assignments Table with DnD + Sort ── */}
-      <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(212,190,190,0.18)' }}>
+      <div className="rounded-xl overflow-hidden" style={{ border: '1px solid #e2d8e8' }}>
 
         <div
           className="border-b px-5 py-3.5 flex items-center justify-between"
-          style={{ backgroundColor: BG_CARD_HEADER, borderColor: 'rgba(212,190,190,0.18)' }}
+          style={{ backgroundColor: BG_CARD_HEADER, borderColor: 'rgba(78,0,142,0.2)' }}
         >
           <h3 className="text-sm font-semibold text-white">Client Assignments</h3>
           <span className="text-[10px] font-medium text-white">Drag headers to reorder · click to sort</span>

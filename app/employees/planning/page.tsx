@@ -83,7 +83,7 @@ function CapacityCard({
   return (
     <div
       className={`rounded-xl border p-5 transition-all duration-300 ${cardBorder(pct)}`}
-      style={{ backgroundColor: pct > 100 ? 'rgba(239,68,68,0.06)' : pct >= 90 ? 'rgba(249,115,22,0.05)' : pct >= 70 ? 'rgba(245,158,11,0.05)' : '#2d0050' }}
+      style={{ backgroundColor: pct > 100 ? 'rgba(239,68,68,0.06)' : pct >= 90 ? 'rgba(249,115,22,0.05)' : pct >= 70 ? 'rgba(245,158,11,0.05)' : '#ffffff' }}
     >
       {/* Header row */}
       <div className="flex items-start justify-between mb-4">
@@ -250,7 +250,7 @@ export default function CapacityPlanningPage() {
   return (
     <div>
       {/* ── Sticky page header ───────────────────────────────────────────── */}
-      <div className="sticky top-0 z-20 -mx-8 px-8 backdrop-blur" style={{ backgroundColor: 'rgba(30,0,56,0.97)', borderBottom: '1px solid rgba(212,190,190,0.14)' }}>
+      <div className="sticky top-0 z-20 -mx-8 px-8 backdrop-blur" style={{ backgroundColor: 'rgba(240,238,237,0.97)', borderBottom: '1px solid #e2d8e8' }}>
         <div className="flex items-center justify-between py-4 gap-4">
           <div className="min-w-0">
             <h1 className="text-2xl font-semibold tracking-tight text-slate-100">Capacity Planning</h1>
@@ -354,17 +354,17 @@ export default function CapacityPlanningPage() {
           <div className="flex flex-wrap gap-3 mb-3">
             {/* Text search */}
             <div className="relative flex-1 min-w-[200px]">
-              <svg className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: 'rgba(212,190,190,0.5)' }}
+              <svg className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: '#b8a0c0' }}
                 fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
               </svg>
               <input type="text" value={search} onChange={e => setSearch(e.target.value)}
                 placeholder="Search clients…"
-                className="w-full rounded-lg bg-[#4e008e] border border-bba-secondary/30 pl-9 pr-9 py-2.5 text-sm text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-bba-highlight focus:border-transparent"
+                className="w-full rounded-lg bg-white border border-surface-border pl-9 pr-9 py-2.5 text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-bba-primary focus:border-transparent"
                 style={{ colorScheme: 'dark' }}
               />
               {search && (
-                <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 hover:opacity-70 transition-opacity" style={{ color: 'rgba(212,190,190,0.5)' }}>
+                <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 hover:opacity-70 transition-opacity" style={{ color: '#b8a0c0' }}>
                   <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
               )}
@@ -374,7 +374,7 @@ export default function CapacityPlanningPage() {
             <select
               value={empFilter}
               onChange={e => setEmpFilter(e.target.value)}
-              className="rounded-lg bg-[#4e008e] border border-bba-secondary/30 px-3 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-bba-primary [color-scheme:dark]"
+              className="rounded-lg bg-white border border-surface-border px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-bba-primary"
             >
               <option value="all">All Employees</option>
               {EMPLOYEES.map(emp => (
@@ -387,7 +387,7 @@ export default function CapacityPlanningPage() {
             <select
               value={ptFilter}
               onChange={e => setPtFilter(e.target.value)}
-              className="rounded-lg bg-[#4e008e] border border-bba-secondary/30 px-3 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-bba-primary [color-scheme:dark]"
+              className="rounded-lg bg-white border border-surface-border px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-bba-primary"
             >
               <option value="all">All Project Types</option>
               <option value="ANNUAL">Annual</option>
@@ -425,10 +425,10 @@ export default function CapacityPlanningPage() {
           )}
 
           {/* Matrix table */}
-          <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(212,190,190,0.18)' }}>
+          <div className="rounded-xl overflow-hidden" style={{ border: '1px solid #e2d8e8' }}>
             <table className="w-full text-sm">
               <thead>
-                <tr style={{ backgroundColor: '#3d0070', borderBottom: '1px solid rgba(212,190,190,0.13)' }}>
+                <tr style={{ backgroundColor: '#f9f5ff', borderBottom: '1px solid #e2d8e8' }}>
                   {/* Change indicator column */}
                   <th className="w-6 px-3 py-3" />
                   <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider">
@@ -454,7 +454,7 @@ export default function CapacityPlanningPage() {
               <tbody>
                 {visibleClients.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-4 py-10 text-center text-sm" style={{ backgroundColor: '#2d0050', color: 'rgba(212,190,190,0.4)' }}>
+                    <td colSpan={7} className="px-4 py-10 text-center text-sm" style={{ backgroundColor: '#faf8f8', color: '#8a6a90' }}>
                       No clients match your filters.
                     </td>
                   </tr>
@@ -465,7 +465,7 @@ export default function CapacityPlanningPage() {
                   const hours         = clientMonthlyHrs(client.id);
                   const empCapacity   = assignedEmp ? billableMonthlyHrs(assignedEmp) : 0;
                   const loadPct       = empCapacity > 0 ? r2((hours / empCapacity) * 100) : 0;
-                  const baseBg        = isModified ? 'rgba(245,158,11,0.06)' : idx % 2 === 0 ? '#2d0050' : '#330060';
+                  const baseBg        = isModified ? 'rgba(245,158,11,0.06)' : idx % 2 === 0 ? '#ffffff' : '#faf5ff';
 
                   return (
                     <tr
@@ -474,9 +474,9 @@ export default function CapacityPlanningPage() {
                       style={{
                         backgroundColor: baseBg,
                         borderLeftColor: isModified ? 'rgba(245,158,11,0.7)' : 'transparent',
-                        borderBottom: '1px solid rgba(212,190,190,0.07)',
+                        borderBottom: '1px solid #f0e8f8',
                       }}
-                      onMouseEnter={e => { e.currentTarget.style.backgroundColor = isModified ? 'rgba(245,158,11,0.1)' : '#4e008e' }}
+                      onMouseEnter={e => { e.currentTarget.style.backgroundColor = isModified ? 'rgba(245,158,11,0.1)' : '#f3e8ff' }}
                       onMouseLeave={e => { e.currentTarget.style.backgroundColor = baseBg }}
                     >
                       {/* Unsaved dot */}
@@ -539,7 +539,7 @@ export default function CapacityPlanningPage() {
                             transition-colors cursor-pointer
                             ${isModified
                               ? "bg-amber-500/10 border-amber-500/40 text-amber-200"
-                              : "bg-[#4e008e] border-bba-secondary/30 text-white [color-scheme:dark]"
+                              : "bg-white border-surface-border text-slate-700"
                             }
                           `}
                         >
@@ -581,7 +581,7 @@ export default function CapacityPlanningPage() {
               {/* Footer totals */}
               {visibleClients.length > 0 && (
                 <tfoot>
-                  <tr style={{ borderTop: '1px solid rgba(212,190,190,0.13)', backgroundColor: '#3d0070' }}>
+                  <tr style={{ borderTop: '1px solid #e2d8e8', backgroundColor: '#f9f5ff' }}>
                     <td colSpan={3} className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">
                       Totals (active)
                     </td>
