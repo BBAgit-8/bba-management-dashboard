@@ -1,136 +1,94 @@
-/**
- * GET  /api/clients  — list all clients with tags and SOWs
- * POST /api/clients  — create a new client
- */
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { supabase } from '@/lib/supabase'
 
-// ── GET ───────────────────────────────────────────────────────────────────────
 export async function GET(): Promise<NextResponse> {
-  try {
-    const clients = await prisma.client.findMany({
-      orderBy: { name: 'asc' },
-      include: {
-        tags: {
-          include: { tag: true },
-        },
-        sows: {
-          select: {
-            billingType: true,
-            fixedMonthlyRate: true,
-            billingRate: true,
-          },
-        },
-      },
-    })
+  const { data, error } = await supabase
+    .from('clients')
+    .select(`
+      *,
+      tags:client_tags(tag:tags(*)),
+      sows(billingType:billing_type, fixedMonthlyRate:fixed_monthly_rate, billingRate:billing_rate)
+    `)
+    .order('name')
 
-    // Flatten tags from join table shape → { id, name, color }[]
-    const shaped = clients.map(c => ({
-      ...c,
-      tags: c.tags.map(ct => ({
-        id:    ct.tag.id,
-        name:  ct.tag.name,
-        color: ct.tag.color,
-      })),
-      sows: c.sows.map(s => ({
-        billingType:      s.billingType,
-        fixedMonthlyRate: s.fixedMonthlyRate ? Number(s.fixedMonthlyRate) : null,
-        billingRate:      s.billingRate      ? Number(s.billingRate)      : null,
-      })),
-    }))
-
-    return NextResponse.json({ clients: shaped })
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err)
-    console.error('[GET /api/clients]', msg)
-    return NextResponse.json({ error: 'Database error', detail: msg }, { status: 500 })
+  if (error) {
+    console.error('[GET /api/clients]', error)
+    return NextResponse.json({ error: error.message }, { status: 500 })
   }
+
+  const shaped = (data ?? []).map((c: any) => ({
+    ...c,
+    tags: (c.tags ?? []).map((ct: any) => ct.tag).filter(Boolean),
+    sows: (c.sows ?? []).map((s: any) => ({
+      billingType:      s.billingType,
+      fixedMonthlyRate: s.fixedMonthlyRate ? Number(s.fixedMonthlyRate) : null,
+      billingRate:      s.billingRate      ? Number(s.billingRate)      : null,
+    })),
+  }))
+
+  return NextResponse.json({ clients: shaped })
 }
 
-// ── POST ──────────────────────────────────────────────────────────────────────
 export async function POST(req: NextRequest): Promise<NextResponse> {
   let body: unknown
   try { body = await req.json() } catch {
-    return NextResponse.json({ error: 'Request body must be valid JSON' }, { status: 400 })
+    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
 
   const data = (body ?? {}) as Record<string, unknown>
 
-  // Required fields
   const name               = typeof data.name               === 'string' ? data.name.trim()               : ''
   const harvestProjectCode = typeof data.harvestProjectCode === 'string' ? data.harvestProjectCode.trim() : ''
 
   if (!name)               return NextResponse.json({ error: '"name" is required' },               { status: 422 })
   if (!harvestProjectCode) return NextResponse.json({ error: '"harvestProjectCode" is required' }, { status: 422 })
 
-  // Optional scalars
-  const accountantName           = typeof data.accountantName           === 'string'  ? data.accountantName.trim()  || null : null
-  const entityType               = typeof data.entityType               === 'string'  ? data.entityType              : 'LLC'
-  const einNumber                = typeof data.einNumber                === 'string'  ? data.einNumber.trim()        || null : null
-  const officeType               = typeof data.officeType               === 'string'  ? data.officeType              : 'HOME_OFFICE'
-  const processingCadence        = typeof data.processingCadence        === 'string'  ? data.processingCadence       : 'MONTHLY'
-  const projectType              = typeof data.projectType              === 'string'  ? data.projectType             : 'MONTHLY_MAINTENANCE'
-  const referredBy               = typeof data.referredBy               === 'string'  ? data.referredBy.trim()       || null : null
-  const payrollProvider          = typeof data.payrollProvider          === 'string'  ? data.payrollProvider.trim()  || null : null
-  const hasPayroll               = data.hasPayroll               === true
-  const okToContactAccountant    = data.okToContactAccountant    === true
-  const qboOnly                  = data.qboOnly                  === true
-  const guaranteedDeadlineDay    = typeof data.guaranteedDeadlineDay    === 'string' && data.guaranteedDeadlineDay
-                                     ? parseInt(data.guaranteedDeadlineDay, 10) || null
-                                     : typeof data.guaranteedDeadlineDay === 'number' ? data.guaranteedDeadlineDay : null
-  const autoPriceIncreasePercent = typeof data.autoPriceIncreasePercent === 'string' && data.autoPriceIncreasePercent
-                                     ? parseFloat(data.autoPriceIncreasePercent) || null
-                                     : null
-  const contractStartDate        = typeof data.contractStartDate        === 'string' && data.contractStartDate
-                                     ? new Date(data.contractStartDate) : null
-  const priceAdjustmentDate      = typeof data.priceAdjustmentDate      === 'string' && data.priceAdjustmentDate
-                                     ? new Date(data.priceAdjustmentDate) : null
+  const row = {
+    name,
+    harvest_project_code:        harvestProjectCode,
+    accountant_name:             typeof data.accountantName           === 'string' ? data.accountantName.trim()  || null : null,
+    entity_type:                 typeof data.entityType               === 'string' ? data.entityType              : 'LLC',
+    ein_number:                  typeof data.einNumber                === 'string' ? data.einNumber.trim()        || null : null,
+    office_type:                 typeof data.officeType               === 'string' ? data.officeType              : 'HOME_OFFICE',
+    processing_cadence:          typeof data.processingCadence        === 'string' ? data.processingCadence       : 'MONTHLY',
+    project_type:                typeof data.projectType              === 'string' ? data.projectType             : 'MONTHLY_MAINTENANCE',
+    referred_by:                 typeof data.referredBy               === 'string' ? data.referredBy.trim()       || null : null,
+    payroll_provider:            typeof data.payrollProvider          === 'string' ? data.payrollProvider.trim()  || null : null,
+    has_payroll:                 data.hasPayroll            === true,
+    ok_to_contact_accountant:    data.okToContactAccountant === true,
+    qbo_only:                    data.qboOnly               === true,
+    archive_status:              'ACTIVE',
+    guaranteed_deadline_day:     typeof data.guaranteedDeadlineDay === 'string' && data.guaranteedDeadlineDay
+                                   ? parseInt(data.guaranteedDeadlineDay, 10) || null : null,
+    auto_price_increase_percent: typeof data.autoPriceIncreasePercent === 'string' && data.autoPriceIncreasePercent
+                                   ? parseFloat(data.autoPriceIncreasePercent) || null : null,
+    contract_start_date:         typeof data.contractStartDate === 'string' && data.contractStartDate
+                                   ? data.contractStartDate : null,
+    price_adjustment_date:       typeof data.priceAdjustmentDate === 'string' && data.priceAdjustmentDate
+                                   ? data.priceAdjustmentDate : null,
+  }
 
-  // Tags — array of tag IDs to connect
-  const tagIds: string[] = Array.isArray(data.selectedTags) ? (data.selectedTags as string[]) : []
+  const { data: client, error } = await supabase
+    .from('clients')
+    .insert(row)
+    .select()
+    .single()
 
-  try {
-    const client = await prisma.client.create({
-      data: {
-        name,
-        harvestProjectCode,
-        accountantName,
-        entityType:               entityType               as never,
-        einNumber,
-        officeType:               officeType               as never,
-        processingCadence:        processingCadence        as never,
-        projectType:              projectType              as never,
-        referredBy,
-        payrollProvider,
-        hasPayroll,
-        okToContactAccountant,
-        qboOnly,
-        guaranteedDeadlineDay,
-        autoPriceIncreasePercent,
-        contractStartDate,
-        priceAdjustmentDate,
-        tags: tagIds.length > 0
-          ? { create: tagIds.map(tagId => ({ tagId, assignedAt: new Date() })) }
-          : undefined,
-      },
-      include: {
-        tags: { include: { tag: true } },
-        sows: true,
-      },
-    })
-
-    const shaped = {
-      ...client,
-      tags: client.tags.map(ct => ({ id: ct.tag.id, name: ct.tag.name, color: ct.tag.color })),
-    }
-
-    return NextResponse.json({ client: shaped }, { status: 201 })
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err)
-    console.error('[POST /api/clients]', msg)
-    if (msg.includes('Unique constraint') || msg.includes('unique constraint')) {
+  if (error) {
+    console.error('[POST /api/clients]', error)
+    if (error.code === '23505') {
       return NextResponse.json({ error: `Project code "${harvestProjectCode}" already exists` }, { status: 409 })
     }
-    return NextResponse.json({ error: 'Database error', detail: msg }, { status: 500 })
+    return NextResponse.json({ error: error.message }, { status: 500 })
   }
+
+  // Connect tags if any
+  const tagIds: string[] = Array.isArray(data.selectedTags) ? data.selectedTags as string[] : []
+  if (tagIds.length > 0 && client) {
+    await supabase.from('client_tags').insert(
+      tagIds.map(tagId => ({ client_id: client.id, tag_id: tagId }))
+    )
+  }
+
+  return NextResponse.json({ client }, { status: 201 })
 }
