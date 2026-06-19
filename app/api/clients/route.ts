@@ -52,6 +52,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   if (!harvestProjectCode) return NextResponse.json({ error: '"harvestProjectCode" is required' }, { status: 422 })
 
   const row: Record<string, unknown> = {
+    id: crypto.randomUUID(),
     name,
     harvestProjectCode,
     accountantName:           typeof data.accountantName           === 'string' ? data.accountantName.trim()  || null : null,
