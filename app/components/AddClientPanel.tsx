@@ -6,6 +6,7 @@ import { TAGS, ACCOUNTANTS, type ProcessingCadence, type EntityType, type Office
 interface AddClientPanelProps {
   open: boolean;
   onClose: () => void;
+  onCreated?: () => void;
 }
 
 const CADENCE_OPTS: { value: ProcessingCadence; label: string }[] = [
@@ -44,20 +45,21 @@ function nextAnnualDate(from: string | null): string {
   const base = from ? new Date(from) : new Date();
   const adj  = new Date(base);
   adj.setFullYear(adj.getFullYear() + 1);
-  // Roll forward until future
   const today = new Date();
   while (adj <= today) adj.setFullYear(adj.getFullYear() + 1);
   return adj.toISOString().split('T')[0];
 }
 
-export default function AddClientPanel({ open, onClose }: AddClientPanelProps) {
+export default function AddClientPanel({ open, onClose, onCreated }: AddClientPanelProps) {
   const [form, setForm] = useState(EMPTY);
   const [accountants, setAccountants] = useState<Accountant[]>(ACCOUNTANTS.filter(a => a.status === 'ACTIVE'));
   const [tags, setTags] = useState<Tag[]>(TAGS);
   const [newAcctName, setNewAcctName] = useState('');
   const [showNewAcct, setShowNewAcct] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
-  // Fetch tags + accountants from API on mount
+  // Fetch live tags + accountants from API on mount
   useEffect(() => {
     fetch('/api/tags')
       .then(r => r.json())
@@ -99,8 +101,37 @@ export default function AddClientPanel({ open, onClose }: AddClientPanelProps) {
     }));
   }
 
-  function handleClose() { setForm(EMPTY); setShowNewAcct(false); setNewAcctName(''); onClose(); }
-  function handleSubmit(e: React.FormEvent) { e.preventDefault(); console.log('New client:', form); handleClose(); }
+  function handleClose() {
+    setForm(EMPTY);
+    setShowNewAcct(false);
+    setNewAcctName('');
+    setSaveError(null);
+    onClose();
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    setSaveError(null);
+    try {
+      const res = await fetch('/api/clients', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setSaveError(json.error ?? `Error ${res.status}`);
+        return;
+      }
+      onCreated?.();
+      handleClose();
+    } catch {
+      setSaveError('Network error — please try again.');
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return (
     <>
@@ -273,23 +304,34 @@ export default function AddClientPanel({ open, onClose }: AddClientPanelProps) {
           <Section label="Tags">
             <div className="flex flex-wrap gap-2">
               {tags.map(tag => {
-                const sel = form.selectedTags.includes(tag.id);
+                const selected = form.selectedTags.includes(tag.id);
                 return (
                   <button key={tag.id} type="button" onClick={() => toggleTag(tag.id)}
                     className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium border transition-all"
-                    style={{ borderColor: tag.color, backgroundColor: sel ? `${tag.color}25` : 'transparent', color: sel ? tag.color : `${tag.color}99`, opacity: sel ? 1 : 0.6 }}>
-                    {sel && <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>}
+                    style={{ borderColor: tag.color, backgroundColor: selected ? `${tag.color}25` : 'transparent', color: selected ? tag.color : `${tag.color}99`, opacity: selected ? 1 : 0.6 }}>
+                    {selected && <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>}
                     {tag.name}
                   </button>
                 );
               })}
             </div>
           </Section>
+
+          {/* ── Error message ── */}
+          {saveError && (
+            <div className="rounded-lg bg-red-500/10 border border-red-500/30 px-4 py-3">
+              <p className="text-sm text-red-400">{saveError}</p>
+            </div>
+          )}
         </form>
 
         <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-700/60 shrink-0">
-          <button type="button" onClick={handleClose} className="rounded-lg px-4 py-2 text-sm font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors">Cancel</button>
-          <button type="submit" form="add-client-form" className="rounded-lg bg-bba-primary px-5 py-2 text-sm font-semibold text-white hover:bg-bba-primary/85 transition-colors">Create Client</button>
+          <button type="button" onClick={handleClose} disabled={saving} className="rounded-lg px-4 py-2 text-sm font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors disabled:opacity-50">Cancel</button>
+          <button type="submit" form="add-client-form" disabled={saving}
+            className="rounded-lg bg-bba-primary px-5 py-2 text-sm font-semibold text-white hover:bg-bba-primary/85 transition-colors disabled:opacity-60 flex items-center gap-2">
+            {saving && <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>}
+            {saving ? 'Saving…' : 'Create Client'}
+          </button>
         </div>
       </aside>
     </>
@@ -297,9 +339,6 @@ export default function AddClientPanel({ open, onClose }: AddClientPanelProps) {
 }
 
 const inp = 'w-full rounded-lg bg-[#4e008e] border border-bba-secondary/30 px-3 py-2 text-sm text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-bba-highlight focus:border-transparent';
-
-// Dark plum background for <select> elements — ensures option list text is readable
-// on all OS native dropdowns regardless of system color scheme.
 const sel = 'w-full rounded-lg bg-[#4e008e] border border-bba-secondary/30 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-bba-primary focus:border-transparent [color-scheme:dark]';
 
 function Section({ label, children }: { label: string; children: React.ReactNode }) {

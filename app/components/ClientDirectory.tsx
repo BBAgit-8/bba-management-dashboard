@@ -515,7 +515,7 @@ export default function ClientDirectory() {
         </DragDropContext>
       </div>
 
-      <AddClientPanel open={panelOpen} onClose={() => setPanelOpen(false)} />
+      <AddClientPanel open={panelOpen} onClose={() => setPanelOpen(false)} onCreated={refetchClients} />
     </div>
   )
 }

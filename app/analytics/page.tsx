@@ -1,39 +1,48 @@
-import { Client } from 'pg';
+import { prisma } from '@/lib/prisma'
 
-export const revalidate = 0; // Force live data fetching
+export const revalidate = 0
+
+async function getStats() {
+  try {
+    const [totalClients, activeClients, qboOnly] = await Promise.all([
+      prisma.client.count(),
+      prisma.client.count({ where: { archiveStatus: 'ACTIVE', qboOnly: false } }),
+      prisma.client.count({ where: { qboOnly: true } }),
+    ])
+    return { totalClients, activeClients, qboOnly, error: null }
+  } catch (err) {
+    return { totalClients: 0, activeClients: 0, qboOnly: 0, error: String(err) }
+  }
+}
 
 export default async function AnalyticsPage() {
-  let clientCount = 0;
-
-  // 1. Set up a direct connection package using your verified Supabase string
-  const client = new Client({
-    connectionString: "postgresql://postgres:e2yYAXPEUWpQ9q7w@db.tkhmfexhcdxwtpfiviyo.supabase.co:6543/postgres?pgbouncer=true&connection_limit=1",
-    ssl: { rejectUnauthorized: false } // Required by Supabase for secure connections
-  });
-
-  try {
-    await client.connect();
-    // 2. Query your database directly via standard SQL
-    const res = await client.query('SELECT COUNT(*) FROM "Client"');
-    clientCount = parseInt(res.rows[0].count, 10);
-  } catch (error) {
-    console.error("Direct database query failed:", error);
-  } finally {
-    await client.end().catch(() => {});
-  }
+  const { totalClients, activeClients, qboOnly, error } = await getStats()
 
   return (
-    <div className="p-8 max-w-7xl mx-auto">
-      <h1 className="text-2xl font-bold text-slate-950 mb-2">Analytics Dashboard</h1>
-      <p className="text-sm text-slate-500 mb-6">Real-time database monitoring sync.</p>
-      
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white p-6 border border-slate-200 rounded-xl shadow-sm">
-          <div className="text-sm font-medium text-slate-500 uppercase tracking-wider">Total Active Clients</div>
-          <div className="text-3xl font-bold text-slate-900 mt-2">{clientCount}</div>
-          <p className="text-xs text-emerald-600 mt-1">✓ Live Direct Supabase Connection Active</p>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">Analytics</h1>
+        <p className="mt-1 text-sm text-slate-400">Real-time metrics from your database.</p>
+      </div>
+
+      {error && (
+        <div className="rounded-lg bg-red-500/10 border border-red-500/30 px-4 py-3 text-sm text-red-400">
+          Database error: {error}
         </div>
+      )}
+
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+        {[
+          { label: 'Total Clients',     value: totalClients },
+          { label: 'Active Clients',    value: activeClients },
+          { label: 'QBO Only Clients',  value: qboOnly },
+        ].map(stat => (
+          <div key={stat.label} className="rounded-xl border p-6" style={{ backgroundColor: '#2d0050', borderColor: 'rgba(212,190,190,0.18)' }}>
+            <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'rgba(212,190,190,0.6)' }}>{stat.label}</p>
+            <p className="mt-2 text-4xl font-bold text-white tabular-nums">{stat.value}</p>
+          </div>
+        ))}
       </div>
     </div>
-  );
+  )
 }
