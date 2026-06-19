@@ -53,6 +53,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   const row: Record<string, unknown> = {
     id: crypto.randomUUID(),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
     name,
     harvestProjectCode,
     accountantName:           typeof data.accountantName           === 'string' ? data.accountantName.trim()  || null : null,
