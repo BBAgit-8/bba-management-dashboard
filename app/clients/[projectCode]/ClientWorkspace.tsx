@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+
 import Link from "next/link";
-import { CLIENTS } from "@/lib/mock-data";
+import { useState, useEffect } from 'react';
 import DashboardTab     from "./tabs/DashboardTab";
 import ProfitabilityTab from "./tabs/ProfitabilityTab";
 import SettingsTab      from "./tabs/SettingsTab";
@@ -44,19 +44,41 @@ interface Props { projectCode: string }
 
 export default function ClientWorkspace({ projectCode }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
+  const [client, setClient] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-  const client = CLIENTS.find(c => c.harvestProjectCode === projectCode);
+  useEffect(() => {
+    fetch('/api/clients')
+      .then(r => r.json())
+      .then(d => {
+        const found = (d.clients ?? []).find((c: any) => c.harvestProjectCode === projectCode);
+        setClient(found ?? null);
+      })
+      .catch(() => setClient(null))
+      .finally(() => setLoading(false));
+  }, [projectCode]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-32">
+        <svg className="h-6 w-6 animate-spin text-bba-primary" fill="none" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+        </svg>
+      </div>
+    );
+  }
 
   if (!client) {
     return (
       <div className="flex flex-col items-center justify-center py-32 text-center space-y-3">
-        <div className="h-12 w-12 rounded-full bg-slate-800 flex items-center justify-center">
-          <svg className="h-6 w-6 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="h-12 w-12 rounded-full bg-slate-100 flex items-center justify-center">
+          <svg className="h-6 w-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         </div>
-        <p className="text-slate-300 font-medium">Client not found</p>
-        <p className="text-sm text-slate-500">No client with project code <span className="font-mono text-slate-300">{projectCode}</span></p>
+        <p className="text-slate-700 font-medium">Client not found</p>
+        <p className="text-sm text-slate-500">No client with project code <span className="font-mono text-bba-primary">{projectCode}</span></p>
         <Link href="/" className="mt-2 text-sm text-bba-highlight hover:text-bba-highlight/80 underline underline-offset-2 transition-colors">
           ← Back to directory
         </Link>

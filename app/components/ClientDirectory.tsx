@@ -438,7 +438,7 @@ export default function ClientDirectory() {
                                 <div className="flex items-center gap-2 min-w-0">
                                   <Link
                                     href={`/clients/${client.harvestProjectCode}`}
-                                    className="font-medium text-white hover:text-bba-highlight transition-colors whitespace-nowrap"
+                                    className="font-medium text-slate-800 hover:text-bba-highlight transition-colors whitespace-nowrap"
                                   >
                                     {client.name}
                                   </Link>
