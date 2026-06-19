@@ -24,7 +24,7 @@ export async function GET(): Promise<NextResponse> {
     processingCadence:  c.processingCadence,
     projectType:        c.projectType,
     revenueType:        c.revenueType,
-    qboOnly:            c.qboOnly,
+    qboOnly:            c.qboOnly ?? false,
     contractEndDate:    c.contractEndDate ?? null,
     tags: (c.tags ?? []).map((ct: any) => ct.tag).filter(Boolean),
     sows: (c.sows ?? []).map((s: any) => ({
@@ -64,7 +64,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     payrollProvider:          typeof data.payrollProvider          === 'string' ? data.payrollProvider.trim()  || null : null,
     hasPayroll:               data.hasPayroll            === true,
     okToContactAccountant:    data.okToContactAccountant === true,
-    qboOnly:                  data.qboOnly               === true,
     archiveStatus:            'ACTIVE',
     guaranteedDeadlineDay:    typeof data.guaranteedDeadlineDay === 'string' && data.guaranteedDeadlineDay
                                 ? parseInt(data.guaranteedDeadlineDay, 10) || null : null,
