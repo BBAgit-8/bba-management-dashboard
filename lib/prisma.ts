@@ -1,17 +1,13 @@
-/**
- * Prisma client singleton.
- *
- * In Next.js the module cache is cleared on every hot-reload in development,
- * which would create a new PrismaClient on each reload and exhaust the
- * connection pool. Attaching the instance to `globalThis` prevents that.
- */
-
 import { PrismaClient } from '@/app/generated/prisma/client'
+import { Pool } from 'pg'
+import { PrismaPg } from '@prisma/adapter-pg'
 
 type GlobalWithPrisma = typeof globalThis & { __prisma?: PrismaClient }
 
 function createClient() {
-  return new PrismaClient()
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL })
+  const adapter = new PrismaPg(pool)
+  return new PrismaClient({ adapter } as never)
 }
 
 const g = globalThis as GlobalWithPrisma
