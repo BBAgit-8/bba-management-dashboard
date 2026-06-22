@@ -263,7 +263,7 @@ export default function ProjectsReportsPage() {
               {status !== 'active' && (
                 <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: status === 'offboarding' ? '#f59e0b' : '#94a3b8' }} title={status === 'offboarding' ? 'Off-boarding' : 'Inactive'} />
               )}
-              <Link href={`/clients/${c.harvestProjectCode}`} className="font-semibold text-slate-800 hover:text-bba-highlight transition-colors truncate">
+              <<Link href={`/clients/${c.harvestProjectCode}`} className="font-medium text-slate-800 hover:text-bba-highlight transition-colors whitespace-nowrap text-sm">
                 {c.name}
               </Link>
               {isSaving && <span className="ml-1 text-[9px] text-bba-highlight animate-pulse">saving…</span>}
@@ -471,7 +471,7 @@ export default function ProjectsReportsPage() {
                     <tr
                       ref={dp.innerRef}
                       {...dp.droppableProps}
-                      style={{ backgroundColor: '#f9f5ff', borderBottom: '1px solid #e2d8e8' }}
+                      style={{ backgroundColor: 'var(--bba-primary)', borderBottom: '1px solid rgba(78,0,142,0.3)' }}
                     >
                       {colOrder.map((key, idx) => {
                         const col = COL_META.find(c => c.key === key)!

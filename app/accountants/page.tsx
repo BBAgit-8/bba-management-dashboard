@@ -226,7 +226,7 @@ export default function AccountantsPage() {
                       <tr
                         ref={dp.innerRef}
                         {...dp.droppableProps}
-                        style={{ backgroundColor: '#f9f5ff', borderBottom: '1px solid #e2d8e8' }}
+                        style={{ backgroundColor: 'var(--bba-primary)', borderBottom: '1px solid rgba(78,0,142,0.3)' }}
                       >
                         {colOrder.map((key, idx) => {
                           const col = ALL_COLS.find(c => c.key === key)!
