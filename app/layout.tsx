@@ -30,7 +30,7 @@ export default function RootLayout({
       lang="en"
       className={`${comfortaa.variable} ${inter.variable} h-full`}
     >
-      <body className="h-full text-slate-100 antialiased bg-background">
+      <body className="h-full text-slate-800 antialiased bg-background">
         <Sidebar />
         {/* Main content — offset by sidebar width */}
         <main className="ml-64 flex min-h-screen flex-col">
