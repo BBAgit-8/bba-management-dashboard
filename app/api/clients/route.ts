@@ -17,26 +17,51 @@ export async function GET(): Promise<NextResponse> {
   }
 
   const shaped = (data ?? []).map((c: any) => ({
-    id:                      c.id,
-    name:                    c.name,
-    harvestProjectCode:      c.harvestProjectCode,
-    archiveStatus:           c.archiveStatus,
-    processingCadence:       c.processingCadence,
-    projectType:             c.projectType      ?? null,
-    revenueType:             c.revenueType      ?? null,
-    qboOnly:                 c.qboOnly          ?? false,
-    contractStartDate:       c.contractStartDate ?? null,
-    contractEndDate:         c.contractEndDate   ?? null,
-    entityType:              c.entityType        ?? null,
-    guaranteedDeadlineDay:   c.guaranteedDeadlineDay ?? null,
-    softwareRate:            c.softwareRate      != null ? Number(c.softwareRate) : null,
-    totalMonthlyAmount:      c.totalMonthlyAmount != null ? Number(c.totalMonthlyAmount) : null,
-    hasContractedLoom:       c.hasContractedLoom    ?? false,
-    hasScheduledMeetings:    c.hasScheduledMeetings ?? false,
-    hasSignedAutoIncrease:   c.hasSignedAutoIncrease ?? false,
-    accountantName:          c.accountantName    ?? null,
+    id:                       c.id,
+    name:                     c.name,
+    harvestProjectCode:       c.harvestProjectCode,
+    archiveStatus:            c.archiveStatus,
+    processingCadence:        c.processingCadence,
+    projectType:              c.projectType        ?? null,
+    revenueType:              c.revenueType        ?? null,
+    qboOnly:                  c.qboOnly            ?? false,
+    contractStartDate:        c.contractStartDate  ?? null,
+    contractEndDate:          c.contractEndDate    ?? null,
+    contractedCloseDate:      c.contractedCloseDate ?? null,
+    entityType:               c.entityType         ?? null,
+    guaranteedDeadlineDay:    c.guaranteedDeadlineDay ?? null,
+    softwareRate:             c.softwareRate        != null ? Number(c.softwareRate)        : null,
+    totalMonthlyAmount:       c.totalMonthlyAmount  != null ? Number(c.totalMonthlyAmount)  : null,
+    hasContractedLoom:        c.hasContractedLoom    ?? false,
+    hasScheduledMeetings:     c.hasScheduledMeetings ?? false,
+    hasSignedAutoIncrease:    c.hasSignedAutoIncrease ?? false,
     autoPriceIncreasePercent: c.autoPriceIncreasePercent != null ? Number(c.autoPriceIncreasePercent) : null,
-    priceAdjustmentDate:     c.priceAdjustmentDate ?? null,
+    priceAdjustmentDate:      c.priceAdjustmentDate ?? null,
+    // Bookkeeper (text field on clients table)
+    bookkeeper:               c.Bookkeeper          ?? null,
+    accountantName:           c.accountantName      ?? null,
+    // New fields
+    clientGroupName:          c.clientGroupName     ?? null,
+    doubleId:                 c.doubleId            ?? null,
+    qboId:                    c.qboId               ?? null,
+    clickUpId:                c.clickUpId           ?? null,
+    clientContactName:        c.clientContactName   ?? null,
+    bookkeepingRate:          c.bookkeepingRate     != null ? Number(c.bookkeepingRate)     : null,
+    totalHrsPerMonth:         c.totalHrsPerMonth    != null ? Number(c.totalHrsPerMonth)    : null,
+    apArHrs:                  c.apArHrs             != null ? Number(c.apArHrs)             : null,
+    qaHours:                  c.qaHours             != null ? Number(c.qaHours)             : null,
+    custSuccessMgmtHrs:       c.custSuccessMgmtHrs  != null ? Number(c.custSuccessMgmtHrs) : null,
+    yeOrTaxHours:             c.yeOrTaxHours        != null ? Number(c.yeOrTaxHours)        : null,
+    auditHours:               c.auditHours          != null ? Number(c.auditHours)          : null,
+    bkprHours:                c.bkprHours           != null ? Number(c.bkprHours)           : null,
+    bankFeedTime:             c.bankFeedTime        != null ? Number(c.bankFeedTime)        : null,
+    transactionsPerMonth:     c.transactionsPerMonth != null ? Number(c.transactionsPerMonth) : null,
+    recTime:                  c.recTime             != null ? Number(c.recTime)             : null,
+    numBanksAndCCs:           c.numBanksAndCCs      != null ? Number(c.numBanksAndCCs)      : null,
+    numLoans:                 c.numLoans            != null ? Number(c.numLoans)            : null,
+    numPmtPortals:            c.numPmtPortals       != null ? Number(c.numPmtPortals)       : null,
+    pettyCash:                c.pettyCash           ?? false,
+    referredBy:               c.referredBy          ?? null,
     tags: (c.tags ?? []).map((ct: any) => ct.tag).filter(Boolean),
     sows: (c.sows ?? []).map((s: any) => ({
       billingType:      s.billingType,
@@ -64,12 +89,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   if (!harvestProjectCode) return NextResponse.json({ error: '"harvestProjectCode" is required' }, { status: 422 })
 
   const row: Record<string, unknown> = {
-    id: crypto.randomUUID(),
+    id:        crypto.randomUUID(),
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     name,
     harvestProjectCode,
     accountantName:           typeof data.accountantName           === 'string' ? data.accountantName.trim()  || null : null,
+    Bookkeeper:               typeof data.bookkeeper               === 'string' ? data.bookkeeper.trim()       || null : null,
     entityType:               typeof data.entityType               === 'string' ? data.entityType              : 'LLC',
     einNumber:                typeof data.einNumber                === 'string' ? data.einNumber.trim()        || null : null,
     officeType:               typeof data.officeType               === 'string' ? data.officeType              : 'HOME_OFFICE',
@@ -86,8 +112,44 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
                                 ? parseFloat(data.autoPriceIncreasePercent) || null : null,
     contractStartDate:        typeof data.contractStartDate === 'string' && data.contractStartDate
                                 ? data.contractStartDate : null,
+    contractedCloseDate:      typeof data.contractedCloseDate === 'string' && data.contractedCloseDate
+                                ? data.contractedCloseDate : null,
     priceAdjustmentDate:      typeof data.priceAdjustmentDate === 'string' && data.priceAdjustmentDate
                                 ? data.priceAdjustmentDate : null,
+    clientGroupName:          typeof data.clientGroupName    === 'string' ? data.clientGroupName.trim()    || null : null,
+    doubleId:                 typeof data.doubleId           === 'string' ? data.doubleId.trim()           || null : null,
+    qboId:                    typeof data.qboId              === 'string' ? data.qboId.trim()              || null : null,
+    clickUpId:                typeof data.clickUpId          === 'string' ? data.clickUpId.trim()          || null : null,
+    clientContactName:        typeof data.clientContactName  === 'string' ? data.clientContactName.trim()  || null : null,
+    bookkeepingRate:          typeof data.bookkeepingRate    === 'string' && data.bookkeepingRate
+                                ? parseFloat(data.bookkeepingRate) || null : null,
+    totalHrsPerMonth:         typeof data.totalHrsPerMonth   === 'string' && data.totalHrsPerMonth
+                                ? parseFloat(data.totalHrsPerMonth) || null : null,
+    apArHrs:                  typeof data.apArHrs            === 'string' && data.apArHrs
+                                ? parseFloat(data.apArHrs) || null : null,
+    qaHours:                  typeof data.qaHours            === 'string' && data.qaHours
+                                ? parseFloat(data.qaHours) || null : null,
+    custSuccessMgmtHrs:       typeof data.custSuccessMgmtHrs === 'string' && data.custSuccessMgmtHrs
+                                ? parseFloat(data.custSuccessMgmtHrs) || null : null,
+    yeOrTaxHours:             typeof data.yeOrTaxHours       === 'string' && data.yeOrTaxHours
+                                ? parseFloat(data.yeOrTaxHours) || null : null,
+    auditHours:               typeof data.auditHours         === 'string' && data.auditHours
+                                ? parseFloat(data.auditHours) || null : null,
+    bkprHours:                typeof data.bkprHours          === 'string' && data.bkprHours
+                                ? parseFloat(data.bkprHours) || null : null,
+    bankFeedTime:             typeof data.bankFeedTime       === 'string' && data.bankFeedTime
+                                ? parseFloat(data.bankFeedTime) || null : null,
+    transactionsPerMonth:     typeof data.transactionsPerMonth === 'string' && data.transactionsPerMonth
+                                ? parseFloat(data.transactionsPerMonth) || null : null,
+    recTime:                  typeof data.recTime            === 'string' && data.recTime
+                                ? parseFloat(data.recTime) || null : null,
+    numBanksAndCCs:           typeof data.numBanksAndCCs     === 'string' && data.numBanksAndCCs
+                                ? parseInt(data.numBanksAndCCs, 10) || null : null,
+    numLoans:                 typeof data.numLoans           === 'string' && data.numLoans
+                                ? parseInt(data.numLoans, 10) || null : null,
+    numPmtPortals:            typeof data.numPmtPortals      === 'string' && data.numPmtPortals
+                                ? parseInt(data.numPmtPortals, 10) || null : null,
+    pettyCash:                data.pettyCash === true,
   }
 
   const { data: client, error } = await supabase
@@ -104,7 +166,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  // Connect tags
   const tagIds: string[] = Array.isArray(data.selectedTags) ? data.selectedTags as string[] : []
   if (tagIds.length > 0 && client) {
     await supabase.from('client_tags').insert(

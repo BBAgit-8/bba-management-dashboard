@@ -3,11 +3,11 @@
 import { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd'
+
 type Tag = { id: string; name: string; color: string }
 type ProcessingCadence = 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY' | 'QUARTERLY'
 type ProjectType = 'ANNUAL' | 'CLEAN_UP' | 'MONTHLY_MAINTENANCE' | 'QBO_ONLY' | 'RECURRING'
 
-// Shape returned by GET /api/clients
 type ApiClient = {
   id: string
   name: string
@@ -15,68 +15,138 @@ type ApiClient = {
   archiveStatus: string
   processingCadence: string
   contractEndDate?: string | null
+  contractStartDate?: string | null
+  contractedCloseDate?: string | null
   projectType?: string | null
   revenueType?: string | null
+  entityType?: string | null
   qboOnly?: boolean
+  bookkeeper?: string | null          // from employees join
+  clientGroupName?: string | null
+  doubleId?: string | null
+  qboId?: string | null
+  clickUpId?: string | null
+  clientContactName?: string | null
+  softwareRate?: number | null
+  totalMonthlyAmount?: number | null
+  bookkeepingRate?: number | null
+  totalHrsPerMonth?: number | null
+  apArHrs?: number | null
+  qaHours?: number | null
+  custSuccessMgmtHrs?: number | null
+  yeOrTaxHours?: number | null
+  auditHours?: number | null
+  bkprHours?: number | null
+  bankFeedTime?: number | null
+  transactionsPerMonth?: number | null
+  recTime?: number | null
+  numBanksAndCCs?: number | null
+  numLoans?: number | null
+  numPmtPortals?: number | null
+  pettyCash?: boolean | null
+  referredBy?: string | null
+  hasContractedLoom?: boolean | null
+  hasScheduledMeetings?: boolean | null
+  hasSignedAutoIncrease?: boolean | null
+  autoPriceIncreasePercent?: number | null
+  priceAdjustmentDate?: string | null
   tags: Tag[]
-  sows: Array<{ billingType: string; fixedMonthlyRate?: number | null; billingRate?: number | null }>
+  sows: Array<{ billingType: string; fixedMonthlyRate?: number | null; billingRate?: number | null; targetHours?: number | null }>
 }
+
 import AddClientPanel from './AddClientPanel'
 
-// ── Column / status types ─────────────────────────────────────────────────────
-type ColKey   = 'name' | 'code' | 'projectType' | 'revenueType' | 'bookkeepingRate' | 'status'
-type SortKey  = 'name' | 'code' | 'projectType' | 'revenueType' | 'bookkeepingRate' | 'status'
+// ── Column definitions ────────────────────────────────────────────────────────
+type ColKey =
+  | 'name' | 'code' | 'projectType' | 'revenueType' | 'bookkeepingRate' | 'status'
+  | 'bookkeeper' | 'entityType' | 'monthlyBilling' | 'contractStartDate' | 'contractEndDate'
+  | 'clientGroupName' | 'doubleId' | 'qboId' | 'clickUpId' | 'clientContactName'
+  | 'contractedCloseDate' | 'softwareRate' | 'totalHrsPerMonth' | 'apArHrs'
+  | 'qaHours' | 'custSuccessMgmtHrs' | 'yeOrTaxHours' | 'auditHours' | 'bkprHours'
+  | 'bankFeedTime' | 'transactionsPerMonth' | 'recTime' | 'numBanksAndCCs'
+  | 'numLoans' | 'numPmtPortals' | 'pettyCash' | 'referredBy'
+
+type SortKey = ColKey
+
 type StatusKey = 'active' | 'archived' | 'inactive' | 'offboarding' | 'pendingArchive'
 type StatusFilter = StatusKey | 'all'
 
-const ALL_COLUMNS: { key: ColKey; label: string; sortKey?: SortKey; align?: 'right' }[] = [
-  { key: 'name',            label: 'Client Name',    sortKey: 'name' },
-  { key: 'code',            label: 'Project Code',   sortKey: 'code' },
-  { key: 'projectType',     label: 'Project Type',   sortKey: 'projectType' },
-  { key: 'revenueType',     label: 'Revenue Type',   sortKey: 'revenueType' },
-  { key: 'bookkeepingRate', label: 'Bookkeeping Rate', sortKey: 'bookkeepingRate', align: 'right' },
-  { key: 'status',          label: 'Status',         sortKey: 'status' },
+const ALL_COLUMNS: { key: ColKey; label: string; defaultVisible: boolean; align?: 'right' | 'center' }[] = [
+  { key: 'name',               label: 'Client Name',          defaultVisible: true  },
+  { key: 'code',               label: 'Project Code',         defaultVisible: true  },
+  { key: 'bookkeeper',         label: 'Bookkeeper',           defaultVisible: true  },
+  { key: 'entityType',         label: 'Entity Type',          defaultVisible: true  },
+  { key: 'projectType',        label: 'Recurring or Cleanup', defaultVisible: true  },
+  { key: 'revenueType',        label: 'Rev Type',             defaultVisible: false },
+  { key: 'monthlyBilling',     label: 'Monthly Billing',      defaultVisible: true,  align: 'right' },
+  { key: 'bookkeepingRate',    label: 'Bookkeeping Rate',     defaultVisible: false, align: 'right' },
+  { key: 'softwareRate',       label: 'Software Rate',        defaultVisible: false, align: 'right' },
+  { key: 'status',             label: 'Status',               defaultVisible: false },
+  { key: 'contractStartDate',  label: 'Contract Start Date',  defaultVisible: false },
+  { key: 'contractEndDate',    label: 'End Date / Archive',   defaultVisible: false },
+  { key: 'contractedCloseDate',label: 'Contracted Close Date',defaultVisible: false },
+  { key: 'clientGroupName',    label: 'Client Group Name',    defaultVisible: false },
+  { key: 'doubleId',           label: 'Double ID',            defaultVisible: false },
+  { key: 'qboId',              label: 'QBO ID',               defaultVisible: false },
+  { key: 'clickUpId',          label: 'ClickUp ID',           defaultVisible: false },
+  { key: 'clientContactName',  label: 'Client Contact Name',  defaultVisible: false },
+  { key: 'totalHrsPerMonth',   label: 'Total Hrs/Mo',         defaultVisible: false, align: 'right' },
+  { key: 'apArHrs',            label: 'AP/AR Hrs',            defaultVisible: false, align: 'right' },
+  { key: 'qaHours',            label: 'QA Hours',             defaultVisible: false, align: 'right' },
+  { key: 'custSuccessMgmtHrs', label: 'Cust Success / Mgmt Hrs', defaultVisible: false, align: 'right' },
+  { key: 'yeOrTaxHours',       label: 'YE / 1099 Hours',      defaultVisible: false, align: 'right' },
+  { key: 'auditHours',         label: 'Audit Hours',          defaultVisible: false, align: 'right' },
+  { key: 'bkprHours',          label: 'Bkpr Hours',           defaultVisible: false, align: 'right' },
+  { key: 'bankFeedTime',       label: 'Bank Feed Time',       defaultVisible: false, align: 'right' },
+  { key: 'transactionsPerMonth',label: '# Transactions / mo', defaultVisible: false, align: 'right' },
+  { key: 'recTime',            label: 'Rec Time',             defaultVisible: false, align: 'right' },
+  { key: 'numBanksAndCCs',     label: '# Banks & CCs',        defaultVisible: false, align: 'right' },
+  { key: 'numLoans',           label: '# Loans',              defaultVisible: false, align: 'right' },
+  { key: 'numPmtPortals',      label: '# Pmt Portals',        defaultVisible: false, align: 'right' },
+  { key: 'pettyCash',          label: 'Petty Cash',           defaultVisible: false, align: 'center' },
+  { key: 'referredBy',         label: 'Referred By',          defaultVisible: true  },
 ]
-const DEFAULT_COL_ORDER: ColKey[] = ALL_COLUMNS.map(c => c.key)
+
+const DEFAULT_VISIBLE = new Set(ALL_COLUMNS.filter(c => c.defaultVisible).map(c => c.key))
+const ALL_COL_KEYS = ALL_COLUMNS.map(c => c.key)
+const STORAGE_VISIBLE = 'cd-visible-cols-v1'
+const STORAGE_ORDER   = 'cd-col-order-v4'
 
 // ── Style maps ────────────────────────────────────────────────────────────────
 const dropSel = 'rounded-lg bg-white border border-surface-border px-3 py-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-bba-primary'
 
 const PTYPE_STYLE: Record<string, { bg: string; text: string; label: string }> = {
-  ANNUAL:              { bg: 'bg-blue-500/15',    text: 'text-blue-400',      label: 'Annual'      },
-  CLEAN_UP:            { bg: 'bg-orange-500/15',  text: 'text-orange-500',    label: 'Clean Up'    },
-  MONTHLY_MAINTENANCE: { bg: 'bg-bba-primary/15', text: 'text-bba-secondary', label: 'Mthly Maint' },
-  QBO_ONLY:            { bg: 'bg-sky-500/15',     text: 'text-sky-400',       label: 'QBO Only'    },
-  RECURRING:           { bg: 'bg-teal-500/15',    text: 'text-teal-500',      label: 'Recurring'   },
+  ANNUAL:              { bg: 'bg-blue-500/15',    text: 'text-blue-600',      label: 'Annual'      },
+  CLEAN_UP:            { bg: 'bg-orange-500/15',  text: 'text-orange-600',    label: 'Cleanup'     },
+  MONTHLY_MAINTENANCE: { bg: 'bg-purple-500/15',  text: 'text-purple-700',    label: 'Recurring'   },
+  QBO_ONLY:            { bg: 'bg-sky-500/15',     text: 'text-sky-600',       label: 'QBO Only'    },
+  RECURRING:           { bg: 'bg-teal-500/15',    text: 'text-teal-600',      label: 'Recurring'   },
 }
 
 const RTYPE_LABEL: Record<string, string> = {
-  CLEANUP:                   'Cleanup',
-  FREE:                      'Free',
-  HOURLY_CLEANUP:            'Hourly Cleanup',
-  QBO_ONLY_ANCHOR:           'QBO - Anchor',
-  QBO_ONLY_QBO:              'QBO - QBO',
-  RECURRING_MONTHLY_ACH:     'Monthly - ACH',
-  RECURRING_MONTHLY_HOURLY:  'Monthly - Hourly',
-  RECURRING_MONTHLY_INVOICED:'Monthly - Invoiced',
+  CLEANUP:                    'Cleanup',
+  FREE:                       'Free',
+  HOURLY_CLEANUP:             'Hourly Cleanup',
+  QBO_ONLY_ANCHOR:            'QBO - Anchor',
+  QBO_ONLY_QBO:               'QBO - QBO',
+  RECURRING_MONTHLY_ACH:      'Monthly - ACH',
+  RECURRING_MONTHLY_HOURLY:   'Monthly - Hourly',
+  RECURRING_MONTHLY_INVOICED: 'Monthly - Invoiced',
 }
 
-// Status pill styles + labels
 const STATUS_PILL: Record<StatusKey, { bg: string; text: string; ring: string; label: string }> = {
-  active:         { bg: 'bg-bba-highlight/10', text: 'text-bba-highlight',   ring: 'ring-bba-highlight/20', label: 'Active'          },
-  offboarding:    { bg: 'bg-amber-500/10',     text: 'text-amber-400',       ring: 'ring-amber-500/20',     label: 'Off-boarding'    },
-  inactive:       { bg: 'bg-slate-700/40',     text: 'text-slate-400',       ring: 'ring-slate-600/40',     label: 'Inactive'        },
-  archived:       { bg: 'bg-slate-700/50',     text: 'text-slate-500',       ring: 'ring-slate-600/50',     label: 'Archived'        },
-  pendingArchive: { bg: 'bg-orange-500/10',    text: 'text-orange-400',      ring: 'ring-orange-500/20',    label: 'Pending Archive' },
+  active:         { bg: 'bg-green-500/10',  text: 'text-green-700',  ring: 'ring-green-500/20',  label: 'Active'          },
+  offboarding:    { bg: 'bg-amber-500/10',  text: 'text-amber-700',  ring: 'ring-amber-500/20',  label: 'Off-boarding'    },
+  inactive:       { bg: 'bg-slate-200',     text: 'text-slate-500',  ring: 'ring-slate-300',     label: 'Inactive'        },
+  archived:       { bg: 'bg-slate-200',     text: 'text-slate-400',  ring: 'ring-slate-300',     label: 'Archived'        },
+  pendingArchive: { bg: 'bg-orange-500/10', text: 'text-orange-600', ring: 'ring-orange-500/20', label: 'Pending Archive' },
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function deriveStatus(client: ApiClient): StatusKey {
   if (client.contractEndDate) {
-    const now = new Date()
-    now.setHours(0, 0, 0, 0)
-    const end = new Date(client.contractEndDate)
-    end.setHours(0, 0, 0, 0)
+    const now = new Date(); now.setHours(0,0,0,0)
+    const end = new Date(client.contractEndDate); end.setHours(0,0,0,0)
     return end <= now ? 'inactive' : 'offboarding'
   }
   switch (client.archiveStatus) {
@@ -93,44 +163,118 @@ function initials(name: string) {
   return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
 }
 
-function clientRate(sows: ApiClient['sows']): { value: number; suffix: string } | null {
-  const sow = sows?.[0]
-  if (!sow) return null
-  if (sow.billingType === 'FLAT' && sow.fixedMonthlyRate != null) {
-    return { value: sow.fixedMonthlyRate, suffix: '/mo' }
-  }
-  if (sow.billingType === 'HOURLY' && sow.billingRate != null) {
-    return { value: sow.billingRate, suffix: '/hr' }
-  }
-  return null
+function fmtCurrency(v: number | null | undefined) {
+  if (v == null) return '—'
+  return '$' + v.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
+}
+
+function fmtNum(v: number | null | undefined) {
+  if (v == null) return '—'
+  return v.toLocaleString('en-US', { maximumFractionDigits: 2 })
+}
+
+function fmtDate(s: string | null | undefined) {
+  if (!s) return '—'
+  return new Date(s).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
+// ── Excel export ──────────────────────────────────────────────────────────────
+function exportToCSV(clients: ApiClient[], visibleCols: Set<ColKey>) {
+  const cols = ALL_COLUMNS.filter(c => visibleCols.has(c.key))
+  const header = cols.map(c => `"${c.label}"`).join(',')
+
+  const rows = clients.map(client => {
+    const statusKey = deriveStatus(client)
+    return cols.map(col => {
+      let val: string | number | boolean | null | undefined
+      switch (col.key) {
+        case 'name':               val = client.name; break
+        case 'code':               val = client.harvestProjectCode; break
+        case 'bookkeeper':         val = client.bookkeeper; break
+        case 'entityType':         val = client.entityType; break
+        case 'projectType':        val = PTYPE_STYLE[client.projectType ?? 'MONTHLY_MAINTENANCE']?.label; break
+        case 'revenueType':        val = RTYPE_LABEL[client.revenueType ?? ''] ?? client.revenueType; break
+        case 'monthlyBilling':     val = client.totalMonthlyAmount; break
+        case 'bookkeepingRate':    val = client.bookkeepingRate; break
+        case 'softwareRate':       val = client.softwareRate; break
+        case 'status':             val = STATUS_PILL[statusKey].label; break
+        case 'contractStartDate':  val = client.contractStartDate; break
+        case 'contractEndDate':    val = client.contractEndDate; break
+        case 'contractedCloseDate':val = client.contractedCloseDate; break
+        case 'clientGroupName':    val = client.clientGroupName; break
+        case 'doubleId':           val = client.doubleId; break
+        case 'qboId':              val = client.qboId; break
+        case 'clickUpId':          val = client.clickUpId; break
+        case 'clientContactName':  val = client.clientContactName; break
+        case 'totalHrsPerMonth':   val = client.totalHrsPerMonth; break
+        case 'apArHrs':            val = client.apArHrs; break
+        case 'qaHours':            val = client.qaHours; break
+        case 'custSuccessMgmtHrs': val = client.custSuccessMgmtHrs; break
+        case 'yeOrTaxHours':       val = client.yeOrTaxHours; break
+        case 'auditHours':         val = client.auditHours; break
+        case 'bkprHours':          val = client.bkprHours; break
+        case 'bankFeedTime':       val = client.bankFeedTime; break
+        case 'transactionsPerMonth':val = client.transactionsPerMonth; break
+        case 'recTime':            val = client.recTime; break
+        case 'numBanksAndCCs':     val = client.numBanksAndCCs; break
+        case 'numLoans':           val = client.numLoans; break
+        case 'numPmtPortals':      val = client.numPmtPortals; break
+        case 'pettyCash':          val = client.pettyCash ? 'Yes' : 'No'; break
+        case 'referredBy':         val = client.referredBy; break
+        default:                   val = ''
+      }
+      if (val == null) return '""'
+      return `"${String(val).replace(/"/g, '""')}"`
+    }).join(',')
+  })
+
+  const csv = [header, ...rows].join('\n')
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `bba-clients-${new Date().toISOString().slice(0, 10)}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function ClientDirectory() {
   const [search,        setSearch]       = useState('')
   const [panelOpen,     setPanelOpen]    = useState(false)
+  const [showColPanel,  setShowColPanel] = useState(false)
   const [sortKey,       setSortKey]      = useState<SortKey>('name')
   const [sortDir,       setSortDir]      = useState<'asc' | 'desc'>('asc')
-  // Filters
-  const [tagFilters,    setTagFilters]   = useState<Set<string>>(new Set())
-  const [cadenceFilter, setCadenceFilter] = useState<ProcessingCadence | 'all'>('all')
-  const [ptFilter,      setPtFilter]     = useState<ProjectType | 'all'>('all')
-  const [statusFilter,  setStatusFilter] = useState<StatusFilter>('all')
 
-  // Column order persisted to localStorage — new key invalidates old 7-column order
-  const [colOrder, setColOrder] = useState<ColKey[]>(() => {
-    if (typeof window === 'undefined') return DEFAULT_COL_ORDER
+  // Filters
+  const [tagFilters,       setTagFilters]       = useState<Set<string>>(new Set())
+  const [statusFilter,     setStatusFilter]     = useState<StatusFilter>('all')
+  const [bookeeperFilter,  setBookkeeperFilter] = useState<string>('all')
+  const [entityTypeFilter, setEntityTypeFilter] = useState<string>('all')
+  const [ptFilter,         setPtFilter]         = useState<ProjectType | 'all'>('all')
+  const [cadenceFilter,    setCadenceFilter]    = useState<ProcessingCadence | 'all'>('all')
+
+  // Visible columns — persisted
+  const [visibleCols, setVisibleCols] = useState<Set<ColKey>>(() => {
+    if (typeof window === 'undefined') return new Set(DEFAULT_VISIBLE)
     try {
-      const saved = localStorage.getItem('cd-col-order-v3')
+      const saved = localStorage.getItem(STORAGE_VISIBLE)
+      if (saved) return new Set(JSON.parse(saved) as ColKey[])
+    } catch { /* ignore */ }
+    return new Set(DEFAULT_VISIBLE)
+  })
+
+  // Column order — persisted
+  const [colOrder, setColOrder] = useState<ColKey[]>(() => {
+    if (typeof window === 'undefined') return ALL_COL_KEYS
+    try {
+      const saved = localStorage.getItem(STORAGE_ORDER)
       if (saved) {
         const parsed = JSON.parse(saved) as ColKey[]
-        if (
-          parsed.length === DEFAULT_COL_ORDER.length &&
-          parsed.every(k => DEFAULT_COL_ORDER.includes(k as ColKey))
-        ) return parsed
+        if (parsed.every(k => ALL_COL_KEYS.includes(k as ColKey))) return parsed
       }
     } catch { /* ignore */ }
-    return DEFAULT_COL_ORDER
+    return ALL_COL_KEYS
   })
 
   const [tags,    setTags]    = useState<Tag[]>([])
@@ -141,7 +285,7 @@ export default function ClientDirectory() {
   useEffect(() => {
     fetch('/api/tags')
       .then(r => r.json())
-      .then(d => { if (Array.isArray(d.tags) && d.tags.length > 0) setTags(d.tags) })
+      .then(d => { if (Array.isArray(d.tags)) setTags(d.tags) })
       .catch(() => {})
   }, [])
 
@@ -156,13 +300,37 @@ export default function ClientDirectory() {
 
   function refetchClients() { setFetchKey(k => k + 1) }
 
+  // Derived filter options from live data
+  const bookkeepers  = useMemo(() => [...new Set(clients.map(c => c.bookkeeper).filter(Boolean))].sort() as string[], [clients])
+  const entityTypes  = useMemo(() => [...new Set(clients.map(c => c.entityType).filter(Boolean))].sort() as string[], [clients])
+
+  function toggleCol(key: ColKey) {
+    setVisibleCols(prev => {
+      const next = new Set(prev)
+      next.has(key) ? next.delete(key) : next.add(key)
+      localStorage.setItem(STORAGE_VISIBLE, JSON.stringify([...next]))
+      return next
+    })
+  }
+
+  function showAllCols() {
+    const all = new Set(ALL_COL_KEYS)
+    setVisibleCols(all)
+    localStorage.setItem(STORAGE_VISIBLE, JSON.stringify(ALL_COL_KEYS))
+  }
+
+  function resetColsToDefault() {
+    setVisibleCols(new Set(DEFAULT_VISIBLE))
+    localStorage.setItem(STORAGE_VISIBLE, JSON.stringify([...DEFAULT_VISIBLE]))
+  }
+
   function onDragEnd(result: DropResult) {
     if (!result.destination) return
     const next = Array.from(colOrder)
     const [removed] = next.splice(result.source.index, 1)
     next.splice(result.destination.index, 0, removed)
     setColOrder(next)
-    localStorage.setItem('cd-col-order-v3', JSON.stringify(next))
+    localStorage.setItem(STORAGE_ORDER, JSON.stringify(next))
   }
 
   function toggleSort(k: SortKey) {
@@ -178,6 +346,8 @@ export default function ClientDirectory() {
     })
   }
 
+  const activeColOrder = colOrder.filter(k => visibleCols.has(k))
+
   const activeCount = clients.filter(c => c.archiveStatus === 'ACTIVE' && !c.qboOnly).length
   const qboCount    = clients.filter(c => c.qboOnly).length
 
@@ -187,32 +357,36 @@ export default function ClientDirectory() {
       if (cadenceFilter !== 'all' && c.processingCadence !== cadenceFilter) return false
       if (ptFilter !== 'all' && (c.projectType ?? 'MONTHLY_MAINTENANCE') !== ptFilter) return false
       if (statusFilter !== 'all' && deriveStatus(c) !== statusFilter) return false
+      if (bookeeperFilter !== 'all' && c.bookkeeper !== bookeeperFilter) return false
+      if (entityTypeFilter !== 'all' && c.entityType !== entityTypeFilter) return false
       const q = search.trim().toLowerCase()
       if (q && !c.name.toLowerCase().includes(q) && !c.harvestProjectCode.toLowerCase().includes(q)) return false
       return true
     })
     return [...list].sort((a, b) => {
       let cmp = 0
-      if (sortKey === 'name')            cmp = a.name.localeCompare(b.name)
-      if (sortKey === 'code')            cmp = a.harvestProjectCode.localeCompare(b.harvestProjectCode)
-      if (sortKey === 'projectType')     cmp = (a.projectType ?? '').localeCompare(b.projectType ?? '')
-      if (sortKey === 'revenueType')     cmp = (a.revenueType ?? '').localeCompare(b.revenueType ?? '')
-      if (sortKey === 'bookkeepingRate') {
-        const ra = clientRate(a.id as any)?.value ?? -1
-        const rb = clientRate(b.id as any)?.value ?? -1
-        cmp = ra - rb
-      }
-      if (sortKey === 'status') {
-        cmp = STATUS_PILL[deriveStatus(a)].label.localeCompare(STATUS_PILL[deriveStatus(b)].label)
+      switch (sortKey) {
+        case 'name':            cmp = a.name.localeCompare(b.name); break
+        case 'code':            cmp = a.harvestProjectCode.localeCompare(b.harvestProjectCode); break
+        case 'bookkeeper':      cmp = (a.bookkeeper ?? '').localeCompare(b.bookkeeper ?? ''); break
+        case 'entityType':      cmp = (a.entityType ?? '').localeCompare(b.entityType ?? ''); break
+        case 'projectType':     cmp = (a.projectType ?? '').localeCompare(b.projectType ?? ''); break
+        case 'revenueType':     cmp = (a.revenueType ?? '').localeCompare(b.revenueType ?? ''); break
+        case 'monthlyBilling':  cmp = (a.totalMonthlyAmount ?? 0) - (b.totalMonthlyAmount ?? 0); break
+        case 'bookkeepingRate': cmp = (a.bookkeepingRate ?? 0) - (b.bookkeepingRate ?? 0); break
+        case 'referredBy':      cmp = (a.referredBy ?? '').localeCompare(b.referredBy ?? ''); break
+        case 'status':          cmp = STATUS_PILL[deriveStatus(a)].label.localeCompare(STATUS_PILL[deriveStatus(b)].label); break
       }
       return sortDir === 'asc' ? cmp : -cmp
     })
-  }, [clients, search, tagFilters, cadenceFilter, ptFilter, statusFilter, sortKey, sortDir])
+  }, [clients, search, tagFilters, cadenceFilter, ptFilter, statusFilter, bookeeperFilter, entityTypeFilter, sortKey, sortDir])
 
-  const anyFilter = tagFilters.size > 0 || cadenceFilter !== 'all' || ptFilter !== 'all' || statusFilter !== 'all' || !!search.trim()
+  const anyFilter = tagFilters.size > 0 || cadenceFilter !== 'all' || ptFilter !== 'all' ||
+    statusFilter !== 'all' || bookeeperFilter !== 'all' || entityTypeFilter !== 'all' || !!search.trim()
 
   function clearFilters() {
-    setTagFilters(new Set()); setCadenceFilter('all'); setPtFilter('all'); setStatusFilter('all'); setSearch('')
+    setTagFilters(new Set()); setCadenceFilter('all'); setPtFilter('all')
+    setStatusFilter('all'); setBookkeeperFilter('all'); setEntityTypeFilter('all'); setSearch('')
   }
 
   function SortBtn({ k, children }: { k: SortKey; children: React.ReactNode }) {
@@ -228,27 +402,202 @@ export default function ClientDirectory() {
     )
   }
 
+  function renderCell(colKey: ColKey, client: ApiClient) {
+    const statusKey = deriveStatus(client)
+    const pill = STATUS_PILL[statusKey]
+    const pt = client.projectType ?? 'MONTHLY_MAINTENANCE'
+    const ptStyle = PTYPE_STYLE[pt] ?? PTYPE_STYLE.MONTHLY_MAINTENANCE
+    const col = ALL_COLUMNS.find(c => c.key === colKey)!
+    const alignCls = col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left'
+
+    switch (colKey) {
+      case 'name':
+        return (
+          <td key={colKey} className="px-4 py-3">
+            <div className="flex items-center gap-3">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white" style={{ backgroundColor: 'rgba(78,0,142,0.12)' }}>
+                {initials(client.name)}
+              </div>
+              <div className="flex items-center gap-2 min-w-0">
+                <Link href={`/clients/${client.harvestProjectCode}`} className="font-medium text-slate-800 hover:text-purple-700 transition-colors whitespace-nowrap">
+                  {client.name}
+                </Link>
+                <Link
+                  href={`/clients/${client.harvestProjectCode}`}
+                  className="shrink-0 inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium transition-colors"
+                  style={{ backgroundColor: 'rgba(78,0,142,0.08)', color: '#6a4c80', border: '1px solid rgba(78,0,142,0.2)' }}
+                >
+                  Open
+                  <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </Link>
+              </div>
+            </div>
+          </td>
+        )
+      case 'code':
+        return (
+          <td key={colKey} className="px-4 py-3">
+            <span className="font-mono text-xs rounded px-1.5 py-0.5" style={{ backgroundColor: 'rgba(78,0,142,0.08)', color: '#4e008e' }}>
+              {client.harvestProjectCode}
+            </span>
+          </td>
+        )
+      case 'bookkeeper':
+        return <td key={colKey} className="px-4 py-3 text-sm text-slate-700">{client.bookkeeper ?? <span className="text-slate-400">—</span>}</td>
+      case 'entityType':
+        return <td key={colKey} className="px-4 py-3 text-sm text-slate-700">{client.entityType ?? <span className="text-slate-400">—</span>}</td>
+      case 'projectType':
+        return (
+          <td key={colKey} className="px-4 py-3">
+            <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${ptStyle.bg} ${ptStyle.text}`}>
+              {ptStyle.label}
+            </span>
+          </td>
+        )
+      case 'revenueType':
+        return (
+          <td key={colKey} className="px-4 py-3 text-xs text-slate-600">
+            {client.revenueType ? (RTYPE_LABEL[client.revenueType] ?? client.revenueType) : <span className="text-slate-400">—</span>}
+          </td>
+        )
+      case 'monthlyBilling':
+        return (
+          <td key={colKey} className="px-4 py-3 text-right">
+            <span className="font-semibold tabular-nums text-slate-800">{fmtCurrency(client.totalMonthlyAmount)}</span>
+          </td>
+        )
+      case 'bookkeepingRate':
+        return (
+          <td key={colKey} className="px-4 py-3 text-right">
+            <span className="font-semibold tabular-nums text-slate-800">{fmtCurrency(client.bookkeepingRate)}</span>
+          </td>
+        )
+      case 'softwareRate':
+        return (
+          <td key={colKey} className="px-4 py-3 text-right">
+            <span className="tabular-nums text-slate-700">{fmtCurrency(client.softwareRate)}</span>
+          </td>
+        )
+      case 'status':
+        return (
+          <td key={colKey} className="px-4 py-3">
+            <span className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold ring-1 ${pill.bg} ${pill.text} ${pill.ring}`}>
+              {pill.label}
+            </span>
+          </td>
+        )
+      case 'contractStartDate':
+        return <td key={colKey} className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">{fmtDate(client.contractStartDate)}</td>
+      case 'contractEndDate':
+        return <td key={colKey} className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">{fmtDate(client.contractEndDate)}</td>
+      case 'contractedCloseDate':
+        return <td key={colKey} className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">{fmtDate(client.contractedCloseDate)}</td>
+      case 'clientGroupName':
+        return <td key={colKey} className="px-4 py-3 text-sm text-slate-700">{client.clientGroupName ?? <span className="text-slate-400">—</span>}</td>
+      case 'doubleId':
+        return <td key={colKey} className="px-4 py-3 text-xs font-mono text-slate-600">{client.doubleId ?? <span className="text-slate-400">—</span>}</td>
+      case 'qboId':
+        return <td key={colKey} className="px-4 py-3 text-xs font-mono text-slate-600">{client.qboId ?? <span className="text-slate-400">—</span>}</td>
+      case 'clickUpId':
+        return <td key={colKey} className="px-4 py-3 text-xs font-mono text-slate-600">{client.clickUpId ?? <span className="text-slate-400">—</span>}</td>
+      case 'clientContactName':
+        return <td key={colKey} className="px-4 py-3 text-sm text-slate-700">{client.clientContactName ?? <span className="text-slate-400">—</span>}</td>
+      case 'referredBy':
+        return <td key={colKey} className="px-4 py-3 text-sm text-slate-700">{client.referredBy ?? <span className="text-slate-400">—</span>}</td>
+      case 'pettyCash':
+        return (
+          <td key={colKey} className="px-4 py-3 text-center">
+            {client.pettyCash
+              ? <span className="inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold bg-purple-100 text-purple-700">Yes</span>
+              : <span className="text-slate-400 text-xs">—</span>}
+          </td>
+        )
+      // Numeric hour/count columns
+      default: {
+        const numericMap: Partial<Record<ColKey, keyof ApiClient>> = {
+          totalHrsPerMonth:    'totalHrsPerMonth',
+          apArHrs:             'apArHrs',
+          qaHours:             'qaHours',
+          custSuccessMgmtHrs:  'custSuccessMgmtHrs',
+          yeOrTaxHours:        'yeOrTaxHours',
+          auditHours:          'auditHours',
+          bkprHours:           'bkprHours',
+          bankFeedTime:        'bankFeedTime',
+          transactionsPerMonth:'transactionsPerMonth',
+          recTime:             'recTime',
+          numBanksAndCCs:      'numBanksAndCCs',
+          numLoans:            'numLoans',
+          numPmtPortals:       'numPmtPortals',
+        }
+        const field = numericMap[colKey]
+        const val = field ? (client[field] as number | null | undefined) : null
+        return (
+          <td key={colKey} className={`px-4 py-3 ${alignCls}`}>
+            <span className="tabular-nums text-sm text-slate-700">{fmtNum(val)}</span>
+          </td>
+        )
+      }
+    }
+  }
+
   return (
     <div className="space-y-5">
       {/* ── Header ── */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-100">Client Directory</h1>
-          <p className="mt-1 text-sm text-slate-400">
+          <h1 className="text-2xl font-semibold tracking-tight text-slate-800">BBA Client List</h1>
+          <p className="mt-1 text-sm text-slate-500">
             {activeCount} active client{activeCount !== 1 ? 's' : ''}{qboCount > 0 ? ` · ${qboCount} QBO only` : ''}
           </p>
         </div>
-        <button
-          onClick={() => setPanelOpen(true)}
-          className="inline-flex items-center gap-2 rounded-lg bg-bba-primary px-4 py-2 text-sm font-semibold text-white hover:bg-bba-primary/85 active:scale-95 transition-all shrink-0"
-        >
-          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          Add New Client
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => setPanelOpen(true)}
+            className="inline-flex items-center gap-2 rounded-lg bg-bba-primary px-4 py-2 text-sm font-semibold text-white hover:bg-bba-primary/85 active:scale-95 transition-all"
+          >
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            + Add Client
+          </button>
+          <button
+            onClick={() => exportToCSV(filtered, visibleCols)}
+            className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 active:scale-95 transition-all"
+          >
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            Download Excel
+          </button>
+        </div>
       </div>
 
+      {/* ── Show Columns Panel ── */}
+      <div className="rounded-xl border border-slate-200 bg-white p-4">
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-sm font-semibold text-slate-700">Show columns</span>
+          <div className="flex items-center gap-2">
+            <button onClick={showAllCols} className="text-xs text-purple-600 hover:text-purple-800 font-medium underline underline-offset-2">Show all</button>
+            <span className="text-slate-300">·</span>
+            <button onClick={resetColsToDefault} className="text-xs text-slate-500 hover:text-slate-700 font-medium underline underline-offset-2">Reset to default</button>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-6 gap-y-1.5">
+          {ALL_COLUMNS.map(col => (
+            <label key={col.key} className="flex items-center gap-2 cursor-pointer group">
+              <input
+                type="checkbox"
+                checked={visibleCols.has(col.key)}
+                onChange={() => toggleCol(col.key)}
+                className="rounded border-slate-300 text-purple-600 focus:ring-purple-500"
+              />
+              <span className="text-xs text-slate-600 group-hover:text-slate-900 transition-colors select-none">{col.label}</span>
+            </label>
+          ))}
+        </div>
+      </div>
 
       {/* ── Filters ── */}
       <div className="space-y-3">
@@ -256,7 +605,7 @@ export default function ClientDirectory() {
         <div className="flex items-center gap-2 overflow-x-auto pb-0.5">
           <button
             onClick={() => setTagFilters(new Set())}
-            className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium ring-1 transition-all ${tagFilters.size === 0 ? 'bg-slate-600 ring-slate-500 text-slate-100' : 'ring-slate-700 text-slate-400 hover:text-slate-200 hover:ring-slate-600'}`}
+            className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium ring-1 transition-all ${tagFilters.size === 0 ? 'bg-purple-100 ring-purple-300 text-purple-700' : 'ring-slate-300 text-slate-500 hover:text-slate-700 hover:ring-slate-400'}`}
           >
             All Tags
           </button>
@@ -271,7 +620,7 @@ export default function ClientDirectory() {
                 className="shrink-0 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-all"
                 style={{
                   backgroundColor: active ? `${tag.color}20` : 'transparent',
-                  color: active ? tag.color : `${tag.color}aa`,
+                  color: active ? tag.color : `${tag.color}99`,
                   boxShadow: `0 0 0 1px ${active ? tag.color : tag.color + '55'}`,
                 }}
               >
@@ -284,21 +633,6 @@ export default function ClientDirectory() {
 
         {/* Dropdown filters */}
         <div className="flex items-center gap-2 flex-wrap">
-          <select value={cadenceFilter} onChange={e => setCadenceFilter(e.target.value as ProcessingCadence | 'all')} className={dropSel}>
-            <option value="all">All Cadences</option>
-            <option value="WEEKLY">Weekly</option>
-            <option value="BIWEEKLY">Bi-Weekly</option>
-            <option value="MONTHLY">Monthly</option>
-            <option value="QUARTERLY">Quarterly</option>
-          </select>
-          <select value={ptFilter} onChange={e => setPtFilter(e.target.value as ProjectType | 'all')} className={dropSel}>
-            <option value="all">All Project Types</option>
-            <option value="ANNUAL">Annual</option>
-            <option value="CLEAN_UP">Clean Up</option>
-            <option value="MONTHLY_MAINTENANCE">Monthly Maintenance</option>
-            <option value="QBO_ONLY">QBO Only</option>
-            <option value="RECURRING">Recurring</option>
-          </select>
           <select value={statusFilter} onChange={e => setStatusFilter(e.target.value as StatusFilter)} className={dropSel}>
             <option value="all">All Statuses</option>
             <option value="active">Active</option>
@@ -307,31 +641,51 @@ export default function ClientDirectory() {
             <option value="archived">Archived</option>
             <option value="pendingArchive">Pending Archive</option>
           </select>
+          <select value={bookeeperFilter} onChange={e => setBookkeeperFilter(e.target.value)} className={dropSel}>
+            <option value="all">All Bookkeepers</option>
+            {bookkeepers.map(b => <option key={b} value={b}>{b}</option>)}
+          </select>
+          <select value={entityTypeFilter} onChange={e => setEntityTypeFilter(e.target.value)} className={dropSel}>
+            <option value="all">All Entity Types</option>
+            {entityTypes.map(et => <option key={et} value={et}>{et}</option>)}
+          </select>
+          <select value={ptFilter} onChange={e => setPtFilter(e.target.value as ProjectType | 'all')} className={dropSel}>
+            <option value="all">All Project Types</option>
+            <option value="ANNUAL">Annual</option>
+            <option value="CLEAN_UP">Cleanup</option>
+            <option value="MONTHLY_MAINTENANCE">Monthly Maintenance</option>
+            <option value="QBO_ONLY">QBO Only</option>
+            <option value="RECURRING">Recurring</option>
+          </select>
+          <select value={cadenceFilter} onChange={e => setCadenceFilter(e.target.value as ProcessingCadence | 'all')} className={dropSel}>
+            <option value="all">All Cadences</option>
+            <option value="WEEKLY">Weekly</option>
+            <option value="BIWEEKLY">Bi-Weekly</option>
+            <option value="MONTHLY">Monthly</option>
+            <option value="QUARTERLY">Quarterly</option>
+          </select>
+          {anyFilter && (
+            <button onClick={clearFilters} className="text-xs text-purple-600 hover:text-purple-800 underline underline-offset-2 transition-colors whitespace-nowrap font-medium">
+              Clear all
+            </button>
+          )}
         </div>
 
         {/* Search */}
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1">
-            <svg className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-            <input
-              type="text" value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="Search by client name or project code…"
-              className="w-full rounded-lg bg-white border border-surface-border pl-9 pr-9 py-2.5 text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-bba-primary focus:border-transparent"
-              style={{ colorScheme: 'dark' }}
-            />
-            {search && (
-              <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors">
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            )}
-          </div>
-          {anyFilter && (
-            <button onClick={clearFilters} className="text-xs text-bba-highlight hover:text-bba-highlight/80 underline underline-offset-2 transition-colors whitespace-nowrap">
-              Clear all
+        <div className="relative">
+          <svg className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input
+            type="text" value={search} onChange={e => setSearch(e.target.value)}
+            placeholder="Search by client name or project code…"
+            className="w-full rounded-lg bg-white border border-slate-200 pl-9 pr-9 py-2.5 text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+          />
+          {search && (
+            <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors">
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
             </button>
           )}
         </div>
@@ -346,173 +700,86 @@ export default function ClientDirectory() {
           <h3 className="text-sm font-semibold text-white">
             {filtered.length} Client{filtered.length !== 1 ? 's' : ''}{anyFilter ? ' — filtered' : ''}
           </h3>
-          <div className="flex items-center gap-4">
-            <span className="text-[10px] font-medium text-white">Drag headers to reorder · click to sort</span>
-            {anyFilter && (
-              <button onClick={clearFilters} className="text-xs text-white/70 hover:text-white transition-colors">
-                Clear filters ✕
-              </button>
-            )}
-          </div>
+          <span className="text-[10px] font-medium text-white/70">Drag headers to reorder · click to sort</span>
         </div>
 
-        <DragDropContext onDragEnd={onDragEnd}>
-          <table className="w-full text-sm">
-            <thead>
-              <Droppable droppableId="columns" direction="horizontal">
-                {(provided) => (
-                  <tr
-                    ref={provided.innerRef}
-                    {...provided.droppableProps}
-                    style={{ backgroundColor: 'var(--bba-primary)', borderBottom: '1px solid rgba(78,0,142,0.3)' }}
-                  >
-                    {colOrder.map((colKey, index) => {
-                      const col = ALL_COLUMNS.find(c => c.key === colKey)!
-                      const alignCls = col.align === 'right' ? 'text-right' : 'text-left'
-                      return (
-                        <Draggable key={colKey} draggableId={colKey} index={index}>
-                          {(provided, snapshot) => (
-                            <th
-                              ref={provided.innerRef}
-                              {...provided.draggableProps}
-                              {...provided.dragHandleProps}
-                              className={`px-4 py-3 ${alignCls} text-[11px] font-semibold uppercase tracking-wider whitespace-nowrap select-none cursor-grab active:cursor-grabbing transition-opacity ${snapshot.isDragging ? 'opacity-50' : ''}`}
-                              style={provided.draggableProps.style}
-                            >
-                              {col.sortKey ? (
-                                <SortBtn k={col.sortKey}>{col.label}</SortBtn>
-                              ) : (
-                                <span className="uppercase tracking-wider font-bold text-white block w-full text-center">{col.label}</span>
-                              )}
-                            </th>
-                          )}
-                        </Draggable>
-                      )
-                    })}
-                    {provided.placeholder}
-                  </tr>
-                )}
-              </Droppable>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan={colOrder.length} className="px-4 py-12 text-center text-sm" style={{ color: '#8a6a90', backgroundColor: '#faf8f8' }}>
-                    Loading clients…
-                  </td>
-                </tr>
-              ) : filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={colOrder.length} className="px-4 py-12 text-center text-sm" style={{ color: '#8a6a90', backgroundColor: '#faf8f8' }}>
-                    {anyFilter
-                      ? <><span>No clients match your filters. </span><button onClick={clearFilters} className="underline text-bba-highlight">Clear filters</button></>
-                      : 'No active clients found. Click Add New Client to begin!'
-                    }
-                  </td>
-                </tr>
-              ) : filtered.map((client, idx) => {
-                const baseBg = idx % 2 === 0 ? '#ffffff' : '#faf5ff'
-                const rate      = clientRate(client.sows)
-                const statusKey = deriveStatus(client)
-                const pill      = STATUS_PILL[statusKey]
-                const pt        = client.projectType ?? 'MONTHLY_MAINTENANCE'
-                const ptStyle   = PTYPE_STYLE[pt] ?? PTYPE_STYLE.MONTHLY_MAINTENANCE
-                const rt        = client.revenueType
-
-                return (
-                  <tr
-                    key={client.id}
-                    style={{ backgroundColor: baseBg, borderBottom: '1px solid #f0e8f8' }}
-                    onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#f3e8ff' }}
-                    onMouseLeave={e => { e.currentTarget.style.backgroundColor = baseBg }}
-                  >
-                    {colOrder.map(colKey => {
-                      switch (colKey) {
-                        case 'name':
-                          return (
-                            <td key={colKey} className="px-4 py-3">
-                              <div className="flex items-center gap-3">
-                                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold" style={{ backgroundColor: 'rgba(78,0,142,0.15)', color: '#4e008e' }}>
-                                  {initials(client.name)}
-                                </div>
-                                <div className="flex items-center gap-2 min-w-0">
-                                  <Link
-                                    href={`/clients/${client.harvestProjectCode}`}
-                                    className="font-semibold text-slate-900 hover:text-slate-900 whitespace-nowrap"
-                                  >
-                                    {client.name}
-                                  </Link>
-                                  <Link
-                                    href={`/clients/${client.harvestProjectCode}`}
-                                    className="shrink-0 inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium transition-colors"
-                                    style={{ backgroundColor: 'rgba(78,0,142,0.08)', color: '#6a4c80', border: '1px solid rgba(78,0,142,0.2)' }}
-                                    onMouseEnter={e => { const el = e.currentTarget as HTMLAnchorElement; el.style.backgroundColor = '#b20476'; el.style.color = '#fff' }}
-                                    onMouseLeave={e => { const el = e.currentTarget as HTMLAnchorElement; el.style.backgroundColor = 'rgba(78,0,142,0.08)'; el.style.color = '#6a4c80' }}
-                                  >
-                                    Open
-                                    <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                    </svg>
-                                  </Link>
-                                </div>
-                              </div>
-                            </td>
-                          )
-                        case 'code':
-                          return (
-                            <td key={colKey} className="px-4 py-3">
-                              <span className="font-mono text-xs rounded px-1.5 py-0.5" style={{ backgroundColor: 'rgba(78,0,142,0.08)', color: '#4e008e' }}>
-                                {client.harvestProjectCode}
-                              </span>
-                            </td>
-                          )
-                        case 'projectType':
-                          return (
-                            <td key={colKey} className="px-4 py-3">
-                              <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${ptStyle.bg} ${ptStyle.text}`}>
-                                {ptStyle.label}
-                              </span>
-                            </td>
-                          )
-                        case 'revenueType':
-                          return (
-                            <td key={colKey} className="px-4 py-3">
-                              {rt
-                                ? <span className="text-xs whitespace-nowrap text-slate-700">{RTYPE_LABEL[rt] ?? rt}</span>
-                                : <span className="text-xs text-slate-400">—</span>
-                              }
-                            </td>
-                          )
-                        case 'bookkeepingRate':
-                          return (
-                            <td key={colKey} className="px-4 py-3 text-right">
-                              {rate != null
-                                ? <span className="font-semibold tabular-nums text-slate-800">
-                                    ${rate.value.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
-                                    <span className="text-xs ml-0.5 text-slate-500">{rate.suffix}</span>
+        <div className="overflow-x-auto">
+          <DragDropContext onDragEnd={onDragEnd}>
+            <table className="w-full text-sm">
+              <thead>
+                <Droppable droppableId="columns" direction="horizontal">
+                  {(provided) => (
+                    <tr
+                      ref={provided.innerRef}
+                      {...provided.droppableProps}
+                      style={{ backgroundColor: 'var(--bba-primary)', borderBottom: '2px solid rgba(78,0,142,0.3)' }}
+                    >
+                      {activeColOrder.map((colKey, index) => {
+                        const col = ALL_COLUMNS.find(c => c.key === colKey)!
+                        const alignCls = col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left'
+                        return (
+                          <Draggable key={colKey} draggableId={colKey} index={index}>
+                            {(provided, snapshot) => (
+                              <th
+                                ref={provided.innerRef}
+                                {...provided.draggableProps}
+                                {...provided.dragHandleProps}
+                                className={`px-4 py-3 ${alignCls} text-[11px] font-semibold uppercase tracking-wider whitespace-nowrap select-none cursor-grab active:cursor-grabbing transition-opacity ${snapshot.isDragging ? 'opacity-50' : ''}`}
+                                style={provided.draggableProps.style}
+                              >
+                                <button
+                                  onClick={e => { e.stopPropagation(); toggleSort(colKey as SortKey) }}
+                                  className="flex items-center gap-1 hover:opacity-80 transition-opacity cursor-pointer select-none w-full"
+                                >
+                                  <span className={`uppercase tracking-wider font-bold text-white block w-full ${col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left'}`}>
+                                    {col.label}
                                   </span>
-                                : <span className="text-xs text-slate-400">—</span>
-                              }
-                            </td>
-                          )
-                        case 'status':
-                          return (
-                            <td key={colKey} className="px-4 py-3">
-                              <span className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold ring-1 ${pill.bg} ${pill.text} ${pill.ring}`}>
-                                {pill.label}
-                              </span>
-                            </td>
-                          )
-                        default:
-                          return <td key={colKey} />
-                      }
-                    })}
+                                  <span className="text-[9px] opacity-60 shrink-0">
+                                    {sortKey === colKey ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}
+                                  </span>
+                                </button>
+                              </th>
+                            )}
+                          </Draggable>
+                        )
+                      })}
+                      {provided.placeholder}
+                    </tr>
+                  )}
+                </Droppable>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr>
+                    <td colSpan={activeColOrder.length} className="px-4 py-12 text-center text-sm text-slate-400">
+                      Loading clients…
+                    </td>
                   </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </DragDropContext>
+                ) : filtered.length === 0 ? (
+                  <tr>
+                    <td colSpan={activeColOrder.length} className="px-4 py-12 text-center text-sm text-slate-400">
+                      {anyFilter
+                        ? <><span>No clients match your filters. </span><button onClick={clearFilters} className="underline text-purple-600">Clear filters</button></>
+                        : 'No clients found.'}
+                    </td>
+                  </tr>
+                ) : filtered.map((client, idx) => {
+                  const baseBg = idx % 2 === 0 ? '#ffffff' : '#faf5ff'
+                  return (
+                    <tr
+                      key={client.id}
+                      style={{ backgroundColor: baseBg, borderBottom: '1px solid #f0e8f8' }}
+                      onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#f3e8ff' }}
+                      onMouseLeave={e => { e.currentTarget.style.backgroundColor = baseBg }}
+                    >
+                      {activeColOrder.map(colKey => renderCell(colKey, client))}
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </DragDropContext>
+        </div>
       </div>
 
       <AddClientPanel open={panelOpen} onClose={() => setPanelOpen(false)} onCreated={refetchClients} />
