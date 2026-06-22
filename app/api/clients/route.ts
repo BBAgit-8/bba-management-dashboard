@@ -7,7 +7,7 @@ export async function GET(): Promise<NextResponse> {
     .select(`
       *,
       tags:client_tags(tag:tags(*)),
-      sows(billingType, fixedMonthlyRate, billingRate)
+      sows(billingType, fixedMonthlyRate, billingRate, targetHours)
     `)
     .order('name')
 
@@ -17,20 +17,32 @@ export async function GET(): Promise<NextResponse> {
   }
 
   const shaped = (data ?? []).map((c: any) => ({
-    id:                 c.id,
-    name:               c.name,
-    harvestProjectCode: c.harvestProjectCode,
-    archiveStatus:      c.archiveStatus,
-    processingCadence:  c.processingCadence,
-    projectType:        c.projectType,
-    revenueType:        c.revenueType,
-    qboOnly:            c.qboOnly ?? false,
-    contractEndDate:    c.contractEndDate ?? null,
+    id:                      c.id,
+    name:                    c.name,
+    harvestProjectCode:      c.harvestProjectCode,
+    archiveStatus:           c.archiveStatus,
+    processingCadence:       c.processingCadence,
+    projectType:             c.projectType      ?? null,
+    revenueType:             c.revenueType      ?? null,
+    qboOnly:                 c.qboOnly          ?? false,
+    contractStartDate:       c.contractStartDate ?? null,
+    contractEndDate:         c.contractEndDate   ?? null,
+    entityType:              c.entityType        ?? null,
+    guaranteedDeadlineDay:   c.guaranteedDeadlineDay ?? null,
+    softwareRate:            c.softwareRate      != null ? Number(c.softwareRate) : null,
+    totalMonthlyAmount:      c.totalMonthlyAmount != null ? Number(c.totalMonthlyAmount) : null,
+    hasContractedLoom:       c.hasContractedLoom    ?? false,
+    hasScheduledMeetings:    c.hasScheduledMeetings ?? false,
+    hasSignedAutoIncrease:   c.hasSignedAutoIncrease ?? false,
+    accountantName:          c.accountantName    ?? null,
+    autoPriceIncreasePercent: c.autoPriceIncreasePercent != null ? Number(c.autoPriceIncreasePercent) : null,
+    priceAdjustmentDate:     c.priceAdjustmentDate ?? null,
     tags: (c.tags ?? []).map((ct: any) => ct.tag).filter(Boolean),
     sows: (c.sows ?? []).map((s: any) => ({
       billingType:      s.billingType,
-      fixedMonthlyRate: s.fixedMonthlyRate ? Number(s.fixedMonthlyRate) : null,
-      billingRate:      s.billingRate      ? Number(s.billingRate)      : null,
+      fixedMonthlyRate: s.fixedMonthlyRate != null ? Number(s.fixedMonthlyRate) : null,
+      billingRate:      s.billingRate      != null ? Number(s.billingRate)      : null,
+      targetHours:      s.targetHours      != null ? Number(s.targetHours)      : null,
     })),
   }))
 

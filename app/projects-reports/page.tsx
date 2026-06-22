@@ -3,8 +3,7 @@
 import { useState, useMemo, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd'
-import { CLIENTS, SOWS } from '@/lib/mock-data'
-import type { Client, ProjectType, RevenueType, EntityType } from '@/lib/mock-data'
+import type { ProjectType, RevenueType, EntityType } from '@/lib/mock-data'
 
 // ── Option lists ──────────────────────────────────────────────────────────────
 const PROJECT_OPTS: { value: ProjectType; label: string }[] = [
@@ -69,11 +68,13 @@ function deriveStatus(archiveStatus: string, contractEndDate?: string): StatusKe
   return 'active'
 }
 
-function clientBkRate(clientId: string): number {
-  const sow = SOWS.find(s => s.clientId === clientId)
-  if (!sow) return 0
-  return sow.billingType === 'FLAT' ? (sow.fixedMonthlyRate ?? 0) : (sow.targetHours ?? 0) * (sow.billingRate ?? 0)
-}
+function clientBkRate(client: DbClient): number {
+    const sow = client.sows?.[0]
+    if (!sow) return 0
+    return sow.billingType === 'FLAT'
+      ? (sow.fixedMonthlyRate ?? 0)
+      : (sow.targetHours ?? 0) * (sow.billingRate ?? 0)
+  }
 
 function fmtUSD(n: number) {
   return n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
@@ -98,20 +99,41 @@ const STATUS_LABEL: Record<StatusKey, string> = {
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
-export default function ProjectsReportsPage() {
-  const [edits,        setEdits]        = useState<Edits>({})
-  const [saving,       setSaving]       = useState<Record<string, boolean>>({})
-  const [search,       setSearch]       = useState('')
-  const [statusFilter, setStatusFilter] = useState<StatusKey | 'all'>('all')
-  const [ptFilter,     setPtFilter]     = useState<string>('all')
-  const [sortKey,      setSortKey]      = useState<SortKey>('name')
-  const [sortDir,      setSortDir]      = useState<'asc' | 'desc'>('asc')
-  const [colOrder,     setColOrder]     = useState<ColKey[]>(DEFAULT_COL_ORDER)
+// ── Types ─────────────────────────────────────────────────────────────────────
+interface DbClient {
+  id: string
+  name: string
+  harvestProjectCode: string
+  archiveStatus: string
+  processingCadence: string
+  projectType: string | null
+  revenueType: string | null
+  qboOnly: boolean
+  contractStartDate: string | null
+  contractEndDate: string | null
+  entityType: string | null
+  guaranteedDeadlineDay: number | null
+  softwareRate: number | null
+  totalMonthlyAmount: number | null
+  hasContractedLoom: boolean
+  hasScheduledMeetings: boolean
+  hasSignedAutoIncrease: boolean
+  accountantName: string | null
+  autoPriceIncreasePercent: number | null
+  priceAdjustmentDate: string | null
+  tags: { id: string; name: string; color: string }[]
+  sows: { billingType: string; fixedMonthlyRate: number | null; billingRate: number | null; targetHours: number | null }[]
+}
 
-  // ── Background lifecycle ──────────────────────────────────────────────────
+export default function ProjectsReportsPage() {
+  const [clients,  setClients]  = useState<DbClient[]>([])
+  const [loading,  setLoading]  = useState(true)
+  const [fetchErr, setFetchErr] = useState<string | null>(null)
+
   useEffect(() => {
+    if (clients.length === 0) return
     const today = new Date(); today.setHours(0, 0, 0, 0)
-    const toInactivate = CLIENTS.filter(c => {
+    const toInactivate = clients.filter(c => {
       if (!c.contractEndDate) return false
       const end = new Date(c.contractEndDate); end.setHours(0, 0, 0, 0)
       return end <= today && c.archiveStatus !== 'INACTIVE' && c.archiveStatus !== 'ARCHIVED'
@@ -128,7 +150,7 @@ export default function ProjectsReportsPage() {
         body: JSON.stringify({ archiveStatus: 'INACTIVE' }),
       }).catch(() => {})
     })
-  }, [])
+  }, [clients])
 
   const patchClient = useCallback(
     async (code: string, id: string, field: string, value: unknown) => {
@@ -145,21 +167,21 @@ export default function ProjectsReportsPage() {
   )
 
   const allRows = useMemo(() =>
-    CLIENTS
+    clients
       .filter(c => c.archiveStatus !== 'ARCHIVED')
       .map(c => {
         const e = edits[c.id] ?? {}
-        const g = (k: keyof Client) => (k in e ? e[k as string] : c[k])
+        const g = (k: keyof DbClient) => (k in e ? e[k as string] : c[k as keyof DbClient])
         const archiveStatus   = String(g('archiveStatus') ?? c.archiveStatus)
         const contractEndDate = String(g('contractEndDate') ?? c.contractEndDate ?? '')
         const status          = deriveStatus(archiveStatus, contractEndDate || undefined)
-        const bkRate          = clientBkRate(c.id)
+        const bkRate          = clientBkRate(c)
         const swRate          = parseFloat(String(g('softwareRate') ?? c.softwareRate ?? 0)) || 0
         const totalOverride   = parseFloat(String(g('totalMonthlyAmount') ?? c.totalMonthlyAmount ?? 0))
         const total           = totalOverride > 0 ? totalOverride : bkRate + swRate
         return { c, e, g, status, bkRate, swRate, total, archiveStatus, contractEndDate }
       }),
-  [edits])
+  [clients, edits])
 
   const filtered = useMemo(() => {
     let rows = allRows
@@ -352,15 +374,24 @@ export default function ProjectsReportsPage() {
     }
   }
 
-  return (
-    <div className="space-y-6">
+  if (loading) return (
+    <div className="flex items-center justify-center h-64">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-bba-primary" />
+    </div>
+  )
+
+  if (fetchErr) return (
+    <div className="rounded-xl p-6 text-sm text-red-400 bg-red-950/30 border border-red-800">
+      Failed to load projects: {fetchErr}
+    </div>
+  )
 
       {/* ── Header ── */}
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Projects &amp; Reports</h1>
           <p className="mt-1 text-sm text-slate-400">
-            {allRows.length} project{allRows.length !== 1 ? 's' : ''} · inline-editable compliance grid
+            {clients.filter(c => c.archiveStatus !== 'ARCHIVED').length} project{clients.filter(c => c.archiveStatus !== 'ARCHIVED').length !== 1 ? 's' : ''} · inline-editable compliance grid
           </p>
         </div>
         <button
