@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
+import { useEffect } from 'react'
 import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd'
-import { ACCOUNTANTS, CLIENTS } from '@/lib/mock-data'
 
 interface AccountantRow {
   id:           string
@@ -11,6 +11,7 @@ interface AccountantRow {
   email:        string | null
   phoneNumber:  string | null
   status:       'ACTIVE' | 'ARCHIVED'
+  okToContactAccountant?: boolean
 }
 
 type ColKey  = 'name' | 'biz' | 'email' | 'phone' | 'status' | 'consent'
@@ -26,14 +27,10 @@ const ALL_COLS: { key: ColKey; label: string; sortable: boolean }[] = [
 ]
 const DEFAULT_COL_ORDER: ColKey[] = ALL_COLS.map(c => c.key)
 
-const fieldCls = 'w-full rounded-lg bg-[#4e008e] border border-bba-secondary/30 px-3 py-2.5 text-sm text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-bba-highlight focus:border-transparent'
+const fieldCls = 'w-full rounded-lg bg-white border border-surface-border px-3 py-2.5 text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-bba-primary focus:border-transparent'
 
-function toRow(a: { id: string; name: string; businessName?: string | null; email?: string | null; phoneNumber?: string | null; status: 'ACTIVE' | 'ARCHIVED' }): AccountantRow {
-  return { id: a.id, name: a.name, businessName: a.businessName ?? null, email: a.email ?? null, phoneNumber: a.phoneNumber ?? null, status: a.status }
-}
-
-function hasConsent(accName: string): boolean {
-  return CLIENTS.some(c => c.accountantName === accName && c.archiveStatus === 'ACTIVE' && c.okToContactAccountant === true)
+function toRow(a: { id: string; name: string; businessName?: string | null; email?: string | null; phoneNumber?: string | null; status: 'ACTIVE' | 'ARCHIVED'; okToContactAccountant?: boolean }): AccountantRow {
+  return { id: a.id, name: a.name, businessName: a.businessName ?? null, email: a.email ?? null, phoneNumber: a.phoneNumber ?? null, status: a.status, okToContactAccountant: a.okToContactAccountant ?? false }
 }
 
 function GripIcon() {
@@ -54,16 +51,8 @@ function SortArrow({ active, dir }: { active: boolean; dir: SortDir }) {
   )
 }
 
-// Dark purple palette
-const BG_CARD_HEADER = '#4e008e'
-const BG_TABLE       = '#2d0050'
-const BG_THEAD       = '#3d0070'
-const ROW_ODD        = '#2d0050'
-const ROW_EVEN       = '#330060'
-const ROW_HOVER      = '#4e008e'
-
 export default function AccountantsPage() {
-  const [accountants, setAccountants] = useState<AccountantRow[]>(() => ACCOUNTANTS.map(toRow))
+  const [accountants, setAccountants] = useState<AccountantRow[]>([])
   const [loading,   setLoading]   = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
   const [saving,    setSaving]    = useState(false)
@@ -145,20 +134,20 @@ export default function AccountantsPage() {
   function renderCell(acc: AccountantRow, key: ColKey): React.ReactNode {
     switch (key) {
       case 'name':
-        return <td key={key} className="px-5 py-3 font-medium text-white">{acc.name}</td>
+        return <td key={key} className="px-5 py-3 font-medium text-slate-800">{acc.name}</td>
       case 'biz':
-        return <td key={key} className="px-5 py-3" style={{ color: '#d4bebe' }}>{acc.businessName ?? '—'}</td>
+        return <td key={key} className="px-5 py-3 text-slate-600">{acc.businessName ?? '—'}</td>
       case 'email':
-        return <td key={key} className="px-5 py-3" style={{ color: '#d4bebe' }}>{acc.email ?? '—'}</td>
+        return <td key={key} className="px-5 py-3 text-slate-600">{acc.email ?? '—'}</td>
       case 'phone':
-        return <td key={key} className="px-5 py-3" style={{ color: '#d4bebe' }}>{acc.phoneNumber ?? '—'}</td>
+        return <td key={key} className="px-5 py-3 text-slate-600">{acc.phoneNumber ?? '—'}</td>
       case 'status':
         return (
           <td key={key} className="px-5 py-3">
-            <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ${
+            <span className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold ring-1 ${
               acc.status === 'ACTIVE'
                 ? 'bg-bba-highlight/10 text-bba-highlight ring-bba-highlight/20'
-                : 'bg-slate-700/50 text-slate-500 ring-slate-600/50'
+                : 'bg-slate-100 text-slate-500 ring-slate-200'
             }`}>
               {acc.status === 'ACTIVE' ? 'Active' : 'Archived'}
             </span>
@@ -167,15 +156,15 @@ export default function AccountantsPage() {
       case 'consent':
         return (
           <td key={key} className="px-5 py-3">
-            {hasConsent(acc.name) ? (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-400 ring-1 ring-emerald-500/20">
+            {acc.okToContactAccountant ? (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-600 ring-1 ring-emerald-200">
                 <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
                 Authorized
               </span>
             ) : (
-              <span className="text-xs" style={{ color: 'rgba(212,190,190,0.35)' }}>—</span>
+              <span className="text-xs text-slate-400">—</span>
             )}
           </td>
         )
@@ -190,8 +179,8 @@ export default function AccountantsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-100">Accountants</h1>
-          <p className="mt-1 text-sm text-slate-400">
+          <h1 className="text-2xl font-semibold tracking-tight text-slate-800">Accountants</h1>
+          <p className="mt-1 text-sm text-slate-500">
             {activeList.length} active{archivedList.length > 0 ? ` · ${archivedList.length} archived` : ''}
           </p>
         </div>
@@ -207,12 +196,11 @@ export default function AccountantsPage() {
       </div>
 
       {/* Table */}
-      <div className="rounded-xl overflow-hidden" style={{ border: `1px solid rgba(212,190,190,0.18)` }}>
+      <div className="rounded-xl overflow-hidden" style={{ border: '1px solid #e2d8e8' }}>
 
-        {/* Card header */}
         <div
           className="border-b px-5 py-3.5 flex items-center justify-between"
-          style={{ backgroundColor: BG_CARD_HEADER, borderColor: 'rgba(212,190,190,0.18)' }}
+          style={{ backgroundColor: 'var(--bba-primary)', borderColor: 'rgba(78,0,142,0.2)' }}
         >
           <h3 className="text-sm font-semibold text-white">Registered Accountants</h3>
           <span className="text-[10px] font-medium text-white">
@@ -221,15 +209,15 @@ export default function AccountantsPage() {
         </div>
 
         {loading ? (
-          <div className="px-5 py-12 text-center text-sm" style={{ backgroundColor: BG_TABLE, color: 'rgba(212,190,190,0.45)' }}>
+          <div className="px-5 py-12 text-center text-sm text-slate-400 bg-white">
             Loading…
           </div>
         ) : accountants.length === 0 ? (
-          <div className="px-5 py-12 text-center text-sm" style={{ backgroundColor: BG_TABLE, color: 'rgba(212,190,190,0.45)' }}>
+          <div className="px-5 py-12 text-center text-sm text-slate-400 bg-white">
             No accountants yet. Add one above.
           </div>
         ) : (
-          <div className="overflow-x-auto" style={{ backgroundColor: BG_TABLE }}>
+          <div className="overflow-x-auto bg-white">
             <DragDropContext onDragEnd={handleDragEnd}>
               <table className="w-full text-sm">
                 <Droppable droppableId="acct-cols" direction="horizontal">
@@ -238,7 +226,7 @@ export default function AccountantsPage() {
                       <tr
                         ref={dp.innerRef}
                         {...dp.droppableProps}
-                        style={{ backgroundColor: BG_THEAD, borderBottom: '1px solid rgba(212,190,190,0.13)' }}
+                        style={{ backgroundColor: '#f9f5ff', borderBottom: '1px solid #e2d8e8' }}
                       >
                         {colOrder.map((key, idx) => {
                           const col = ALL_COLS.find(c => c.key === key)!
@@ -254,7 +242,7 @@ export default function AccountantsPage() {
                                   <div className="flex items-center gap-1.5">
                                     <span
                                       {...dragP.dragHandleProps}
-                                      className="cursor-grab active:cursor-grabbing opacity-50 hover:opacity-100 transition-opacity shrink-0"
+                                      className="cursor-grab active:cursor-grabbing opacity-40 hover:opacity-80 transition-opacity shrink-0 text-white"
                                       title="Drag to reorder"
                                     >
                                       <GripIcon />
@@ -285,13 +273,13 @@ export default function AccountantsPage() {
                 </Droppable>
                 <tbody>
                   {sorted.map((acc, i) => {
-                    const baseBg = i % 2 === 0 ? ROW_ODD : ROW_EVEN
+                    const baseBg = i % 2 === 0 ? '#ffffff' : '#faf5ff'
                     return (
                       <tr
                         key={acc.id}
                         className={acc.status === 'ARCHIVED' ? 'opacity-60' : ''}
-                        style={{ backgroundColor: baseBg, borderBottom: '1px solid rgba(212,190,190,0.07)' }}
-                        onMouseEnter={e => { e.currentTarget.style.backgroundColor = ROW_HOVER }}
+                        style={{ backgroundColor: baseBg, borderBottom: '1px solid #f0e8f8' }}
+                        onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#f3e8ff' }}
                         onMouseLeave={e => { e.currentTarget.style.backgroundColor = baseBg }}
                       >
                         {colOrder.map(key => renderCell(acc, key))}
@@ -300,8 +288,7 @@ export default function AccountantsPage() {
                             <button
                               onClick={() => setStatus(acc, 'ARCHIVED')}
                               disabled={toggling === acc.id}
-                              className="text-xs underline underline-offset-2 disabled:opacity-40 transition-opacity hover:opacity-70"
-                              style={{ color: '#d4bebe' }}
+                              className="text-xs text-slate-400 underline underline-offset-2 disabled:opacity-40 transition-opacity hover:text-slate-600"
                             >
                               {toggling === acc.id ? '…' : 'Archive'}
                             </button>
@@ -309,10 +296,9 @@ export default function AccountantsPage() {
                             <button
                               onClick={() => setStatus(acc, 'ACTIVE')}
                               disabled={toggling === acc.id}
-                              className="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium transition-colors disabled:opacity-40"
-                              style={{ backgroundColor: 'rgba(212,190,190,0.08)', color: '#d4bebe', border: '1px solid rgba(212,190,190,0.15)' }}
+                              className="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium transition-colors disabled:opacity-40 bg-slate-100 text-slate-600 border border-slate-200 hover:bg-bba-primary hover:text-white hover:border-bba-primary"
                             >
-                              {toggling === acc.id ? '…' : '🔄 Reactivate'}
+                              {toggling === acc.id ? '…' : '↩ Reactivate'}
                             </button>
                           )}
                         </td>
@@ -329,23 +315,14 @@ export default function AccountantsPage() {
       {/* Add modal */}
       {modalOpen && (
         <>
-          <div onClick={() => setModalOpen(false)} className="fixed inset-0 z-40 bg-black/60" />
+          <div onClick={() => setModalOpen(false)} className="fixed inset-0 z-40 bg-black/40" />
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div
-              className="w-full max-w-md rounded-2xl shadow-2xl"
-              style={{ backgroundColor: '#2d0050', border: '1px solid rgba(212,190,190,0.2)' }}
-            >
-              <div
-                className="flex items-center justify-between px-6 py-4"
-                style={{ borderBottom: '1px solid rgba(212,190,190,0.18)' }}
-              >
-                <h2 className="text-base font-semibold text-white">Add New Accountant</h2>
+            <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl border border-surface-border">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-surface-border">
+                <h2 className="text-base font-semibold text-slate-800">Add New Accountant</h2>
                 <button
                   onClick={() => setModalOpen(false)}
-                  className="rounded-md p-1.5 transition-colors"
-                  style={{ color: 'rgba(212,190,190,0.6)' }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'rgba(212,190,190,0.1)' }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent' }}
+                  className="rounded-md p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
                 >
                   <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -354,43 +331,42 @@ export default function AccountantsPage() {
               </div>
               <form onSubmit={handleCreate} className="px-6 py-5 space-y-4">
                 <div>
-                  <label className="block text-xs font-medium mb-1.5" style={{ color: '#d4bebe' }}>
-                    Name <span className="text-red-400">*</span>
+                  <label className="block text-xs font-medium text-slate-600 mb-1.5">
+                    Name <span className="text-red-500">*</span>
                   </label>
                   <input required type="text" value={form.name}
                     onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                     placeholder="Full name" className={fieldCls} />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium mb-1.5" style={{ color: '#d4bebe' }}>Business Name</label>
+                  <label className="block text-xs font-medium text-slate-600 mb-1.5">Business Name</label>
                   <input type="text" value={form.businessName}
                     onChange={e => setForm(f => ({ ...f, businessName: e.target.value }))}
                     placeholder="Company or firm name" className={fieldCls} />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-medium mb-1.5" style={{ color: '#d4bebe' }}>Email</label>
+                    <label className="block text-xs font-medium text-slate-600 mb-1.5">Email</label>
                     <input type="email" value={form.email}
                       onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
                       placeholder="email@example.com" className={fieldCls} />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium mb-1.5" style={{ color: '#d4bebe' }}>Phone Number</label>
+                    <label className="block text-xs font-medium text-slate-600 mb-1.5">Phone Number</label>
                     <input type="tel" value={form.phoneNumber}
                       onChange={e => setForm(f => ({ ...f, phoneNumber: e.target.value }))}
                       placeholder="(555) 000-0000" className={fieldCls} />
                   </div>
                 </div>
-                {error && <p className="text-xs text-red-400">{error}</p>}
+                {error && <p className="text-xs text-red-500">{error}</p>}
                 <div className="flex items-center justify-end gap-3 pt-1">
                   <button type="button" onClick={() => setModalOpen(false)}
-                    className="rounded-lg px-4 py-2 text-sm transition-colors"
-                    style={{ color: 'rgba(212,190,190,0.6)' }}>
+                    className="rounded-lg px-4 py-2 text-sm text-slate-500 hover:text-slate-700 transition-colors">
                     Cancel
                   </button>
                   <button type="submit" disabled={saving || !form.name.trim()}
                     className="rounded-lg bg-bba-primary px-5 py-2 text-sm font-semibold text-white hover:bg-bba-primary/85 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
-                    {saving ? 'Saving…' : '➕ Create Accountant'}
+                    {saving ? 'Saving…' : '+ Create Accountant'}
                   </button>
                 </div>
               </form>

@@ -99,17 +99,17 @@ function fmtUSD(n: number) {
   return n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
 }
 
-// ── Shared cell styles ────────────────────────────────────────────────────────
-const iCls = 'w-full rounded bg-[#4e008e] border border-bba-secondary/25 px-1.5 py-1 text-xs text-white placeholder-white/35 focus:outline-none focus:ring-1 focus:ring-bba-highlight focus:border-transparent'
-const sCls = iCls + ' [color-scheme:dark]'
-const dCls = iCls + ' [color-scheme:dark]'
+// ── Light-theme input styles ──────────────────────────────────────────────────
+const iCls = 'w-full rounded border border-surface-border bg-white px-1.5 py-1 text-xs text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-bba-primary focus:border-transparent'
+const sCls = iCls
+const dCls = iCls
 
 // ── Status chip styles ────────────────────────────────────────────────────────
 const STATUS_CHIP: Record<StatusKey | 'all', string> = {
-  all:         'bg-white/10 text-white/70 border-white/20',
-  active:      'bg-[#b20476]/15 text-[#f060c0] border-[#b20476]/40',
-  offboarding: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
-  inactive:    'bg-white/5 text-white/40 border-white/15',
+  all:         'bg-slate-100 text-slate-600 border-slate-300',
+  active:      'bg-bba-highlight/10 text-bba-highlight border-bba-highlight/30',
+  offboarding: 'bg-amber-50 text-amber-600 border-amber-300',
+  inactive:    'bg-slate-100 text-slate-400 border-slate-200',
 }
 const STATUS_LABEL: Record<StatusKey, string> = {
   active: 'Active', offboarding: 'Off-boarding', inactive: 'Inactive',
@@ -129,7 +129,6 @@ export default function ProjectsReportsPage() {
   const [sortDir,      setSortDir]      = useState<'asc' | 'desc'>('asc')
   const [colOrder,     setColOrder]     = useState<ColKey[]>(DEFAULT_COL_ORDER)
 
-  // ── Fetch clients ───────────────────────────────────────────────────────────
   useEffect(() => {
     fetch('/api/clients')
       .then(r => r.json())
@@ -141,7 +140,6 @@ export default function ProjectsReportsPage() {
       .finally(() => setLoading(false))
   }, [])
 
-  // ── Auto-inactivate clients past contract end ───────────────────────────────
   useEffect(() => {
     if (clients.length === 0) return
     const today = new Date(); today.setHours(0, 0, 0, 0)
@@ -247,7 +245,6 @@ export default function ProjectsReportsPage() {
     )
   }
 
-  // ── Cell renderer ─────────────────────────────────────────────────────────
   type RowData = typeof filtered[0]
 
   function renderCell(row: RowData, key: ColKey): React.ReactNode {
@@ -264,14 +261,14 @@ export default function ProjectsReportsPage() {
           <td key={key} className="px-3 py-2.5" style={minW}>
             <div className="flex items-center gap-2">
               {status !== 'active' && (
-                <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: status === 'offboarding' ? '#f59e0b' : '#64748b' }} title={status === 'offboarding' ? 'Off-boarding' : 'Inactive'} />
+                <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: status === 'offboarding' ? '#f59e0b' : '#94a3b8' }} title={status === 'offboarding' ? 'Off-boarding' : 'Inactive'} />
               )}
-              <Link href={`/clients/${c.harvestProjectCode}`} className="font-semibold text-white/90 hover:text-[#f060c0] transition-colors truncate">
+              <Link href={`/clients/${c.harvestProjectCode}`} className="font-semibold text-slate-800 hover:text-bba-highlight transition-colors truncate">
                 {c.name}
               </Link>
-              {isSaving && <span className="ml-1 text-[9px] text-[#b20476] animate-pulse">saving…</span>}
+              {isSaving && <span className="ml-1 text-[9px] text-bba-highlight animate-pulse">saving…</span>}
             </div>
-            <span className="font-mono text-[9px] text-white/30">{c.harvestProjectCode}</span>
+            <span className="font-mono text-[9px] text-slate-400">{c.harvestProjectCode}</span>
           </td>
         )
       case 'projectType':
@@ -307,7 +304,7 @@ export default function ProjectsReportsPage() {
               onBlur={ev => patchClient(c.harvestProjectCode, c.id, 'contractEndDate', ev.target.value || null)}
               onChange={ev => setEdits(prev => ({ ...prev, [c.id]: { ...prev[c.id], contractEndDate: ev.target.value } }))}
               className={dCls}
-              style={{ color: status === 'offboarding' ? '#f59e0b' : status === 'inactive' ? '#64748b' : undefined }} />
+              style={{ color: status === 'offboarding' ? '#d97706' : status === 'inactive' ? '#94a3b8' : undefined }} />
           </td>
         )
       case 'entity':
@@ -321,14 +318,14 @@ export default function ProjectsReportsPage() {
       case 'bkRate':
         return (
           <td key={key} className="px-3 py-2.5 text-right tabular-nums" style={minW}>
-            {bkRate > 0 ? <span className="text-white/70">${fmtUSD(bkRate)}</span> : <span className="text-white/25">—</span>}
+            {bkRate > 0 ? <span className="text-slate-700">${fmtUSD(bkRate)}</span> : <span className="text-slate-300">—</span>}
           </td>
         )
       case 'swRate':
         return (
           <td key={key} className="px-2 py-2" style={minW}>
             <div className="relative">
-              <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-white/40">$</span>
+              <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-slate-400">$</span>
               <input type="number" min={0} step={0.01}
                 value={String(g('softwareRate') ?? c.softwareRate ?? '')}
                 onBlur={ev => patchClient(c.harvestProjectCode, c.id, 'softwareRate', parseFloat(ev.target.value) || 0)}
@@ -341,7 +338,7 @@ export default function ProjectsReportsPage() {
         return (
           <td key={key} className="px-2 py-2" style={minW}>
             <div className="relative">
-              <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-white/40">$</span>
+              <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-slate-400">$</span>
               <input type="number" min={0} step={0.01}
                 value={String(g('totalMonthlyAmount') ?? c.totalMonthlyAmount ?? '')}
                 placeholder={total > 0 ? fmtUSD(total) : '0'}
@@ -350,7 +347,7 @@ export default function ProjectsReportsPage() {
                 className={iCls + ' pl-5 tabular-nums'} title={`Auto-calculated: $${fmtUSD(bkRate)} BK + $${fmtUSD(swRate)} SW`} />
             </div>
             {total > 0 && !(g('totalMonthlyAmount') ?? c.totalMonthlyAmount) && (
-              <p className="mt-0.5 text-[9px] text-white/30 tabular-nums">≈ ${fmtUSD(total)}</p>
+              <p className="mt-0.5 text-[9px] text-slate-400 tabular-nums">≈ ${fmtUSD(total)}</p>
             )}
           </td>
         )
@@ -370,7 +367,7 @@ export default function ProjectsReportsPage() {
           <td key={key} className="px-2 py-2 text-center" style={minW}>
             <input type="checkbox" checked={bool('hasContractedLoom')}
               onChange={ev => patchClient(c.harvestProjectCode, c.id, 'hasContractedLoom', ev.target.checked)}
-              className="h-4 w-4 cursor-pointer rounded accent-[#b20476]" title="Contracted Loom Video" />
+              className="h-4 w-4 cursor-pointer rounded accent-bba-primary" title="Contracted Loom Video" />
           </td>
         )
       case 'meetings':
@@ -378,7 +375,7 @@ export default function ProjectsReportsPage() {
           <td key={key} className="px-2 py-2 text-center" style={minW}>
             <input type="checkbox" checked={bool('hasScheduledMeetings')}
               onChange={ev => patchClient(c.harvestProjectCode, c.id, 'hasScheduledMeetings', ev.target.checked)}
-              className="h-4 w-4 cursor-pointer rounded accent-[#b20476]" title="Scheduled Meetings" />
+              className="h-4 w-4 cursor-pointer rounded accent-bba-primary" title="Scheduled Meetings" />
           </td>
         )
       case 'autoIncrease':
@@ -386,7 +383,7 @@ export default function ProjectsReportsPage() {
           <td key={key} className="px-2 py-2 text-center" style={minW}>
             <input type="checkbox" checked={bool('hasSignedAutoIncrease')}
               onChange={ev => patchClient(c.harvestProjectCode, c.id, 'hasSignedAutoIncrease', ev.target.checked)}
-              className="h-4 w-4 cursor-pointer rounded accent-[#b20476]" title="Signed Auto Annual Increase" />
+              className="h-4 w-4 cursor-pointer rounded accent-bba-primary" title="Signed Auto Annual Increase" />
           </td>
         )
       default:
@@ -394,7 +391,6 @@ export default function ProjectsReportsPage() {
     }
   }
 
-  // ── Loading / error states ──────────────────────────────────────────────────
   if (loading) return (
     <div className="flex items-center justify-center h-64">
       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-bba-primary" />
@@ -402,7 +398,7 @@ export default function ProjectsReportsPage() {
   )
 
   if (fetchErr) return (
-    <div className="rounded-xl p-6 text-sm text-red-400 bg-red-950/30 border border-red-800">
+    <div className="rounded-xl p-6 text-sm text-red-600 bg-red-50 border border-red-200">
       Failed to load projects: {fetchErr}
     </div>
   )
@@ -410,17 +406,16 @@ export default function ProjectsReportsPage() {
   return (
     <div className="space-y-6">
 
-      {/* ── Header ── */}
+      {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Projects &amp; Reports</h1>
-          <p className="mt-1 text-sm text-slate-400">
+          <h1 className="text-2xl font-semibold tracking-tight text-slate-800">Projects &amp; Reports</h1>
+          <p className="mt-1 text-sm text-slate-500">
             {clients.filter(c => c.archiveStatus !== 'ARCHIVED').length} project{clients.filter(c => c.archiveStatus !== 'ARCHIVED').length !== 1 ? 's' : ''} · inline-editable compliance grid
           </p>
         </div>
         <button
-          className="inline-flex shrink-0 items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors hover:bg-bba-primary hover:text-white"
-          style={{ border: '1px solid rgba(212,190,190,0.3)', backgroundColor: '#2d0050', color: '#d4bebe' }}
+          className="inline-flex shrink-0 items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors border border-surface-border bg-white text-slate-600 hover:bg-bba-primary hover:text-white hover:border-bba-primary"
         >
           <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -429,38 +424,37 @@ export default function ProjectsReportsPage() {
         </button>
       </div>
 
-      {/* ── Filters ── */}
+      {/* Filters */}
       <div className="space-y-3">
         <div className="flex flex-wrap items-center gap-2">
           {(['all', 'active', 'offboarding', 'inactive'] as const).map(s => (
             <button key={s} onClick={() => setStatusFilter(s)}
-              className={`rounded-full border px-3 py-1 text-xs font-medium transition-all ${statusFilter === s ? STATUS_CHIP[s] + ' ring-1 ring-current' : 'border-white/10 text-white/40 hover:border-white/25 hover:text-white/60'}`}>
+              className={`rounded-full border px-3 py-1 text-xs font-medium transition-all ${statusFilter === s ? STATUS_CHIP[s] + ' ring-1 ring-current' : 'border-slate-200 text-slate-500 hover:border-slate-300 hover:text-slate-700'}`}>
               {s === 'all' ? 'All' : STATUS_LABEL[s]} ({counts[s] ?? 0})
             </button>
           ))}
-          <div className="mx-1 h-4 w-px bg-white/15" />
+          <div className="mx-1 h-4 w-px bg-slate-200" />
           <select value={ptFilter} onChange={e => setPtFilter(e.target.value)}
-            className="rounded-lg border border-bba-secondary/30 bg-[#4e008e] px-3 py-1 text-xs text-white focus:outline-none focus:ring-1 focus:ring-bba-highlight [color-scheme:dark]">
+            className="rounded-lg border border-surface-border bg-white px-3 py-1 text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-bba-primary">
             <option value="all">All Project Types</option>
             {PROJECT_OPTS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
         </div>
 
         <div className="relative">
-          <svg className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" style={{ color: 'rgba(212,190,190,0.5)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
           <input type="text" value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Search by client name or project code…"
-            className="w-full rounded-lg border border-bba-secondary/30 bg-[#4e008e] py-2.5 pl-9 pr-4 text-sm text-white placeholder-white/40 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-bba-highlight"
-            style={{ colorScheme: 'dark' }} />
+            className="w-full rounded-lg border border-surface-border bg-white py-2.5 pl-9 pr-4 text-sm text-slate-700 placeholder-slate-400 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-bba-primary" />
         </div>
       </div>
 
-      {/* ── Table ── */}
-      <div className="overflow-hidden rounded-xl" style={{ border: '1px solid rgba(212,190,190,0.18)' }}>
+      {/* Table */}
+      <div className="overflow-hidden rounded-xl" style={{ border: '1px solid #e2d8e8' }}>
 
-        <div className="border-b px-5 py-3.5 flex items-center justify-between" style={{ borderColor: 'rgba(112,32,184,0.4)', backgroundColor: '#4e008e' }}>
+        <div className="border-b px-5 py-3.5 flex items-center justify-between" style={{ backgroundColor: 'var(--bba-primary)', borderColor: 'rgba(78,0,142,0.2)' }}>
           <h3 className="text-sm font-bold text-white">
             {filtered.length} Project{filtered.length !== 1 ? 's' : ''}
             {statusFilter !== 'all' || ptFilter !== 'all' || search ? ' — filtered' : ''}
@@ -468,7 +462,7 @@ export default function ProjectsReportsPage() {
           <span className="text-[10px] font-medium text-white">Drag headers to reorder · click to sort</span>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto bg-white">
           <DragDropContext onDragEnd={onDragEnd}>
             <table className="w-full text-xs" style={{ minWidth: '1420px' }}>
               <Droppable droppableId="pr-cols" direction="horizontal">
@@ -477,7 +471,7 @@ export default function ProjectsReportsPage() {
                     <tr
                       ref={dp.innerRef}
                       {...dp.droppableProps}
-                      style={{ backgroundColor: '#3d0070', borderBottom: '1px solid rgba(212,190,190,0.13)' }}
+                      style={{ backgroundColor: '#f9f5ff', borderBottom: '1px solid #e2d8e8' }}
                     >
                       {colOrder.map((key, idx) => {
                         const col = COL_META.find(c => c.key === key)!
@@ -516,17 +510,17 @@ export default function ProjectsReportsPage() {
               <tbody>
                 {filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={colOrder.length + 1} className="px-4 py-12 text-center" style={{ backgroundColor: '#2d0050', color: 'rgba(212,190,190,0.45)' }}>
+                    <td colSpan={colOrder.length + 1} className="px-4 py-12 text-center text-slate-400">
                       No projects match your filters.
                     </td>
                   </tr>
                 ) : filtered.map(({ c, e, g, status, bkRate, swRate, total }, i) => {
                   const isSaving   = !!saving[c.id]
-                  const rowBg      = isSaving ? '#4e008e' : status === 'inactive' ? (i % 2 === 0 ? '#1e0038' : '#220040') : status === 'offboarding' ? (i % 2 === 0 ? '#1a1200' : '#251800') : (i % 2 === 0 ? '#2d0050' : '#330060')
+                  const rowBg      = isSaving ? '#faf5ff' : status === 'inactive' ? (i % 2 === 0 ? '#f8f8fa' : '#f4f4f8') : status === 'offboarding' ? (i % 2 === 0 ? '#fffbeb' : '#fef9e7') : (i % 2 === 0 ? '#ffffff' : '#faf5ff')
                   const rowOpacity = status === 'inactive' ? 0.65 : 1
                   const row        = filtered[i]
                   return (
-                    <tr key={c.id} style={{ backgroundColor: rowBg, opacity: rowOpacity, borderBottom: '1px solid rgba(212,190,190,0.07)' }} className="transition-colors hover:brightness-125">
+                    <tr key={c.id} style={{ backgroundColor: rowBg, opacity: rowOpacity, borderBottom: '1px solid #f0e8f8' }} className="transition-colors hover:brightness-[0.97]">
                       {colOrder.map(key => renderCell(row, key))}
                     </tr>
                   )
@@ -537,17 +531,14 @@ export default function ProjectsReportsPage() {
         </div>
 
         {/* Legend */}
-        <div
-          className="flex items-center gap-5 px-5 py-2.5"
-          style={{ backgroundColor: '#2d0050', borderTop: '1px solid rgba(212,190,190,0.1)' }}
-        >
-          <div className="flex items-center gap-1.5 text-[10px]" style={{ color: 'rgba(212,190,190,0.45)' }}>
+        <div className="flex items-center gap-5 px-5 py-2.5 bg-white border-t border-surface-border">
+          <div className="flex items-center gap-1.5 text-[10px] text-slate-400">
             <span className="h-1.5 w-1.5 rounded-full bg-amber-400 shrink-0" /> Off-boarding (future end date)
           </div>
-          <div className="flex items-center gap-1.5 text-[10px]" style={{ color: 'rgba(212,190,190,0.45)' }}>
-            <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: 'rgba(212,190,190,0.35)' }} /> Inactive (auto-set when end date passes)
+          <div className="flex items-center gap-1.5 text-[10px] text-slate-400">
+            <span className="h-1.5 w-1.5 rounded-full bg-slate-300 shrink-0" /> Inactive (auto-set when end date passes)
           </div>
-          <p className="ml-auto text-[10px]" style={{ color: 'rgba(212,190,190,0.3)' }}>
+          <p className="ml-auto text-[10px] text-slate-300">
             Text fields save on blur · Dropdowns &amp; checkboxes save instantly
           </p>
         </div>
