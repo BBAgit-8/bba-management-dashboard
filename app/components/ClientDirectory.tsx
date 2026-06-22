@@ -432,13 +432,13 @@ export default function ClientDirectory() {
                           return (
                             <td key={colKey} className="px-4 py-3">
                               <div className="flex items-center gap-3">
-                                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white" style={{ backgroundColor: 'rgba(78,0,142,0.12)' }}>
+                                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold" style={{ backgroundColor: 'rgba(78,0,142,0.15)', color: '#4e008e' }}>
                                   {initials(client.name)}
                                 </div>
                                 <div className="flex items-center gap-2 min-w-0">
                                   <Link
                                     href={`/clients/${client.harvestProjectCode}`}
-                                    className="font-medium text-slate-800 hover:text-bba-highlight transition-colors whitespace-nowrap"
+                                    className="font-semibold text-slate-900 hover:text-slate-900 whitespace-nowrap"
                                   >
                                     {client.name}
                                   </Link>
@@ -478,8 +478,8 @@ export default function ClientDirectory() {
                           return (
                             <td key={colKey} className="px-4 py-3">
                               {rt
-                                ? <span className="text-xs whitespace-nowrap" style={{ color: 'rgba(255,255,255,0.75)' }}>{RTYPE_LABEL[rt] ?? rt}</span>
-                                : <span className="text-xs" style={{ color: '#c4b0d0' }}>—</span>
+                                ? <span className="text-xs whitespace-nowrap text-slate-700">{RTYPE_LABEL[rt] ?? rt}</span>
+                                : <span className="text-xs text-slate-400">—</span>
                               }
                             </td>
                           )
@@ -487,11 +487,11 @@ export default function ClientDirectory() {
                           return (
                             <td key={colKey} className="px-4 py-3 text-right">
                               {rate != null
-                                ? <span className="font-semibold tabular-nums text-white">
+                                ? <span className="font-semibold tabular-nums text-slate-800">
                                     ${rate.value.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
-                                    <span className="text-xs ml-0.5" style={{ color: '#8a6a90' }}>{rate.suffix}</span>
+                                    <span className="text-xs ml-0.5 text-slate-500">{rate.suffix}</span>
                                   </span>
-                                : <span className="text-xs" style={{ color: '#c4b0d0' }}>—</span>
+                                : <span className="text-xs text-slate-400">—</span>
                               }
                             </td>
                           )

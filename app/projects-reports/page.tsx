@@ -263,7 +263,7 @@ export default function ProjectsReportsPage() {
               {status !== 'active' && (
                 <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: status === 'offboarding' ? '#f59e0b' : '#94a3b8' }} title={status === 'offboarding' ? 'Off-boarding' : 'Inactive'} />
               )}
-              <Link href={`/clients/${c.harvestProjectCode}`} className="font-medium text-slate-800 hover:text-bba-highlight transition-colors whitespace-nowrap text-sm">
+              <Link href={`/clients/${c.harvestProjectCode}`} className="font-semibold text-slate-900 hover:text-slate-900 whitespace-nowrap text-sm">
                 {c.name}
               </Link>
               {isSaving && <span className="ml-1 text-[9px] text-bba-highlight animate-pulse">saving…</span>}
