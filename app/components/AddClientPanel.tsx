@@ -58,7 +58,7 @@ const EMPTY = {
   hasPayroll: false, payrollProvider: '',
   // Other
   qboOnly: false, qboMonthlyFee: '',
-  hasContractedLoom: false, hasScheduledMeetings: false,
+  hasContractedLoom: false, hasScheduledMeetings: false, meetingDuration: 0,
   selectedTags: [] as string[],
 };
 
@@ -336,7 +336,19 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
           {/* ── Add-ons ── */}
           <Section label="Add-ons">
             <Toggle label="Contracted Loom" value={form.hasContractedLoom} onChange={v => set('hasContractedLoom', v)} />
-            <Toggle label="Scheduled Meetings" value={form.hasScheduledMeetings} onChange={v => set('hasScheduledMeetings', v)} />
+            <Toggle label="Scheduled Meetings" value={form.hasScheduledMeetings} onChange={v => { set('hasScheduledMeetings', v); if (!v) set('meetingDuration', 0); }} />
+            {form.hasScheduledMeetings && (
+              <div className="ml-4 flex items-center gap-3">
+                <span className="text-xs text-slate-500 shrink-0">Meeting length</span>
+                {[15, 30, 45].map(min => (
+                  <button key={min} type="button"
+                    onClick={() => set('meetingDuration', form.meetingDuration === min ? 0 : min)}
+                    className={`rounded-lg px-4 py-1.5 text-xs font-semibold border transition-all ${form.meetingDuration === min ? 'bg-bba-primary text-white border-bba-primary' : 'bg-white text-slate-600 border-slate-200 hover:border-purple-300 hover:text-purple-700'}`}>
+                    {min} min
+                  </button>
+                ))}
+              </div>
+            )}
           </Section>
 
           {/* ── QBO Only ── */}
