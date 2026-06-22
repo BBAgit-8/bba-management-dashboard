@@ -62,8 +62,8 @@ const EMPTY = {
   selectedTags: [] as string[],
   // Software subscriptions
   qboTier: '' as '' | 'qbo_simple_start' | 'qbo_essentials' | 'qbo_plus' | 'qbo_advanced',
-  hasDext: false,
-  otherSoftwareName: '', otherSoftwareAmount: '',
+  hasDouble: false,
+  otherSoftware: [] as { name: string; amount: string }[],
 };
 
 function nextAnnualDate(from: string | null): string {
@@ -109,8 +109,8 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
   // Auto-calculate software rate + monthly billing
   useEffect(() => {
     const qboPrice  = form.qboTier ? (prices[form.qboTier] ?? 0) : 0;
-    const dextPrice = form.hasDext ? (prices['dext'] ?? 0) : 0;
-    const otherAmt  = parseFloat(form.otherSoftwareAmount) || 0;
+    const dextPrice  = form.hasDouble ? (prices['dext'] ?? 0) : 0;
+    const otherAmt   = form.otherSoftware.reduce((sum, o) => sum + (parseFloat(o.amount) || 0), 0);
     const softTotal = qboPrice + dextPrice + otherAmt;
     const bkRate    = parseFloat(form.bookkeepingRate) || 0;
     setForm(f => ({
@@ -119,7 +119,7 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
       totalMonthlyAmount: String(bkRate + softTotal),
     }));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form.qboTier, form.hasDext, form.otherSoftwareAmount, form.bookkeepingRate, prices]);
+  }, [form.qboTier, form.hasDouble, form.otherSoftware, form.bookkeepingRate, prices]);
 
   function set<K extends keyof typeof EMPTY>(k: K, v: (typeof EMPTY)[K]) {
     setForm(f => ({ ...f, [k]: v }));
@@ -320,39 +320,57 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
                 {/* Dext */}
                 <div className="px-4 py-3 flex items-center justify-between">
                   <div>
-                    <span className="text-sm text-slate-700 font-medium">Dext / Receipts</span>
+                    <span className="text-sm text-slate-700 font-medium">Double</span>
                     {prices['dext'] ? <span className="ml-2 text-xs text-slate-400">${prices['dext']}/mo</span> : null}
                   </div>
-                  <button type="button" onClick={() => set('hasDext', !form.hasDext)}
-                    className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors ${form.hasDext ? 'bg-bba-primary' : 'bg-slate-300'}`}>
-                    <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${form.hasDext ? 'translate-x-5' : 'translate-x-0'}`} />
+                  <button type="button" onClick={() => set('hasDouble', !form.hasDouble)}
+                    className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors ${form.hasDouble ? 'bg-bba-primary' : 'bg-slate-300'}`}>
+                    <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${form.hasDouble ? 'translate-x-5' : 'translate-x-0'}`} />
                   </button>
                 </div>
                 {/* Other */}
                 <div className="px-4 py-3 space-y-2">
-                  <p className="text-xs font-medium text-slate-500">Other</p>
-                  <Grid2>
-                    <input type="text" value={form.otherSoftwareName}
-                      onChange={e => set('otherSoftwareName', e.target.value)}
-                      placeholder="Software name" className={inp} />
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">$</span>
-                      <input type="number" step="0.01" min={0} value={form.otherSoftwareAmount}
-                        onChange={e => set('otherSoftwareAmount', e.target.value)}
-                        placeholder="0.00" className={`${inp} pl-6`} />
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-medium text-slate-500">Other</p>
+                    <button type="button"
+                      onClick={() => set('otherSoftware', [...form.otherSoftware, { name: '', amount: '' }])}
+                      className="inline-flex items-center gap-1 text-xs text-purple-600 hover:text-purple-800 font-medium transition-colors">
+                      <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                      Add
+                    </button>
+                  </div>
+                  {form.otherSoftware.length === 0 && (
+                    <p className="text-xs text-slate-400 italic">No other software — click Add to include one.</p>
+                  )}
+                  {form.otherSoftware.map((item, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <input type="text" value={item.name}
+                        onChange={e => { const next = [...form.otherSoftware]; next[i] = { ...next[i], name: e.target.value }; set('otherSoftware', next); }}
+                        placeholder="Software name" className={`${inp} flex-1`} />
+                      <div className="relative w-28 shrink-0">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">$</span>
+                        <input type="number" step="0.01" min={0} value={item.amount}
+                          onChange={e => { const next = [...form.otherSoftware]; next[i] = { ...next[i], amount: e.target.value }; set('otherSoftware', next); }}
+                          placeholder="0.00" className={`${inp} pl-6`} />
+                      </div>
+                      <button type="button"
+                        onClick={() => set('otherSoftware', form.otherSoftware.filter((_, j) => j !== i))}
+                        className="text-slate-300 hover:text-red-400 transition-colors shrink-0">
+                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                      </button>
                     </div>
-                  </Grid2>
+                  ))}
                 </div>
               </div>
               {/* Software rate summary */}
-              {(form.qboTier || form.hasDext || parseFloat(form.otherSoftwareAmount) > 0) && (
+              {(form.qboTier || form.hasDouble || form.otherSoftware.some(o => parseFloat(o.amount) > 0)) && (
                 <div className="px-4 py-2.5 bg-purple-50 border-t border-purple-100 flex justify-between items-center">
                   <span className="text-xs text-purple-600 font-medium">Software Rate</span>
                   <span className="text-sm font-semibold text-purple-700">
                     ${(
                       (form.qboTier ? (prices[form.qboTier] ?? 0) : 0) +
-                      (form.hasDext ? (prices['dext'] ?? 0) : 0) +
-                      (parseFloat(form.otherSoftwareAmount) || 0)
+                      (form.hasDouble ? (prices['dext'] ?? 0) : 0) +
+                      form.otherSoftware.reduce((sum, o) => sum + (parseFloat(o.amount) || 0), 0)
                     ).toFixed(2)}/mo
                   </span>
                 </div>
