@@ -113,7 +113,7 @@ export default function ClientWorkspace({ projectCode }: Props) {
               <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ${client.archiveStatus === 'ACTIVE' ? 'bg-bba-highlight/10 text-bba-highlight ring-bba-highlight/20' : 'bg-slate-700/50 text-slate-500 ring-slate-600/40'}`}>
                 {client.archiveStatus}
               </span>
-              {client.tags.map((tag: any) => (
+              {client.tags.map((tag: { id: string; name: string; color: string }) => (
                 <span
                   key={tag.id}
                   className="inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium"
