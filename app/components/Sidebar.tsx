@@ -64,8 +64,6 @@ const navItems = [
       </svg>
     ),
   },
-];
-
   {
     label: "Resources",
     href: "/resources",
@@ -76,7 +74,7 @@ const navItems = [
       </svg>
     ),
   },
-]
+];
 
 const teamItems = [
   {
