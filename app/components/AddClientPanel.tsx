@@ -340,7 +340,7 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
             {form.hasScheduledMeetings && (
               <div className="ml-4 flex items-center gap-3">
                 <span className="text-xs text-slate-500 shrink-0">Meeting length</span>
-                {[15, 30, 45].map(min => (
+                {[15, 30, 40].map(min => (
                   <button key={min} type="button"
                     onClick={() => set('meetingDuration', form.meetingDuration === min ? 0 : min)}
                     className={`rounded-lg px-4 py-1.5 text-xs font-semibold border transition-all ${form.meetingDuration === min ? 'bg-bba-primary text-white border-bba-primary' : 'bg-white text-slate-600 border-slate-200 hover:border-purple-300 hover:text-purple-700'}`}>
