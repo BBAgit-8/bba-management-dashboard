@@ -77,7 +77,11 @@ function nextAnnualDate(from: string | null): string {
 
 export default function AddClientPanel({ open, onClose, onCreated }: AddClientPanelProps) {
   const [form, setForm] = useState(EMPTY);
-  const [employees, setEmployees] = useState<{ id: string; name: string }[]>([]);
+  const [employees,   setEmployees]   = useState<{ id: string; name: string }[]>([]);
+  const [accountants,  setAccountants]  = useState<{ id: string; name: string }[]>([]);
+  const [showNewAcct,  setShowNewAcct]  = useState(false);
+  const [newAcctName,  setNewAcctName]  = useState('');
+  const [addingAcct,   setAddingAcct]   = useState(false);
   const [tags, setTags] = useState<{ id: string; name: string; color: string }[]>([]);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -88,6 +92,8 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
       .then(d => { if (Array.isArray(d.tags)) setTags(d.tags) }).catch(() => {});
     fetch('/api/employees').then(r => r.json())
       .then(d => { if (Array.isArray(d.employees)) setEmployees(d.employees) }).catch(() => {});
+    fetch('/api/accountants').then(r => r.json())
+      .then(d => { if (Array.isArray(d.accountants)) setAccountants(d.accountants) }).catch(() => {});
     fetch('/api/settings').then(r => r.json())
       .then(d => {
         if (d.map) {
@@ -134,8 +140,32 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
     }));
   }
 
+  async function handleAddAccountant() {
+    const name = newAcctName.trim();
+    if (!name) return;
+    setAddingAcct(true);
+    try {
+      const res = await fetch('/api/accountants', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+      });
+      const json = await res.json();
+      if (res.ok && json.accountant) {
+        setAccountants(prev => [...prev, json.accountant].sort((a, b) => a.name.localeCompare(b.name)));
+        set('accountantName', json.accountant.name);
+      }
+    } catch { /* ignore */ } finally {
+      setAddingAcct(false);
+      setNewAcctName('');
+      setShowNewAcct(false);
+    }
+  }
+
   function handleClose() {
-    setForm(EMPTY); setSaveError(null); onClose();
+    setForm(EMPTY); setSaveError(null);
+    setShowNewAcct(false); setNewAcctName('');
+    onClose();
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -238,7 +268,34 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
                 </select>
               </Field>
               <Field label="Accountant">
-                <input type="text" value={form.accountantName} onChange={e => set('accountantName', e.target.value)} placeholder="e.g. CPA firm name" className={inp} />
+                {!showNewAcct ? (
+                  <div className="space-y-1.5">
+                    <select value={form.accountantName} onChange={e => set('accountantName', e.target.value)} className={sel}>
+                      <option value="">— Select accountant —</option>
+                      {accountants.map(a => <option key={a.id} value={a.name}>{a.name}</option>)}
+                    </select>
+                    <button type="button" onClick={() => setShowNewAcct(true)}
+                      className="text-[11px] text-purple-600 hover:text-purple-800 hover:underline font-medium transition-colors">
+                      + Add new accountant
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-1.5">
+                    <div className="flex gap-2">
+                      <input type="text" value={newAcctName} onChange={e => setNewAcctName(e.target.value)}
+                        placeholder="Full name" className={`${inp} flex-1`} autoFocus
+                        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddAccountant(); } }} />
+                      <button type="button" onClick={handleAddAccountant} disabled={addingAcct || !newAcctName.trim()}
+                        className="rounded-lg bg-bba-primary px-3 py-2 text-xs font-semibold text-white hover:bg-bba-primary/85 disabled:opacity-50">
+                        {addingAcct ? '…' : 'Add'}
+                      </button>
+                      <button type="button" onClick={() => { setShowNewAcct(false); setNewAcctName(''); }}
+                        className="rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-500 hover:text-slate-700">
+                        ✕
+                      </button>
+                    </div>
+                  </div>
+                )}
               </Field>
             </Grid2>
             <Grid2>
