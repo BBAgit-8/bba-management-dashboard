@@ -575,28 +575,41 @@ export default function ClientDirectory() {
       </div>
 
       {/* ── Show Columns Panel ── */}
-      <div className="rounded-xl border border-slate-200 bg-white p-4">
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-sm font-semibold text-slate-700">Show columns</span>
+      <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
+        <button
+          onClick={() => setShowColPanel(v => !v)}
+          className="w-full flex items-center justify-between px-4 py-3 hover:bg-slate-50 transition-colors"
+        >
           <div className="flex items-center gap-2">
+            <svg className={`h-4 w-4 text-slate-400 transition-transform duration-200 ${showColPanel ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+            <span className="text-sm font-semibold text-slate-700">Show columns</span>
+            <span className="text-xs text-slate-400">({visibleCols.size} of {ALL_COLUMNS.length} visible)</span>
+          </div>
+          <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
             <button onClick={showAllCols} className="text-xs text-purple-600 hover:text-purple-800 font-medium underline underline-offset-2">Show all</button>
             <span className="text-slate-300">·</span>
             <button onClick={resetColsToDefault} className="text-xs text-slate-500 hover:text-slate-700 font-medium underline underline-offset-2">Reset to default</button>
           </div>
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-6 gap-y-1.5">
-          {ALL_COLUMNS.map(col => (
-            <label key={col.key} className="flex items-center gap-2 cursor-pointer group">
-              <input
-                type="checkbox"
-                checked={visibleCols.has(col.key)}
-                onChange={() => toggleCol(col.key)}
-                className="rounded border-slate-300 text-purple-600 focus:ring-purple-500"
-              />
-              <span className="text-xs text-slate-600 group-hover:text-slate-900 transition-colors select-none">{col.label}</span>
-            </label>
-          ))}
-        </div>
+        </button>
+        {showColPanel && (
+          <div className="px-4 pb-4 pt-1 border-t border-slate-100">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-6 gap-y-1.5">
+              {ALL_COLUMNS.map(col => (
+                <label key={col.key} className="flex items-center gap-2 cursor-pointer group">
+                  <input
+                    type="checkbox"
+                    checked={visibleCols.has(col.key)}
+                    onChange={() => toggleCol(col.key)}
+                    className="rounded border-slate-300 text-purple-600 focus:ring-purple-500"
+                  />
+                  <span className="text-xs text-slate-600 group-hover:text-slate-900 transition-colors select-none">{col.label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── Filters ── */}
@@ -664,11 +677,20 @@ export default function ClientDirectory() {
             <option value="MONTHLY">Monthly</option>
             <option value="QUARTERLY">Quarterly</option>
           </select>
-          {anyFilter && (
-            <button onClick={clearFilters} className="text-xs text-purple-600 hover:text-purple-800 underline underline-offset-2 transition-colors whitespace-nowrap font-medium">
-              Clear all
-            </button>
-          )}
+          <button
+            onClick={clearFilters}
+            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-all border ${
+              anyFilter
+                ? 'bg-purple-50 border-purple-300 text-purple-700 hover:bg-purple-100'
+                : 'bg-white border-slate-200 text-slate-400 cursor-default'
+            }`}
+            disabled={!anyFilter}
+          >
+            <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            Clear filters
+          </button>
         </div>
 
         {/* Search */}
