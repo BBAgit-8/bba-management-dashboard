@@ -60,6 +60,10 @@ const EMPTY = {
   qboOnly: false, qboMonthlyFee: '',
   hasContractedLoom: false, hasScheduledMeetings: false, meetingDuration: 0,
   selectedTags: [] as string[],
+  // Software subscriptions
+  qboTier: '' as '' | 'qbo_simple_start' | 'qbo_essentials' | 'qbo_plus' | 'qbo_advanced',
+  hasDext: false,
+  otherSoftwareName: '', otherSoftwareAmount: '',
 };
 
 function nextAnnualDate(from: string | null): string {
@@ -77,12 +81,21 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
   const [tags, setTags] = useState<{ id: string; name: string; color: string }[]>([]);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [prices, setPrices] = useState<Record<string,number>>({});
 
   useEffect(() => {
     fetch('/api/tags').then(r => r.json())
       .then(d => { if (Array.isArray(d.tags)) setTags(d.tags) }).catch(() => {});
     fetch('/api/employees').then(r => r.json())
       .then(d => { if (Array.isArray(d.employees)) setEmployees(d.employees) }).catch(() => {});
+    fetch('/api/settings').then(r => r.json())
+      .then(d => {
+        if (d.map) {
+          const p: Record<string,number> = {};
+          for (const [k,v] of Object.entries(d.map)) p[k] = parseFloat(v as string) || 0;
+          setPrices(p);
+        }
+      }).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -92,6 +105,21 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.autoPriceIncreasePercent, form.contractStartDate]);
+
+  // Auto-calculate software rate + monthly billing
+  useEffect(() => {
+    const qboPrice  = form.qboTier ? (prices[form.qboTier] ?? 0) : 0;
+    const dextPrice = form.hasDext ? (prices['dext'] ?? 0) : 0;
+    const otherAmt  = parseFloat(form.otherSoftwareAmount) || 0;
+    const softTotal = qboPrice + dextPrice + otherAmt;
+    const bkRate    = parseFloat(form.bookkeepingRate) || 0;
+    setForm(f => ({
+      ...f,
+      softwareRate:       softTotal > 0 ? String(softTotal) : f.softwareRate,
+      totalMonthlyAmount: String(bkRate + softTotal),
+    }));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.qboTier, form.hasDext, form.otherSoftwareAmount, form.bookkeepingRate, prices]);
 
   function set<K extends keyof typeof EMPTY>(k: K, v: (typeof EMPTY)[K]) {
     setForm(f => ({ ...f, [k]: v }));
@@ -246,17 +274,91 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
 
           {/* ── Billing ── */}
           <Section label="Billing">
-            <Grid3>
+            <Grid2>
               <Field label="Bookkeeping Rate ($)">
                 <input type="number" step="0.01" min={0} value={form.bookkeepingRate} onChange={e => set('bookkeepingRate', e.target.value)} placeholder="0.00" className={inp} />
               </Field>
-              <Field label="Software Rate ($)">
-                <input type="number" step="0.01" min={0} value={form.softwareRate} onChange={e => set('softwareRate', e.target.value)} placeholder="0.00" className={inp} />
-              </Field>
               <Field label="Monthly Billing ($)">
-                <input type="number" step="0.01" min={0} value={form.totalMonthlyAmount} onChange={e => set('totalMonthlyAmount', e.target.value)} placeholder="0.00" className={inp} />
+                <div className="relative">
+                  <input type="number" step="0.01" min={0} value={form.totalMonthlyAmount} readOnly
+                    className={`${inp} bg-slate-50 text-slate-500 cursor-default`} placeholder="Auto-calculated" />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">auto</span>
+                </div>
               </Field>
-            </Grid3>
+            </Grid2>
+
+            {/* Software subscriptions */}
+            <div className="rounded-lg border border-slate-200 overflow-hidden">
+              <div className="px-4 py-2.5 border-b border-slate-100 bg-slate-50">
+                <p className="text-xs font-semibold text-slate-600">Software Subscriptions</p>
+                <p className="text-[10px] text-slate-400 mt-0.5">Prices loaded from Settings — updates Software Rate and Monthly Billing automatically</p>
+              </div>
+              <div className="divide-y divide-slate-100">
+                {/* QuickBooks tier */}
+                <div className="px-4 py-3 flex items-center justify-between gap-4">
+                  <span className="text-sm text-slate-700 font-medium shrink-0">QuickBooks Online</span>
+                  <div className="flex items-center gap-2 flex-wrap justify-end">
+                    {[
+                      { key: 'qbo_simple_start', label: 'Simple Start' },
+                      { key: 'qbo_essentials',   label: 'Essentials'   },
+                      { key: 'qbo_plus',         label: 'Plus'         },
+                      { key: 'qbo_advanced',     label: 'Advanced'     },
+                    ].map(tier => (
+                      <button key={tier.key} type="button"
+                        onClick={() => set('qboTier', form.qboTier === tier.key ? '' : tier.key as typeof form.qboTier)}
+                        className={`rounded-lg px-3 py-1.5 text-xs font-semibold border transition-all ${form.qboTier === tier.key ? 'bg-bba-primary text-white border-bba-primary' : 'bg-white text-slate-600 border-slate-200 hover:border-purple-300 hover:text-purple-700'}`}>
+                        {tier.label}
+                        {prices[tier.key] ? <span className="ml-1 opacity-70">${prices[tier.key]}</span> : null}
+                      </button>
+                    ))}
+                    {form.qboTier && (
+                      <button type="button" onClick={() => set('qboTier', '')}
+                        className="text-xs text-slate-400 hover:text-slate-600">✕</button>
+                    )}
+                  </div>
+                </div>
+                {/* Dext */}
+                <div className="px-4 py-3 flex items-center justify-between">
+                  <div>
+                    <span className="text-sm text-slate-700 font-medium">Dext / Receipts</span>
+                    {prices['dext'] ? <span className="ml-2 text-xs text-slate-400">${prices['dext']}/mo</span> : null}
+                  </div>
+                  <button type="button" onClick={() => set('hasDext', !form.hasDext)}
+                    className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors ${form.hasDext ? 'bg-bba-primary' : 'bg-slate-300'}`}>
+                    <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${form.hasDext ? 'translate-x-5' : 'translate-x-0'}`} />
+                  </button>
+                </div>
+                {/* Other */}
+                <div className="px-4 py-3 space-y-2">
+                  <p className="text-xs font-medium text-slate-500">Other</p>
+                  <Grid2>
+                    <input type="text" value={form.otherSoftwareName}
+                      onChange={e => set('otherSoftwareName', e.target.value)}
+                      placeholder="Software name" className={inp} />
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">$</span>
+                      <input type="number" step="0.01" min={0} value={form.otherSoftwareAmount}
+                        onChange={e => set('otherSoftwareAmount', e.target.value)}
+                        placeholder="0.00" className={`${inp} pl-6`} />
+                    </div>
+                  </Grid2>
+                </div>
+              </div>
+              {/* Software rate summary */}
+              {(form.qboTier || form.hasDext || parseFloat(form.otherSoftwareAmount) > 0) && (
+                <div className="px-4 py-2.5 bg-purple-50 border-t border-purple-100 flex justify-between items-center">
+                  <span className="text-xs text-purple-600 font-medium">Software Rate</span>
+                  <span className="text-sm font-semibold text-purple-700">
+                    ${(
+                      (form.qboTier ? (prices[form.qboTier] ?? 0) : 0) +
+                      (form.hasDext ? (prices['dext'] ?? 0) : 0) +
+                      (parseFloat(form.otherSoftwareAmount) || 0)
+                    ).toFixed(2)}/mo
+                  </span>
+                </div>
+              )}
+            </div>
+
             <Grid2>
               <Field label="Auto Price Increase %">
                 <input type="number" step="0.1" min={0} value={form.autoPriceIncreasePercent} onChange={e => set('autoPriceIncreasePercent', e.target.value)} placeholder="e.g. 3.5" className={inp} />
