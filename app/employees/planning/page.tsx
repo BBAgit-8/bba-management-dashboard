@@ -438,7 +438,7 @@ export default function CapacityPlanningPage() {
           <div className="rounded-xl overflow-hidden" style={{ border: '1px solid #e2d8e8' }}>
             <table className="w-full text-sm">
               <thead>
-                <tr style={{ backgroundColor: '#f9f5ff', borderBottom: '1px solid #e2d8e8' }}>
+                <tr style={{ backgroundColor: 'var(--bba-primary)', borderBottom: '1px solid rgba(78,0,142,0.3)' }}>
                   <th className="w-6 px-3 py-3" />
                   <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider">
                     <PlanSortBtn col="name">Client Name</PlanSortBtn>

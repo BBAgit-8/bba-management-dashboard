@@ -204,7 +204,7 @@ export default function SettingsTab({ clientId }: Props) {
           <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr style={{ backgroundColor: '#3d0070', borderBottom: '1px solid rgba(212,190,190,0.13)' }}>
+              <tr style={{ backgroundColor: 'var(--bba-primary)', borderBottom: '1px solid rgba(78,0,142,0.3)' }}>
                 {['Software', 'Tier', 'Our Cost', 'Client Price', 'Margin', 'Cadence', ''].map(h => (
                   <th key={h} className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider whitespace-nowrap">{h}</th>
                 ))}

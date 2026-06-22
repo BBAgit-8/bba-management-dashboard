@@ -97,7 +97,7 @@ export default function ProfitabilityTab({ clientId }: Props) {
         </div>
         <table className="w-full text-sm">
           <thead>
-            <tr style={{ backgroundColor: '#3d0070', borderBottom: '1px solid rgba(212,190,190,0.13)' }}>
+            <tr style={{ backgroundColor: 'var(--bba-primary)', borderBottom: '1px solid rgba(78,0,142,0.3)' }}>
               {['Employee', 'Hours Logged', 'Effective Rate', 'Total Cost', '% of Costs'].map(h => (
                 <th key={h} className={`px-5 py-3 text-[11px] font-semibold uppercase tracking-wider ${h === 'Employee' ? 'text-left' : 'text-right'}`}>
                   {h}

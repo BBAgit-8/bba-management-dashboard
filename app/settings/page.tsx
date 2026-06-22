@@ -41,16 +41,16 @@ export default function SettingsPage() {
           <Link
             key={s.href}
             href={s.href}
-            className="group flex items-start gap-4 rounded-xl border border-[#7020b8]/40 bg-[#2d0050] p-5 transition-colors hover:bg-[#3d0068]"
+            className="group flex items-start gap-4 rounded-xl border border-surface-border bg-white p-5 transition-colors hover:bg-purple-50"
           >
             <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#b20476]/20 text-[#b20476] transition-colors group-hover:bg-[#b20476]/30">
               {s.icon}
             </span>
             <div className="flex-1">
-              <p className="font-semibold text-white">{s.title}</p>
-              <p className="mt-0.5 text-sm text-white/50">{s.description}</p>
+              <p className="font-semibold text-slate-800">{s.title}</p>
+              <p className="mt-0.5 text-sm text-slate-500">{s.description}</p>
             </div>
-            <svg className="ml-auto mt-1 h-4 w-4 shrink-0 text-white/30 transition-colors group-hover:text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="ml-auto mt-1 h-4 w-4 shrink-0 text-slate-300 transition-colors group-hover:text-bba-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </Link>

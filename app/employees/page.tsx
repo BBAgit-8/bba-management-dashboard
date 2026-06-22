@@ -35,7 +35,7 @@ const DEFAULT_COL_ORDER: ColKey[] = ALL_COLS.map(c => c.key)
 
 const BG_CARD_HEADER = 'var(--bba-primary)'
 const BG_TABLE       = '#ffffff'
-const BG_THEAD       = '#f9f5ff'
+const BG_THEAD       = 'var(--bba-primary)'
 const ROW_ODD        = '#ffffff'
 const ROW_EVEN       = '#faf5ff'
 const ROW_HOVER      = '#f3e8ff'
@@ -327,7 +327,7 @@ export default function EmployeesPage() {
                       <tr
                         ref={dp.innerRef}
                         {...dp.droppableProps}
-                        style={{ backgroundColor: BG_THEAD, borderBottom: '1px solid rgba(212,190,190,0.13)' }}
+                        style={{ backgroundColor: BG_THEAD, borderBottom: '1px solid rgba(78,0,142,0.3)' }}
                       >
                         {colOrder.map((key, idx) => {
                           const col = ALL_COLS.find(c => c.key === key)!

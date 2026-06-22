@@ -364,7 +364,7 @@ export default function ClientDirectory() {
                   <tr
                     ref={provided.innerRef}
                     {...provided.droppableProps}
-                    style={{ backgroundColor: '#f9f5ff', borderBottom: '1px solid #e2d8e8' }}
+                    style={{ backgroundColor: 'var(--bba-primary)', borderBottom: '1px solid rgba(78,0,142,0.3)' }}
                   >
                     {colOrder.map((colKey, index) => {
                       const col = ALL_COLUMNS.find(c => c.key === colKey)!

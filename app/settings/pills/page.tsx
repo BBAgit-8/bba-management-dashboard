@@ -79,10 +79,10 @@ function PillRow({
   return (
     <div
       className="flex items-center gap-4 px-5 py-3"
-      style={{ backgroundColor: index % 2 === 0 ? '#1e0038' : '#2d0054' }}
+      style={{ backgroundColor: index % 2 === 0 ? '#ffffff' : '#faf5ff' }}
     >
       {/* Enum key — readonly identifier */}
-      <span className="w-52 shrink-0 font-mono text-[11px] text-[#8050b0]">
+      <span className="w-52 shrink-0 font-mono text-[11px] text-slate-500">
         {entry.key}
       </span>
 
@@ -93,7 +93,7 @@ function PillRow({
         onChange={e => onChange(entry.category, entry.key, 'label', e.target.value)}
         placeholder="Display label"
         maxLength={40}
-        className="min-w-0 flex-1 rounded-md border border-[#5020a0] bg-[#1a0030] px-3 py-1.5 text-xs text-white placeholder-white/25 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#b20476]"
+        className="min-w-0 flex-1 rounded-md border border-surface-border bg-white px-3 py-1.5 text-xs text-slate-700 placeholder-slate-400 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#b20476]"
       />
 
       {/* Color picker + hex input */}
@@ -121,7 +121,7 @@ function PillRow({
           placeholder="#000000"
           maxLength={7}
           spellCheck={false}
-          className="w-24 rounded-md border border-[#5020a0] bg-[#1a0030] px-2.5 py-1.5 font-mono text-xs text-white placeholder-white/25 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#b20476]"
+          className="w-24 rounded-md border border-surface-border bg-white px-2.5 py-1.5 font-mono text-xs text-slate-700 placeholder-slate-400 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#b20476]"
           style={{ color: isValidHex(entry.color) ? entry.color : undefined }}
         />
       </div>
@@ -228,12 +228,12 @@ export default function PillManagerPage() {
     <div className="max-w-5xl space-y-8">
 
       {/* ── Breadcrumb ── */}
-      <div className="flex items-center gap-2 text-xs text-white/40">
-        <Link href="/settings" className="transition-colors hover:text-white/70">Settings</Link>
+      <div className="flex items-center gap-2 text-xs text-slate-400">
+        <Link href="/settings" className="transition-colors hover:text-slate-600">Settings</Link>
         <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
         </svg>
-        <span className="text-white/60">Visual Pill Manager</span>
+        <span className="text-slate-500">Visual Pill Manager</span>
       </div>
 
       {/* ── Page header + sticky save bar ── */}
@@ -249,7 +249,7 @@ export default function PillManagerPage() {
         <div className="flex shrink-0 items-center gap-3">
           <button
             onClick={handleReset}
-            className="rounded-lg border border-[#7020b8]/60 bg-transparent px-4 py-2.5 text-sm font-medium text-white/60 transition-colors hover:border-white/30 hover:text-white"
+            className="rounded-lg border border-surface-border bg-white px-4 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:border-bba-primary hover:text-bba-primary"
           >
             Reset Defaults
           </button>
@@ -264,7 +264,7 @@ export default function PillManagerPage() {
       </div>
 
       {errorMsg && (
-        <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
           {errorMsg}
         </div>
       )}
@@ -273,16 +273,16 @@ export default function PillManagerPage() {
       {CATEGORY_META.map(cat => {
         const rows = entries.filter(e => e.category === cat.key)
         return (
-          <div key={cat.key} className="overflow-hidden rounded-xl border border-[#7020b8]/40 bg-[#2d0050]">
+          <div key={cat.key} className="overflow-hidden rounded-xl border border-surface-border bg-white">
 
             {/* Card header — auto-styled #b20476 by global CSS (div.border-b:has(> h3)) */}
             <div className="border-b px-5 py-4">
               <h3 className="text-sm font-bold tracking-tight">{cat.label}</h3>
-              <p className="mt-0.5 text-[11px] text-white/65">{cat.description}</p>
+              <p className="mt-0.5 text-[11px] text-slate-500">{cat.description}</p>
             </div>
 
             {/* Column headers */}
-            <div className="grid grid-cols-[208px_1fr_208px_144px] gap-4 border-b border-[#7020b8]/20 bg-[#1a0030] px-5 py-2">
+            <div className="grid grid-cols-[208px_1fr_208px_144px] gap-4 border-b border-surface-border bg-[#f9f5ff] px-5 py-2">
               {['Enum Key', 'Display Label', 'Color', 'Live Preview'].map(h => (
                 <span key={h} className="text-[10px] font-bold uppercase tracking-widest text-[#8050b0]">{h}</span>
               ))}
@@ -297,20 +297,20 @@ export default function PillManagerPage() {
       })}
 
       {/* ── Custom Tags link card ── */}
-      <div className="overflow-hidden rounded-xl border border-[#7020b8]/40 bg-[#2d0050]">
+      <div className="overflow-hidden rounded-xl border border-surface-border bg-white">
         <div className="border-b px-5 py-4">
           <h3 className="text-sm font-bold tracking-tight">Custom Tags</h3>
-          <p className="mt-0.5 text-[11px] text-white/65">
+          <p className="mt-0.5 text-[11px] text-slate-500">
             User-defined tags attached to individual clients — managed separately.
           </p>
         </div>
         <div className="flex items-center justify-between px-5 py-4">
-          <p className="text-sm text-white/60">
+          <p className="text-sm text-slate-600">
             Create, rename, recolor, or delete custom client tags from the Tags settings page.
           </p>
           <Link
             href="/settings/tags"
-            className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-[#b20476]/20 px-4 py-2 text-xs font-semibold text-[#f060c0] transition-colors hover:bg-[#b20476]/35"
+            className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-bba-primary/10 px-4 py-2 text-xs font-semibold text-bba-primary transition-colors hover:bg-bba-primary/20"
           >
             Manage Tags
             <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -321,13 +321,13 @@ export default function PillManagerPage() {
       </div>
 
       {/* ── Bottom save button ── */}
-      <div className="flex items-center justify-end gap-3 border-t border-[#7020b8]/30 pt-6">
-        <p className="mr-auto text-xs text-white/35">
+      <div className="flex items-center justify-end gap-3 border-t border-surface-border pt-6">
+        <p className="mr-auto text-xs text-slate-400">
           {entries.length} pill entries across {CATEGORY_META.length} categories
         </p>
         <button
           onClick={handleReset}
-          className="rounded-lg border border-[#7020b8]/60 bg-transparent px-4 py-2.5 text-sm font-medium text-white/60 transition-colors hover:border-white/30 hover:text-white"
+          className="rounded-lg border border-surface-border bg-white px-4 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:border-bba-primary hover:text-bba-primary"
         >
           Reset Defaults
         </button>
