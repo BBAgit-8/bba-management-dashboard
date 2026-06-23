@@ -168,11 +168,12 @@ export default function CapacityPlanningPage() {
       setEmployees(emps)
       setClients(cls)
 
-      // Build initial assignments from accountantName → employee id
+      // Build initial assignments from client.bookkeeper → employee id
       const active = cls.filter(c => c.archiveStatus === 'ACTIVE')
       const init: Record<string, string> = {}
       active.forEach(c => {
-        const emp = emps.find(e => e.name === c.accountantName)
+        if (!c.bookkeeper) return
+        const emp = emps.find(e => e.name === c.bookkeeper)
         if (emp) init[c.id] = emp.id
       })
       setAssignments(init)
@@ -292,23 +293,34 @@ export default function CapacityPlanningPage() {
   }
 
   async function handleConfirm() {
-    // Any remaining unsaved changes — save them all at once as a fallback
     setSyncStatus("saving")
     try {
-      await fetch('/api/assignments/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ assignments, employees }),
-      })
+      const empMap: Record<string, string> = {}
+      employees.forEach((e: any) => { empMap[e.id] = e.name })
+
+      // PATCH every active client's bookkeeper field directly
+      await Promise.all(
+        activeClients.map(client => {
+          const empId = assignments[client.id] ?? ''
+          const bookkeeper = empId ? (empMap[empId] ?? null) : null
+          return fetch(`/api/clients/${client.harvestProjectCode}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ bookkeeper }),
+          })
+        })
+      )
+
       setSavedAssignments({ ...assignments })
       setSyncStatus("saved")
       setTimeout(() => setSyncStatus("idle"), 2200)
-      const empMap: Record<string, string> = {}
-      employees.forEach((e: any) => { empMap[e.id] = e.name })
+
+      // Broadcast all changes
       Object.entries(assignments).forEach(([clientId, empId]) => {
         broadcastBookkeeperChange(clientId, empMap[empId] ?? null)
       })
-    } catch {
+    } catch (err) {
+      console.error('Confirm sync failed:', err)
       setSyncStatus("idle")
     }
   }
@@ -364,15 +376,17 @@ export default function CapacityPlanningPage() {
 
           <button
             onClick={handleConfirm}
-            disabled={!hasUnsaved || syncStatus === "saving"}
+            disabled={syncStatus === "saving" || Object.keys(assignments).length === 0}
             className={`
               shrink-0 inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold
               transition-all duration-200 active:scale-95
               ${syncStatus === "saved"
                 ? "bg-emerald-600 text-white"
-                : hasUnsaved
-                  ? "bg-bba-primary text-white hover:bg-bba-primary/85 shadow-lg shadow-bba-primary/20"
-                  : "bg-slate-800 text-slate-500 border border-slate-700/60 cursor-not-allowed"
+                : syncStatus === "saving"
+                  ? "bg-bba-primary/70 text-white cursor-wait"
+                  : Object.keys(assignments).length > 0
+                    ? "bg-bba-primary text-white hover:bg-bba-primary/85 shadow-lg shadow-bba-primary/20"
+                    : "bg-slate-800 text-slate-500 border border-slate-700/60 cursor-not-allowed"
               }
             `}
           >
