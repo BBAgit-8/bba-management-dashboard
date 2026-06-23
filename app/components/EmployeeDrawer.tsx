@@ -319,7 +319,7 @@ export default function EmployeeDrawer({ employee, onClose, onUpdated }: Props) 
                       <Field label="Annual Salary ($)" hint="Effective hourly = salary ÷ (contracted hrs × 52)">
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">$</span>
-                          <input type="number" step="100" min={0} value={editForm.salary}
+                          <input type="number" step="0.01" min={0} value={editForm.salary}
                             onChange={e => setEdit('salary', e.target.value)} placeholder="0" className={`${inp} pl-6`} />
                         </div>
                       </Field>

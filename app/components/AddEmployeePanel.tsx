@@ -138,7 +138,7 @@ export default function AddEmployeePanel({ open, onClose, onCreated }: Props) {
                 <Field label="Annual Salary ($)" required hint="Effective hourly rate will be calculated from salary ÷ (contracted hours × 52 weeks)">
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">$</span>
-                    <input type="number" step="100" min={0} required value={form.salary}
+                    <input type="number" step="0.01" min={0} required value={form.salary}
                       onChange={e => set('salary', e.target.value)}
                       placeholder="0" className={`${inp} pl-6`} />
                   </div>
