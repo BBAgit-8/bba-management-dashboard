@@ -12,5 +12,6 @@ export async function GET() {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  return NextResponse.json(data)
+  // Support both { employees: [] } and raw array for backwards compatibility
+  return NextResponse.json({ employees: data ?? [], data })
 }
