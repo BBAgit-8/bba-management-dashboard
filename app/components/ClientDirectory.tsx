@@ -696,26 +696,45 @@ export default function ClientDirectory() {
         )
       // Numeric hour/count columns
       default: {
-        const numericMap: Partial<Record<ColKey, keyof ApiClient>> = {
-          totalHrsPerMonth:    'totalHrsPerMonth',
-          apArHrs:             'apArHrs',
-          qaHours:             'qaHours',
-          custSuccessMgmtHrs:  'custSuccessMgmtHrs',
-          yeOrTaxHours:        'yeOrTaxHours',
-          auditHours:          'auditHours',
-          bkprHours:           'bkprHours',
-          bankFeedTime:        'bankFeedTime',
-          transactionsPerMonth:'transactionsPerMonth',
-          recTime:             'recTime',
-          numBanksAndCCs:      'numBanksAndCCs',
-          numLoans:            'numLoans',
-          numPmtPortals:       'numPmtPortals',
+        const editableNumeric: Partial<Record<ColKey, { field: keyof ApiClient; step?: number; placeholder?: string }>> = {
+          totalHrsPerMonth:    { field: 'totalHrsPerMonth',    step: 0.25 },
+          apArHrs:             { field: 'apArHrs',             step: 0.25 },
+          qaHours:             { field: 'qaHours',             step: 0.25 },
+          custSuccessMgmtHrs:  { field: 'custSuccessMgmtHrs',  step: 0.25 },
+          yeOrTaxHours:        { field: 'yeOrTaxHours',        step: 0.25 },
+          auditHours:          { field: 'auditHours',          step: 0.25 },
+          bkprHours:           { field: 'bkprHours',           step: 0.25 },
+          bankFeedTime:        { field: 'bankFeedTime',        step: 0.25 },
+          transactionsPerMonth:{ field: 'transactionsPerMonth', step: 1   },
+          recTime:             { field: 'recTime',             step: 0.25 },
+          numBanksAndCCs:      { field: 'numBanksAndCCs',      step: 1   },
+          numLoans:            { field: 'numLoans',            step: 1   },
+          numPmtPortals:       { field: 'numPmtPortals',       step: 1   },
         }
-        const field = numericMap[colKey]
-        const val = field ? (client[field] as number | null | undefined) : null
+        const meta = editableNumeric[colKey]
+        if (meta) {
+          return (
+            <td key={colKey} className={`px-2 py-1.5 ${alignCls}`}>
+              <input
+                type="number"
+                min={0}
+                step={meta.step ?? 0.25}
+                value={getVal(client, meta.field as string)}
+                onChange={e => setInlineEdits(prev => ({
+                  ...prev,
+                  [client.id]: { ...(prev[client.id] ?? {}), [meta.field]: e.target.value },
+                }))}
+                onBlur={e => patchCell(client, meta.field as string, e.target.value)}
+                placeholder="—"
+                className="w-16 rounded-md border border-transparent bg-transparent px-1.5 py-1 text-sm text-slate-700 tabular-nums text-right hover:border-slate-200 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400"
+              />
+            </td>
+          )
+        }
+        // Fallback read-only
         return (
           <td key={colKey} className={`px-4 py-3 ${alignCls}`}>
-            <span className="tabular-nums text-sm text-slate-700">{fmtNum(val)}</span>
+            <span className="tabular-nums text-sm text-slate-700">—</span>
           </td>
         )
       }
