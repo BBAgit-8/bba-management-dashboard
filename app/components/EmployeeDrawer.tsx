@@ -73,20 +73,7 @@ export default function EmployeeDrawer({ employee, onClose, onUpdated }: Props) 
     setSaveError(null)
     setSaveSuccess(false)
     setLastChange(null)
-    // Fetch last 2 rate history entries to compute last change
-    fetch(`/api/employees/rate-history?employeeId=${employee.id}`)
-      .then(r => r.json())
-      .then(d => {
-        const h = d.history ?? []
-        if (h.length === 0) return
-        const latest = h[0]
-        const prev   = h[1]
-        const pct = prev
-          ? parseFloat(((( Number(latest.rate) - Number(prev.rate)) / Number(prev.rate)) * 100).toFixed(1))
-          : null
-        setLastChange({ date: latest.effectiveDate, pct })
-      })
-      .catch(() => {})
+    fetchLastChange(employee.id)
     setEditForm({
       name:             employee.name,
       email:            employee.email ?? '',
@@ -113,6 +100,21 @@ export default function EmployeeDrawer({ employee, onClose, onUpdated }: Props) 
     return parseFloat((s / (h * 52)).toFixed(2))
   })()
 
+  function fetchLastChange(empId: string) {
+    fetch(`/api/employees/rate-history?employeeId=${empId}`)
+      .then(r => r.json())
+      .then(d => {
+        const h = d.history ?? []
+        if (h.length === 0) { setLastChange(null); return }
+        const latest = h[0]; const prev = h[1]
+        const pct = prev
+          ? parseFloat((((Number(latest.rate) - Number(prev.rate)) / Number(prev.rate)) * 100).toFixed(1))
+          : null
+        setLastChange({ date: latest.effectiveDate, pct })
+      })
+      .catch(() => {})
+  }
+
   async function handleLogPastRate() {
     if (!employee || !pastEntry.rate || !pastEntry.date) return
     setSavingPast(true); setPastMsg(null)
@@ -133,15 +135,7 @@ export default function EmployeeDrawer({ employee, onClose, onUpdated }: Props) 
     } else {
       setPastMsg({ type: 'success', text: 'Past rate entry logged.' })
       setPastEntry({ rate: '', date: '', notes: '' })
-      fetch(`/api/employees/rate-history?employeeId=${employee.id}`)
-        .then(r => r.json())
-        .then(d => {
-          const h = d.history ?? []
-          if (h.length === 0) return
-          const latest = h[0]; const prev = h[1]
-          const pct = prev ? parseFloat((((Number(latest.rate) - Number(prev.rate)) / Number(prev.rate)) * 100).toFixed(1)) : null
-          setLastChange({ date: latest.effectiveDate, pct })
-        })
+      fetchLastChange(employee.id)
     }
     setSavingPast(false)
   }
