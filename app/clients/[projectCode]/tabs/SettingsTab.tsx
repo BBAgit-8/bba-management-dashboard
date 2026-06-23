@@ -357,7 +357,7 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
       <section>
         <h3 className="text-sm font-semibold text-slate-600 uppercase tracking-wider mb-4 flex items-center gap-2">
           <span className="h-2 w-2 rounded-full bg-red-500" />
-          End Contract &amp; Archive Account
+          Archive Client
         </h3>
         <div className="rounded-xl border-2 border-red-200 bg-red-50 p-5 space-y-4">
           <div className="flex items-start gap-3">
@@ -367,16 +367,24 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
               </svg>
             </div>
             <div>
-              <p className="text-sm font-bold text-red-700">Permanent Action — Cannot Be Undone</p>
+              <p className="text-sm font-bold text-red-700">This action archives the client — it cannot be undone from the UI</p>
               <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                This pipeline will: export all client data to Google Drive, terminate the Anchor billing agreement,
-                archive the Harvest project and ClickUp workspace, then permanently delete all client records from the database.
+                The client record is marked ARCHIVED and hidden from active views, but all data is preserved.
+                Management retains full access to archived clients. External systems (Anchor, Harvest, ClickUp) 
+                must be updated manually.
               </p>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-2 text-xs text-slate-500">
-            {['📁 Google Drive export', '💳 Anchor billing terminated', '⏱ Harvest project archived', '✅ ClickUp folder archived', '🗑 Database records deleted', '🔒 Access permanently revoked'].map(s => (
+            {[
+              '📁 Client marked ARCHIVED in database',
+              '🔒 Hidden from active client views',
+              '✅ All records & history preserved',
+              '👀 Management retains full access',
+              '⚠️ Anchor billing — update manually',
+              '⚠️ Harvest & ClickUp — update manually',
+            ].map(s => (
               <div key={s} className="flex items-center gap-1.5"><span className="h-1 w-1 rounded-full bg-slate-300" />{s}</div>
             ))}
           </div>
@@ -386,7 +394,7 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
               onClick={() => setArchiveExpanded(true)}
               className="w-full rounded-lg border border-red-300 bg-white px-4 py-2.5 text-sm font-bold text-red-600 hover:bg-red-50 active:scale-95 transition-all"
             >
-              End Contract &amp; Run Archive Pipeline →
+              Archive This Client →
             </button>
           ) : (
             <div className="space-y-3 border-t border-red-200 pt-4">
