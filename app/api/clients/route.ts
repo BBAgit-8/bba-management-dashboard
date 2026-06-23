@@ -95,7 +95,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     name,
     harvestProjectCode,
     accountantName:           typeof data.accountantName           === 'string' ? data.accountantName.trim()  || null : null,
-    Bookkeeper:               typeof data.bookkeeper               === 'string' ? data.bookkeeper.trim()       || null : null,
+    "Bookkeeper":             typeof data.bookkeeper               === 'string' ? data.bookkeeper.trim()       || null : null,
     entityType:               typeof data.entityType               === 'string' ? data.entityType              : 'LLC',
     einNumber:                typeof data.einNumber                === 'string' ? data.einNumber.trim()        || null : null,
     officeType:               typeof data.officeType               === 'string' ? data.officeType              : 'HOME_OFFICE',

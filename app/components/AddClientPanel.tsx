@@ -79,9 +79,9 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
   const [form, setForm] = useState(EMPTY);
   const [employees,   setEmployees]   = useState<{ id: string; name: string }[]>([]);
   const [accountants,  setAccountants]  = useState<{ id: string; name: string }[]>([]);
-  const [showNewAcct,  setShowNewAcct]  = useState(false);
-  const [newAcctName,  setNewAcctName]  = useState('');
-  const [addingAcct,   setAddingAcct]   = useState(false);
+  const [showNewAcct,   setShowNewAcct]  = useState(false);
+  const [addingAcct,    setAddingAcct]   = useState(false);
+  const [newAcct,       setNewAcct]       = useState({ name: '', businessName: '', email: '', phoneNumber: '' });
   const [tags, setTags] = useState<{ id: string; name: string; color: string }[]>([]);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -141,30 +141,35 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
   }
 
   async function handleAddAccountant() {
-    const name = newAcctName.trim();
+    const name = newAcct.name.trim();
     if (!name) return;
     setAddingAcct(true);
     try {
       const res = await fetch('/api/accountants', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name }),
+        body: JSON.stringify({
+          name,
+          businessName: newAcct.businessName.trim() || null,
+          email:        newAcct.email.trim()        || null,
+          phoneNumber:  newAcct.phoneNumber.trim()  || null,
+        }),
       });
       const json = await res.json();
       if (res.ok && json.accountant) {
         setAccountants(prev => [...prev, json.accountant].sort((a, b) => a.name.localeCompare(b.name)));
         set('accountantName', json.accountant.name);
+        setNewAcct({ name: '', businessName: '', email: '', phoneNumber: '' });
+        setShowNewAcct(false);
       }
     } catch { /* ignore */ } finally {
       setAddingAcct(false);
-      setNewAcctName('');
-      setShowNewAcct(false);
     }
   }
 
   function handleClose() {
     setForm(EMPTY); setSaveError(null);
-    setShowNewAcct(false); setNewAcctName('');
+    setShowNewAcct(false); setNewAcct({ name: '', businessName: '', email: '', phoneNumber: '' });
     onClose();
   }
 
@@ -289,7 +294,7 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
                         className="rounded-lg bg-bba-primary px-3 py-2 text-xs font-semibold text-white hover:bg-bba-primary/85 disabled:opacity-50">
                         {addingAcct ? '…' : 'Add'}
                       </button>
-                      <button type="button" onClick={() => { setShowNewAcct(false); setNewAcctName(''); }}
+                      <button type="button" onClick={() => { setShowNewAcct(false); setNewAcct({ name: '', businessName: '', email: '', phoneNumber: '' }); }}
                         className="rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-500 hover:text-slate-700">
                         ✕
                       </button>
@@ -469,8 +474,21 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
               <Field label="Audit Hours">
                 <input type="number" step="0.25" min={0} value={form.auditHours} onChange={e => set('auditHours', e.target.value)} placeholder="0" className={inp} />
               </Field>
-              <Field label="Bkpr Hours">
-                <input type="number" step="0.25" min={0} value={form.bkprHours} onChange={e => set('bkprHours', e.target.value)} placeholder="0" className={inp} />
+              <Field label="Bkpr Hours" hint="Auto: Total − AP/AR − QA − YE/1099 − Audit">
+                {(() => {
+                  const total  = parseFloat(form.totalHrsPerMonth) || 0
+                  const ap     = parseFloat(form.apArHrs)          || 0
+                  const qa     = parseFloat(form.qaHours)          || 0
+                  const ye     = parseFloat(form.yeOrTaxHours)     || 0
+                  const audit  = parseFloat(form.auditHours)       || 0
+                  const calc   = Math.max(0, total - ap - qa - ye - audit).toFixed(2)
+                  return (
+                    <div className="flex items-center rounded-lg bg-slate-50 border border-slate-200 px-3 py-2">
+                      <span className="text-sm font-semibold text-purple-700 tabular-nums">{calc}</span>
+                      <span className="ml-1 text-xs text-slate-400">hrs</span>
+                    </div>
+                  )
+                })()}
               </Field>
             </Grid3>
           </Section>
@@ -482,7 +500,15 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
                 <input type="number" step="0.25" min={0} value={form.bankFeedTime} onChange={e => set('bankFeedTime', e.target.value)} placeholder="0" className={inp} />
               </Field>
               <Field label="# Transactions / mo">
-                <input type="number" min={0} value={form.transactionsPerMonth} onChange={e => set('transactionsPerMonth', e.target.value)} placeholder="0" className={inp} />
+                <select value={form.transactionsPerMonth} onChange={e => set('transactionsPerMonth', e.target.value)} className={sel}>
+                  <option value="">— Select range —</option>
+                  <option value="0-100">0 – 100</option>
+                  <option value="101-200">101 – 200</option>
+                  <option value="201-300">201 – 300</option>
+                  <option value="301-400">301 – 400</option>
+                  <option value="401-500">401 – 500</option>
+                  <option value="500+">500+</option>
+                </select>
               </Field>
               <Field label="Rec Time">
                 <input type="number" step="0.25" min={0} value={form.recTime} onChange={e => set('recTime', e.target.value)} placeholder="0" className={inp} />
