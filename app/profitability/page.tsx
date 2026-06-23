@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
+import Link from 'next/link'
 
 type ProfitRow = {
   id: string; name: string; code: string; projectType: string | null
@@ -211,8 +212,10 @@ export default function ProfitabilityPage() {
                     onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#f3e8ff' }}
                     onMouseLeave={e => { e.currentTarget.style.backgroundColor = bg }}>
                     <td className="px-4 py-3">
-                      <p className="font-medium text-slate-800">{row.name}</p>
-                      <p className="text-[10px] font-mono text-slate-400">{row.code}</p>
+                      <Link href={`/clients/${row.code}`} className="group">
+                        <p className="font-medium text-slate-800 group-hover:text-purple-700 transition-colors">{row.name}</p>
+                        <p className="text-[10px] font-mono text-slate-400 group-hover:text-purple-400 transition-colors">{row.code}</p>
+                      </Link>
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-600">
                       {row.bookkeeper ?? <span className="text-slate-300">—</span>}
