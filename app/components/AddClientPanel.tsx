@@ -6,6 +6,7 @@ type ProcessingCadence = 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY' | 'QUARTERLY';
 type EntityType = 'LLC' | 'S_CORP' | 'C_CORP' | 'SOLE_PROPRIETOR' | 'PARTNERSHIP' | 'NON_PROFIT' | 'OTHER' | 'SOLE_PROP';
 type OfficeType = 'HOME_OFFICE' | 'PHYSICAL';
 type ProjectType = 'ANNUAL' | 'CLEAN_UP' | 'MONTHLY_MAINTENANCE' | 'QBO_ONLY' | 'RECURRING';
+type RevType = 'RECURRING_MONTHLY_ACH' | 'RECURRING_MONTHLY_INVOICED' | 'RECURRING_MONTHLY_HOURLY' | 'CLEANUP' | 'HOURLY_CLEANUP' | 'FREE' | 'QBO_ONLY_ANCHOR' | 'QBO_ONLY_QB';
 
 interface AddClientPanelProps {
   open: boolean;
@@ -24,9 +25,21 @@ const ENTITY_OPTS = [
   { value: 'OTHER', label: 'Other' },
 ];
 const PROJECT_TYPE_OPTS = [
-  { value: 'ANNUAL', label: 'Annual' }, { value: 'CLEAN_UP', label: 'Clean Up' },
+  { value: 'RECURRING',           label: 'Recurring' },
+  { value: 'CLEAN_UP',            label: 'Cleanup' },
+  { value: 'ANNUAL',              label: 'Annual' },
+  { value: 'QBO_ONLY',            label: 'QBO Only' },
   { value: 'MONTHLY_MAINTENANCE', label: 'Monthly Maintenance' },
-  { value: 'QBO_ONLY', label: 'QBO Only' }, { value: 'RECURRING', label: 'Recurring' },
+];
+const REV_TYPE_OPTS = [
+  { value: 'RECURRING_MONTHLY_ACH',      label: 'Recurring Monthly - ACH' },
+  { value: 'RECURRING_MONTHLY_INVOICED', label: 'Recurring Monthly - Invoiced' },
+  { value: 'RECURRING_MONTHLY_HOURLY',   label: 'Recurring Monthly - Hourly' },
+  { value: 'CLEANUP',                    label: 'Cleanup' },
+  { value: 'HOURLY_CLEANUP',             label: 'Hourly Cleanup' },
+  { value: 'FREE',                       label: 'Free' },
+  { value: 'QBO_ONLY_ANCHOR',            label: 'QBO Only - Anchor' },
+  { value: 'QBO_ONLY_QB',               label: 'QBO Only - QB' },
 ];
 
 const EMPTY = {
@@ -39,7 +52,8 @@ const EMPTY = {
   // Staff
   bookkeeper: '', accountantName: '',
   processingCadence: 'MONTHLY' as ProcessingCadence,
-  projectType: 'MONTHLY_MAINTENANCE' as ProjectType,
+  projectType: 'RECURRING' as ProjectType,
+  revType: '' as RevType | '',
   officeType: 'HOME_OFFICE' as OfficeType,
   okToContactAccountant: false,
   // Billing
@@ -352,9 +366,15 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
                   {CADENCE_OPTS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               </Field>
-              <Field label="Project Type">
+              <Field label="Recurring or Cleanup?">
                 <select value={form.projectType} onChange={e => set('projectType', e.target.value as ProjectType)} className={sel}>
                   {PROJECT_TYPE_OPTS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+              </Field>
+              <Field label="Rev Type">
+                <select value={form.revType} onChange={e => set('revType', e.target.value as RevType)} className={sel}>
+                  <option value="">— Select —</option>
+                  {REV_TYPE_OPTS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               </Field>
             </Grid2>
