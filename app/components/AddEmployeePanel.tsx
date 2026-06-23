@@ -135,7 +135,7 @@ export default function AddEmployeePanel({ open, onClose, onCreated }: Props) {
                   </div>
                 </Field>
               ) : (
-                <Field label="Annual Salary ($)" required>
+                <Field label="Annual Salary ($)" required hint="Hourly rate = salary ÷ contracted hrs ÷ 52 weeks">
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">$</span>
                     <input type="number" step="0.01" min={0} required value={form.salary}
