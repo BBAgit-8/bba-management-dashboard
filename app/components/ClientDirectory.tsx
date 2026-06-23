@@ -917,6 +917,7 @@ export default function ClientDirectory() {
                       {...provided.droppableProps}
                       style={{ backgroundColor: 'var(--bba-primary)', borderBottom: '2px solid rgba(78,0,142,0.3)' }}
                     >
+                      <th className="w-1 px-0 shrink-0" />
                       {activeColOrder.map((colKey, index) => {
                         const col = ALL_COLUMNS.find(c => c.key === colKey)!
                         const alignCls = col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left'
