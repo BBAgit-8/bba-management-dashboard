@@ -91,7 +91,7 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
     fetch('/api/tags').then(r => r.json())
       .then(d => { if (Array.isArray(d.tags)) setTags(d.tags) }).catch(() => {});
     fetch('/api/employees').then(r => r.json())
-      .then(d => { if (Array.isArray(d.employees)) setEmployees(d.employees) }).catch(() => {});
+      .then(d => { if (Array.isArray(d)) setEmployees(d); else if (Array.isArray(d.employees)) setEmployees(d.employees) }).catch(() => {});
     fetch('/api/accountants').then(r => r.json())
       .then(d => { if (Array.isArray(d.accountants)) setAccountants(d.accountants) }).catch(() => {});
     fetch('/api/settings').then(r => r.json())

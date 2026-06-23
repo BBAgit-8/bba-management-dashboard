@@ -12,6 +12,7 @@ export async function GET() {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  // Support both { employees: [] } and raw array for backwards compatibility
-  return NextResponse.json({ employees: data ?? [], data })
+  const employees = data ?? []
+  // Return both shapes for compatibility
+  return NextResponse.json(employees)
 }
