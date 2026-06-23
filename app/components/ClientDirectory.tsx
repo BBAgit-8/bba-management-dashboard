@@ -263,12 +263,16 @@ export default function ClientDirectory() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ [field]: value || null }),
       })
-      if (!res.ok) throw new Error()
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}))
+        throw new Error(json.error ?? `HTTP ${res.status}`)
+      }
       // Broadcast bookkeeper changes so other pages update
       if (field === 'bookkeeper' || field === 'Bookkeeper') {
         broadcastBookkeeperChange(client.id, value || null)
       }
-    } catch {
+    } catch (err) {
+      console.error('patchCell failed:', err)
       // Revert on failure
       setInlineEdits(prev => {
         const next = { ...prev }

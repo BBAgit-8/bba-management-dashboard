@@ -21,6 +21,7 @@ interface DbClient {
   entityType: string | null
   guaranteedDeadlineDay: number | null
   softwareRate: number | null
+  bookkeepingRate: number | null
   totalMonthlyAmount: number | null
   hasContractedLoom: boolean
   hasScheduledMeetings: boolean
@@ -163,7 +164,14 @@ export default function ProjectsReportsPage() {
     })
   }, [clients])
 
-  function clientBkRate(client: DbClient): number {
+  function clientBkRate(client: DbClient, editsForClient?: Record<string, unknown>): number {
+    // Prefer the direct bookkeepingRate field (set by Add Client form)
+    const editedBkRate = editsForClient?.bookkeepingRate
+    const directRate = editedBkRate != null
+      ? parseFloat(String(editedBkRate)) || 0
+      : (client.bookkeepingRate ?? 0)
+    if (directRate > 0) return directRate
+    // Fall back to SOW calculation
     const sow = client.sows?.[0]
     if (!sow) return 0
     return sow.billingType === 'FLAT'
@@ -176,11 +184,23 @@ export default function ProjectsReportsPage() {
       setEdits(prev => ({ ...prev, [id]: { ...prev[id], [field]: value } }))
       setSaving(prev => ({ ...prev, [id]: true }))
       try {
-        await fetch(`/api/clients/${code}`, {
+        const res = await fetch(`/api/clients/${code}`, {
           method: 'PATCH', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ [field]: value }),
         })
-      } catch { /* best-effort */ }
+        if (!res.ok) {
+          const json = await res.json().catch(() => ({}))
+          throw new Error(json.error ?? `HTTP ${res.status}`)
+        }
+      } catch (err) {
+        console.error('patchClient failed:', field, err)
+        // Revert the optimistic edit on failure
+        setEdits(prev => {
+          const next = { ...prev }
+          if (next[id]) { delete next[id][field] }
+          return next
+        })
+      }
       finally { setSaving(prev => ({ ...prev, [id]: false })) }
     }, []
   )
@@ -202,7 +222,7 @@ export default function ProjectsReportsPage() {
         const archiveStatus   = String(g('archiveStatus') ?? c.archiveStatus)
         const contractEndDate = String(g('contractEndDate') ?? c.contractEndDate ?? '')
         const status          = deriveStatus(archiveStatus, contractEndDate || undefined)
-        const bkRate          = clientBkRate(c)
+        const bkRate          = clientBkRate(c, e)
         const swRate          = parseFloat(String(g('softwareRate') ?? c.softwareRate ?? 0)) || 0
         const totalOverride   = parseFloat(String(g('totalMonthlyAmount') ?? c.totalMonthlyAmount ?? 0))
         const total           = totalOverride > 0 ? totalOverride : bkRate + swRate
@@ -326,20 +346,27 @@ export default function ProjectsReportsPage() {
         )
       case 'bkRate':
         return (
-          <td key={key} className="px-3 py-2.5 text-right tabular-nums" style={minW}>
-            {bkRate > 0 ? <span className="text-slate-700">${fmtUSD(bkRate)}</span> : <span className="text-slate-300">—</span>}
+          <td key={key} className="px-2 py-2" style={minW}>
+            <div className="relative">
+              <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-sm">$</span>
+              <input type="number" min={0} step={0.01}
+                value={String(g('bookkeepingRate') ?? c.bookkeepingRate ?? '')}
+                onBlur={ev => patchClient(c.harvestProjectCode, c.id, 'bookkeepingRate', parseFloat(ev.target.value) || null)}
+                onChange={ev => setEdits(prev => ({ ...prev, [c.id]: { ...prev[c.id], bookkeepingRate: ev.target.value } }))}
+                placeholder="0.00" className={iCls + ' pl-5 tabular-nums'} />
+            </div>
           </td>
         )
       case 'swRate':
         return (
           <td key={key} className="px-2 py-2" style={minW}>
             <div className="relative">
-              <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-slate-400">$</span>
+              <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-sm">$</span>
               <input type="number" min={0} step={0.01}
                 value={String(g('softwareRate') ?? c.softwareRate ?? '')}
                 onBlur={ev => patchClient(c.harvestProjectCode, c.id, 'softwareRate', parseFloat(ev.target.value) || 0)}
                 onChange={ev => setEdits(prev => ({ ...prev, [c.id]: { ...prev[c.id], softwareRate: ev.target.value } }))}
-                placeholder="0" className={iCls + ' pl-5 tabular-nums'} />
+                placeholder="0.00" className={iCls + ' pl-5 tabular-nums'} />
             </div>
           </td>
         )
@@ -347,13 +374,14 @@ export default function ProjectsReportsPage() {
         return (
           <td key={key} className="px-2 py-2" style={minW}>
             <div className="relative">
-              <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-slate-400">$</span>
+              <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-sm">$</span>
               <input type="number" min={0} step={0.01}
                 value={String(g('totalMonthlyAmount') ?? c.totalMonthlyAmount ?? '')}
-                placeholder={total > 0 ? fmtUSD(total) : '0'}
+                placeholder={total > 0 ? fmtUSD(total) : '0.00'}
                 onBlur={ev => patchClient(c.harvestProjectCode, c.id, 'totalMonthlyAmount', parseFloat(ev.target.value) || null)}
                 onChange={ev => setEdits(prev => ({ ...prev, [c.id]: { ...prev[c.id], totalMonthlyAmount: ev.target.value } }))}
-                className={iCls + ' pl-5 tabular-nums'} title={`Auto-calculated: $${fmtUSD(bkRate)} BK + $${fmtUSD(swRate)} SW`} />
+                className={iCls + ' pl-5 tabular-nums'}
+                title={bkRate > 0 || swRate > 0 ? `BK $${fmtUSD(bkRate)} + SW $${fmtUSD(swRate)} = $${fmtUSD(total)}` : undefined} />
             </div>
             {total > 0 && !(g('totalMonthlyAmount') ?? c.totalMonthlyAmount) && (
               <p className="mt-0.5 text-[9px] text-slate-400 tabular-nums">≈ ${fmtUSD(total)}</p>
