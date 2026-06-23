@@ -41,11 +41,9 @@ export default function HubLoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-950 via-purple-900 to-purple-800 px-4">
       <div className="w-full max-w-sm space-y-6">
         {/* Logo */}
-        <div className="text-center space-y-2">
-          <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 backdrop-blur mb-2">
-            <svg className="h-7 w-7 text-white" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
-            </svg>
+        <div className="text-center space-y-3">
+          <div className="flex justify-center mb-1">
+            <img src="/bba-logo.png" alt="BBA Bookkeeping" className="h-36 w-auto" />
           </div>
           <h1 className="text-2xl font-bold" style={{ color: "#b20476" }}>BBA Client Hub</h1>
           <p className="text-sm text-white/60">Sign in to access your client portal</p>
