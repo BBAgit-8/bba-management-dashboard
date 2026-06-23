@@ -71,6 +71,9 @@ const EMPTY = {
   // Manual overrides for auto-calculated fields
   bankFeedTimeOverride: false,
   recTimeOverride: false,
+  qaHoursOverride: false,
+  custSuccessOverride: false,
+  yeOverride: false,
   // Payroll
   hasPayroll: false, payrollProvider: '',
   // Other
@@ -198,14 +201,23 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
     e.preventDefault();
     setSaving(true); setSaveError(null);
     try {
-      const total    = parseFloat(form.totalHrsPerMonth) || 0
-      const bkprHours = total === 0 ? '' : String(total <= 10 ? 0.25 : total <= 20 ? 0.50 : 0.75)
+      const total = parseFloat(form.totalHrsPerMonth) || 0
+      const tier  = total === 0 ? 0 : total <= 10 ? 0.25 : total <= 20 ? 0.50 : 0.75
+
+      const qaHours          = form.qaHoursOverride    ? (parseFloat(form.qaHours)          || 0) : tier
+      const custSuccessMgmtHrs = form.custSuccessOverride ? (parseFloat(form.custSuccessMgmtHrs) || 0) : tier
+      const yeOrTaxHours     = form.yeOverride          ? (parseFloat(form.yeOrTaxHours)    || 0) : tier
+      const auditHours       = parseFloat(form.auditHours) || 0
+      const apArHrs          = parseFloat(form.apArHrs)    || 0
+      const pool             = qaHours + custSuccessMgmtHrs + yeOrTaxHours + auditHours + apArHrs
+      const bkprHours        = total === 0 ? '' : String(Math.max(parseFloat((total - pool).toFixed(2)), 0))
+
       const bankFeedTime = form.bankFeedTimeOverride || !calcBankFeedTime ? form.bankFeedTime : calcBankFeedTime
       const recTime      = form.recTimeOverride      || !calcRecTime      ? form.recTime      : calcRecTime
       const res = await fetch('/api/clients', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, bkprHours, bankFeedTime, recTime }),
+        body: JSON.stringify({ ...form, qaHours, custSuccessMgmtHrs, yeOrTaxHours, bkprHours, bankFeedTime, recTime }),
       });
       const json = await res.json();
       if (!res.ok) { setSaveError(json.error ?? `Error ${res.status}`); return; }
@@ -529,30 +541,170 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
               <Field label="AP/AR Hrs">
                 <input type="number" step="0.25" min={0} value={form.apArHrs} onChange={e => set('apArHrs', e.target.value)} placeholder="0" className={inp} />
               </Field>
-              <Field label="QA Hours">
-                <input type="number" step="0.25" min={0} value={form.qaHours} onChange={e => set('qaHours', e.target.value)} placeholder="0" className={inp} />
-              </Field>
-              <Field label="Cust Success / Mgmt Hrs">
-                <input type="number" step="0.25" min={0} value={form.custSuccessMgmtHrs} onChange={e => set('custSuccessMgmtHrs', e.target.value)} placeholder="0" className={inp} />
-              </Field>
-              <Field label="YE / 1099 Hours">
-                <input type="number" step="0.25" min={0} value={form.yeOrTaxHours} onChange={e => set('yeOrTaxHours', e.target.value)} placeholder="0" className={inp} />
-              </Field>
+
+              {/* QA Hours — auto-calc from total with override */}
+              {(() => {
+                const total = parseFloat(form.totalHrsPerMonth) || 0
+                const calcQa = total === 0 ? null : total <= 10 ? 0.25 : total <= 20 ? 0.50 : 0.75
+                const showAuto = calcQa !== null && !form.qaHoursOverride
+                return (
+                  <div>
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <label className="text-xs font-medium text-slate-500">QA Hours</label>
+                      <div className="group relative">
+                        <svg className="h-3.5 w-3.5 text-slate-300 hover:text-purple-400 cursor-help transition-colors" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                        </svg>
+                        <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 w-48 rounded-lg bg-slate-800 px-3 py-2 text-[11px] text-white opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
+                          Based on Total Hrs/Mo:<br/>≤10 hrs = 0.25 · ≤20 = 0.50 · &gt;20 = 0.75
+                          <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800" />
+                        </div>
+                      </div>
+                      {showAuto && <span className="text-[10px] text-purple-500 font-medium">auto</span>}
+                      {calcQa !== null && (
+                        <button type="button" onClick={() => set('qaHoursOverride', !form.qaHoursOverride as any)}
+                          className="ml-auto text-[10px] text-slate-400 hover:text-purple-600 underline underline-offset-2 transition-colors">
+                          {form.qaHoursOverride ? 'use formula' : 'override'}
+                        </button>
+                      )}
+                    </div>
+                    {form.qaHoursOverride || calcQa === null ? (
+                      <input type="number" step="0.25" min={0} value={form.qaHours} onChange={e => set('qaHours', e.target.value)} placeholder="0" className={inp} />
+                    ) : (
+                      <div className="flex items-center rounded-lg bg-slate-50 border border-slate-200 px-3 py-2">
+                        <span className="text-sm font-semibold text-purple-700 tabular-nums">{calcQa}</span>
+                        <span className="ml-1 text-xs text-slate-400">hrs</span>
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
+
+              {/* Cust Success / Mgmt — auto-calc same tier */}
+              {(() => {
+                const total = parseFloat(form.totalHrsPerMonth) || 0
+                const calcCs = total === 0 ? null : total <= 10 ? 0.25 : total <= 20 ? 0.50 : 0.75
+                const showAuto = calcCs !== null && !form.custSuccessOverride
+                return (
+                  <div>
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <label className="text-xs font-medium text-slate-500">Cust Success / Mgmt Hrs</label>
+                      <div className="group relative">
+                        <svg className="h-3.5 w-3.5 text-slate-300 hover:text-purple-400 cursor-help transition-colors" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                        </svg>
+                        <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 w-48 rounded-lg bg-slate-800 px-3 py-2 text-[11px] text-white opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
+                          Based on Total Hrs/Mo:<br/>≤10 hrs = 0.25 · ≤20 = 0.50 · &gt;20 = 0.75
+                          <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800" />
+                        </div>
+                      </div>
+                      {showAuto && <span className="text-[10px] text-purple-500 font-medium">auto</span>}
+                      {calcCs !== null && (
+                        <button type="button" onClick={() => set('custSuccessOverride', !form.custSuccessOverride as any)}
+                          className="ml-auto text-[10px] text-slate-400 hover:text-purple-600 underline underline-offset-2 transition-colors">
+                          {form.custSuccessOverride ? 'use formula' : 'override'}
+                        </button>
+                      )}
+                    </div>
+                    {form.custSuccessOverride || calcCs === null ? (
+                      <input type="number" step="0.25" min={0} value={form.custSuccessMgmtHrs} onChange={e => set('custSuccessMgmtHrs', e.target.value)} placeholder="0" className={inp} />
+                    ) : (
+                      <div className="flex items-center rounded-lg bg-slate-50 border border-slate-200 px-3 py-2">
+                        <span className="text-sm font-semibold text-purple-700 tabular-nums">{calcCs}</span>
+                        <span className="ml-1 text-xs text-slate-400">hrs</span>
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
+
+              {/* YE / 1099 — auto-calc same tier */}
+              {(() => {
+                const total = parseFloat(form.totalHrsPerMonth) || 0
+                const calcYe = total === 0 ? null : total <= 10 ? 0.25 : total <= 20 ? 0.50 : 0.75
+                const showAuto = calcYe !== null && !form.yeOverride
+                return (
+                  <div>
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <label className="text-xs font-medium text-slate-500">YE / 1099 Hours</label>
+                      <div className="group relative">
+                        <svg className="h-3.5 w-3.5 text-slate-300 hover:text-purple-400 cursor-help transition-colors" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                        </svg>
+                        <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 w-48 rounded-lg bg-slate-800 px-3 py-2 text-[11px] text-white opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
+                          Based on Total Hrs/Mo:<br/>≤10 hrs = 0.25 · ≤20 = 0.50 · &gt;20 = 0.75
+                          <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800" />
+                        </div>
+                      </div>
+                      {showAuto && <span className="text-[10px] text-purple-500 font-medium">auto</span>}
+                      {calcYe !== null && (
+                        <button type="button" onClick={() => set('yeOverride', !form.yeOverride as any)}
+                          className="ml-auto text-[10px] text-slate-400 hover:text-purple-600 underline underline-offset-2 transition-colors">
+                          {form.yeOverride ? 'use formula' : 'override'}
+                        </button>
+                      )}
+                    </div>
+                    {form.yeOverride || calcYe === null ? (
+                      <input type="number" step="0.25" min={0} value={form.yeOrTaxHours} onChange={e => set('yeOrTaxHours', e.target.value)} placeholder="0" className={inp} />
+                    ) : (
+                      <div className="flex items-center rounded-lg bg-slate-50 border border-slate-200 px-3 py-2">
+                        <span className="text-sm font-semibold text-purple-700 tabular-nums">{calcYe}</span>
+                        <span className="ml-1 text-xs text-slate-400">hrs</span>
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
+
               <Field label="Audit Hours">
                 <input type="number" step="0.25" min={0} value={form.auditHours} onChange={e => set('auditHours', e.target.value)} placeholder="0" className={inp} />
               </Field>
-              <Field label="Bkpr Hours" hint="Auto: ≤10 hrs = 0.25 · ≤20 hrs = 0.50 · >20 hrs = 0.75">
-                {(() => {
-                  const total = parseFloat(form.totalHrsPerMonth) || 0
-                  const calc  = total <= 10 ? 0.25 : total <= 20 ? 0.50 : 0.75
-                  return (
-                    <div className="flex items-center rounded-lg bg-slate-50 border border-slate-200 px-3 py-2">
-                      <span className="text-sm font-semibold text-purple-700 tabular-nums">{total === 0 ? '—' : calc}</span>
-                      <span className="ml-1 text-xs text-slate-400">hrs</span>
+
+              {/* Bkpr Hours — always auto: total minus all pool fields */}
+              {(() => {
+                const total = parseFloat(form.totalHrsPerMonth) || 0
+                const tier  = total === 0 ? null : total <= 10 ? 0.25 : total <= 20 ? 0.50 : 0.75
+
+                const qa = form.qaHoursOverride   ? (parseFloat(form.qaHours)          || 0) : (tier ?? 0)
+                const cs = form.custSuccessOverride ? (parseFloat(form.custSuccessMgmtHrs) || 0) : (tier ?? 0)
+                const ye = form.yeOverride          ? (parseFloat(form.yeOrTaxHours)    || 0) : (tier ?? 0)
+                const audit = parseFloat(form.auditHours) || 0
+                const apAr  = parseFloat(form.apArHrs)    || 0
+
+                const pool  = qa + cs + ye + audit + apAr
+                const bkpr  = total === 0 ? null : Math.max(parseFloat((total - pool).toFixed(2)), 0)
+
+                return (
+                  <div>
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <label className="text-xs font-medium text-slate-500">Bkpr Hours</label>
+                      <div className="group relative">
+                        <svg className="h-3.5 w-3.5 text-slate-300 hover:text-purple-400 cursor-help transition-colors" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                        </svg>
+                        <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 w-56 rounded-lg bg-slate-800 px-3 py-2 text-[11px] text-white opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
+                          Total Hrs − (QA + Mgmt + YE + Audit + AP/AR)
+                          <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800" />
+                        </div>
+                      </div>
+                      {bkpr !== null && <span className="text-[10px] text-purple-500 font-medium">auto</span>}
                     </div>
-                  )
-                })()}
-              </Field>
+                    <div className={`flex items-center rounded-lg border px-3 py-2 ${bkpr !== null && bkpr < 0 ? 'bg-red-50 border-red-200' : 'bg-slate-50 border-slate-200'}`}>
+                      {bkpr === null ? (
+                        <span className="text-sm text-slate-400">—</span>
+                      ) : (
+                        <>
+                          <span className={`text-sm font-semibold tabular-nums ${bkpr < 0 ? 'text-red-600' : 'text-purple-700'}`}>{bkpr}</span>
+                          <span className="ml-1 text-xs text-slate-400">hrs</span>
+                          {pool > total && total > 0 && (
+                            <span className="ml-2 text-[10px] text-red-500 font-medium">pool exceeds total</span>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )
+              })()}
             </Grid3>
           </Section>
 
