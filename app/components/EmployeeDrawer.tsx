@@ -47,6 +47,7 @@ export default function EmployeeDrawer({ employee, onClose, onUpdated }: Props) 
   const [tab,            setTab]           = useState<'profile' | 'edit' | 'rate-history'>('profile')
   const [history,        setHistory]       = useState<RateHistory[]>([])
   const [loadingHistory, setLoadingHistory] = useState(false)
+  const [lastChange,     setLastChange]     = useState<{ date: string; pct: number | null } | null>(null)
   const [inviting,       setInviting]      = useState(false)
   const [revoking,       setRevoking]      = useState(false)
   const [inviteMsg,      setInviteMsg]     = useState<{ type: 'success' | 'error'; text: string } | null>(null)
@@ -68,6 +69,21 @@ export default function EmployeeDrawer({ employee, onClose, onUpdated }: Props) 
     setInviteMsg(null)
     setSaveError(null)
     setSaveSuccess(false)
+    setLastChange(null)
+    // Fetch last 2 rate history entries to compute last change
+    fetch(`/api/employees/rate-history?employeeId=${employee.id}`)
+      .then(r => r.json())
+      .then(d => {
+        const h = d.history ?? []
+        if (h.length === 0) return
+        const latest = h[0]
+        const prev   = h[1]
+        const pct = prev
+          ? parseFloat(((( Number(latest.rate) - Number(prev.rate)) / Number(prev.rate)) * 100).toFixed(1))
+          : null
+        setLastChange({ date: latest.effectiveDate, pct })
+      })
+      .catch(() => {})
     setEditForm({
       name:             employee.name,
       email:            employee.email ?? '',
@@ -231,6 +247,18 @@ export default function EmployeeDrawer({ employee, onClose, onUpdated }: Props) 
                       <InfoRow label="Effective Hourly Rate" value={
                         <span className="font-bold text-purple-700">${Number(employee.effectiveHourlyRate).toFixed(2)}/hr</span>
                       } />
+                      {lastChange && (
+                        <InfoRow label="Last Rate Change" value={
+                          <span className="flex items-center gap-1.5">
+                            <span>{new Date(lastChange.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                            {lastChange.pct !== null && (
+                              <span className={`text-[11px] font-semibold rounded-full px-1.5 py-0.5 ${lastChange.pct >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
+                                {lastChange.pct >= 0 ? '+' : ''}{lastChange.pct}%
+                              </span>
+                            )}
+                          </span>
+                        } />
+                      )}
                     </div>
                   </div>
 
