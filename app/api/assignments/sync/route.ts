@@ -1,6 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { supabase } from '@/lib/supabase'
 
-export async function POST(_req: NextRequest): Promise<NextResponse> {
-  // Assignment sync — placeholder for future implementation
-  return NextResponse.json({ ok: true })
+// assignments: { [clientId]: employeeId }
+export async function POST(req: NextRequest): Promise<NextResponse> {
+  let body: unknown
+  try { body = await req.json() } catch {
+    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
+  }
+  const { assignments, employees } = (body ?? {}) as Record<string, unknown>
+  if (!assignments || typeof assignments !== 'object') {
+    return NextResponse.json({ error: 'assignments required' }, { status: 400 })
+  }
+  // Build a map of employeeId → employee name
+  const empMap: Record<string, string> = {}
+  if (Array.isArray(employees)) {
+    for (const e of employees) { if (e.id && e.name) empMap[e.id] = e.name }
+  }
+
+  const entries = Object.entries(assignments as Record<string, string>)
+  const errors: string[] = []
+
+  await Promise.all(entries.map(async ([clientId, empId]) => {
+    const bookkeeper = empMap[empId] ?? null
+    const { error } = await supabase
+      .from('clients')
+      .update({ Bookkeeper: bookkeeper })
+      .eq('id', clientId)
+    if (error) errors.push(`${clientId}: ${error.message}`)
+  }))
+
+  if (errors.length) return NextResponse.json({ ok: false, errors }, { status: 207 })
+  return NextResponse.json({ ok: true, updated: entries.length })
 }

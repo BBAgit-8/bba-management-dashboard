@@ -19,6 +19,9 @@ interface DbClient {
   processingCadence: string
   projectType: string | null
   accountantName: string | null
+  bookkeeper: string | null
+  bkprHours: number | null
+  totalHrsPerMonth: number | null
   tags: { id: string; name: string; color: string }[]
   sows: { billingType: string; fixedMonthlyRate: number | null; billingRate: number | null; targetHours: number | null }[]
 }
@@ -42,6 +45,8 @@ function billableWeeklyHrs(emp: DbEmployee): number {
   return r2(Number(emp.contractedHours) * BILLABLE_FACTOR);
 }
 function clientMonthlyHrs(client: DbClient): number {
+  // Prefer the bookkeeper hours stored directly on the client record
+  if (client.bkprHours != null && client.bkprHours > 0) return client.bkprHours;
   return client.sows?.[0]?.targetHours ?? 0;
 }
 
@@ -53,16 +58,16 @@ function barColor(pct: number) {
   return "bg-bba-primary";
 }
 function textColor(pct: number) {
-  if (pct > 100) return "text-red-400";
-  if (pct >= 90)  return "text-orange-400";
-  if (pct >= 70)  return "text-amber-400";
-  return "text-bba-secondary";
+  if (pct > 100) return "text-red-600";
+  if (pct >= 90)  return "text-orange-600";
+  if (pct >= 70)  return "text-amber-600";
+  return "text-purple-700";
 }
 function cardBorder(pct: number) {
-  if (pct > 100) return "border-red-500/50";
-  if (pct >= 90)  return "border-orange-500/40";
-  if (pct >= 70)  return "border-amber-500/30";
-  return "border-slate-700/60";
+  if (pct > 100) return "border-red-300";
+  if (pct >= 90)  return "border-orange-300";
+  if (pct >= 70)  return "border-amber-300";
+  return "border-slate-200";
 }
 
 // ─── CapacityCard ─────────────────────────────────────────────────────────────
@@ -83,12 +88,12 @@ function CapacityCard({ emp, assignedHrs, assignedCount, capacityHrs }: {
     >
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold ${overloaded ? 'bg-red-200 text-red-900' : 'bg-slate-700 text-slate-200'}`}>
+          <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold ${overloaded ? 'bg-red-100 text-red-700' : 'bg-pink-100 text-pink-700'}`}>
             {initials(emp.name)}
           </div>
           <div>
-            <p className={`text-sm font-semibold leading-tight ${overloaded ? 'text-red-950' : 'text-slate-100'}`}>{emp.name}</p>
-            <p className={`text-[11px] mt-0.5 ${overloaded ? 'text-red-800' : 'text-slate-500'}`}>
+            <p className={`text-sm font-semibold leading-tight ${overloaded ? 'text-red-700' : 'text-pink-600'}`}>{emp.name}</p>
+            <p className={`text-[11px] mt-0.5 ${'text-slate-400'}`}>
               {emp.contractedHours}h/wk · 80% billable
             </p>
           </div>
@@ -97,11 +102,11 @@ function CapacityCard({ emp, assignedHrs, assignedCount, capacityHrs }: {
           <p className={`text-xl font-bold tabular-nums leading-tight ${overloaded ? 'text-red-700' : textColor(pct)}`}>
             {pct.toFixed(1)}%
           </p>
-          <p className={`text-[10px] ${overloaded ? 'text-red-800' : 'text-slate-500'}`}>utilized</p>
+          <p className={`text-[10px] ${'text-slate-400'}`}>utilized</p>
         </div>
       </div>
 
-      <div className={`h-3 w-full overflow-hidden rounded-full mb-2 ${overloaded ? 'bg-red-200/70' : 'bg-slate-700/80'}`}>
+      <div className={`h-3 w-full overflow-hidden rounded-full mb-2 ${overloaded ? 'bg-red-100' : 'bg-slate-100'}`}>
         <div
           className={`h-full rounded-full transition-all duration-500 ${barColor(pct)}`}
           style={{ width: `${Math.min(pct, 100)}%` }}
@@ -111,10 +116,10 @@ function CapacityCard({ emp, assignedHrs, assignedCount, capacityHrs }: {
       <div className="flex items-end justify-between mt-2.5">
         <div className="space-y-0.5 text-xs">
           <p className="tabular-nums">
-            <span className={`font-semibold ${overloaded ? 'text-slate-100' : 'text-slate-200'}`}>{assignedHrs.toFixed(1)}</span>
-            <span className={overloaded ? 'text-red-800' : 'text-slate-500'}> / {capacityHrs.toFixed(1)} hrs/mo</span>
+            <span className={`font-semibold ${'text-slate-700 font-semibold'}`}>{assignedHrs.toFixed(1)}</span>
+            <span className={'text-slate-400'}> / {capacityHrs.toFixed(1)} hrs/mo</span>
           </p>
-          <p className={overloaded ? 'text-red-800' : 'text-slate-500'}>
+          <p className={'text-slate-400'}>
             {billableWeeklyHrs(emp).toFixed(1)} billable hrs/wk
             {!overloaded && <span className="text-slate-600"> · {remaining.toFixed(1)} free</span>}
           </p>
@@ -124,7 +129,7 @@ function CapacityCard({ emp, assignedHrs, assignedCount, capacityHrs }: {
             {assignedCount} client{assignedCount !== 1 ? "s" : ""}
           </p>
           {overloaded && (
-            <span className="inline-flex items-center rounded-full bg-red-700 px-2 py-0.5 text-[10px] font-bold text-white">
+            <span className="inline-flex items-center rounded-full bg-red-100 border border-red-200 px-2 py-0.5 text-[10px] font-bold text-red-700">
               OVERLOADED
             </span>
           )}
@@ -254,7 +259,7 @@ export default function CapacityPlanningPage() {
       await fetch('/api/assignments/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ assignments }),
+        body: JSON.stringify({ assignments, employees }),
       })
       setSavedAssignments({ ...assignments })
       setSyncStatus("saved")
@@ -412,7 +417,7 @@ export default function CapacityPlanningPage() {
 
             <div className="flex items-center gap-1.5 flex-wrap">
               <button onClick={() => setTagFilter("all")}
-                className={`rounded-full px-2.5 py-1 text-xs font-medium ring-1 transition-all ${tagFilter === "all" ? "bg-slate-600 ring-slate-500 text-slate-100" : "ring-slate-700 text-slate-400 hover:text-slate-200"}`}>
+                className={`rounded-full px-2.5 py-1 text-xs font-medium ring-1 transition-all ${tagFilter === "all" ? "bg-purple-100 ring-purple-300 text-purple-700" : "ring-slate-200 text-slate-500 hover:text-slate-700"}`}>
                 All Tags
               </button>
               {allTags.map(tag => (
@@ -490,11 +495,11 @@ export default function CapacityPlanningPage() {
 
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-700/80 text-[10px] font-bold text-slate-300">
+                          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-purple-100 text-[10px] font-bold text-purple-700">
                             {initials(client.name)}
                           </div>
                           <div className="min-w-0">
-                            <p className="font-medium text-slate-100 truncate">{client.name}</p>
+                            <p className="font-medium text-slate-800 truncate">{client.name}</p>
                             {client.tags.length > 0 && (
                               <div className="flex gap-1 mt-0.5">
                                 {client.tags.slice(0, 2).map(tag => (
@@ -510,13 +515,13 @@ export default function CapacityPlanningPage() {
                       </td>
 
                       <td className="px-4 py-3">
-                        <span className="font-mono text-xs text-slate-400 bg-slate-800 border border-slate-700 rounded px-1.5 py-0.5">
+                        <span className="font-mono text-xs text-purple-700 bg-purple-50 border border-purple-200 rounded px-1.5 py-0.5">
                           {client.harvestProjectCode}
                         </span>
                       </td>
 
                       <td className="px-4 py-3 text-right">
-                        <span className={`font-semibold tabular-nums text-sm ${hours === 0 ? "text-slate-600" : "text-slate-200"}`}>
+                        <span className={`font-semibold tabular-nums text-sm ${hours === 0 ? "text-slate-400" : "text-slate-700"}`}>
                           {hours > 0 ? `${hours}h` : "—"}
                         </span>
                       </td>
@@ -525,7 +530,7 @@ export default function CapacityPlanningPage() {
                         <select
                           value={assignedEmpId}
                           onChange={e => handleAssign(client.id, e.target.value)}
-                          className={`w-full max-w-[200px] rounded-lg border py-1.5 pl-3 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-bba-primary focus:border-transparent transition-colors cursor-pointer ${isModified ? "bg-amber-500/10 border-amber-500/40 text-amber-200" : "bg-white border-surface-border text-slate-700"}`}
+                          className={`w-full max-w-[200px] rounded-lg border py-1.5 pl-3 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-bba-primary focus:border-transparent transition-colors cursor-pointer ${isModified ? "bg-amber-50 border-amber-300 text-amber-700" : "bg-white border-surface-border text-slate-700"}`}
                         >
                           <option value="">— Unassigned —</option>
                           {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.name}</option>)}
@@ -539,13 +544,13 @@ export default function CapacityPlanningPage() {
                       <td className="px-4 py-3">
                         {assignedEmp && hours > 0 ? (
                           <div className="flex items-center gap-2 min-w-[100px]">
-                            <div className="flex-1 h-1.5 overflow-hidden rounded-full bg-slate-700">
+                            <div className="flex-1 h-1.5 overflow-hidden rounded-full bg-slate-100">
                               <div className={`h-full rounded-full transition-all duration-500 ${barColor(loadPct)}`} style={{ width: `${Math.min(loadPct, 100)}%` }} />
                             </div>
                             <span className={`text-xs tabular-nums font-medium ${textColor(loadPct)}`}>{loadPct.toFixed(1)}%</span>
                           </div>
                         ) : (
-                          <span className="text-slate-600 text-xs">—</span>
+                          <span className="text-slate-400 text-xs">—</span>
                         )}
                       </td>
                     </tr>

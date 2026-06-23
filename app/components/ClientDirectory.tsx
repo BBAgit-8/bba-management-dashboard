@@ -246,6 +246,33 @@ export default function ClientDirectory() {
   const [sortKey,       setSortKey]      = useState<SortKey>('name')
   const [sortDir,       setSortDir]      = useState<'asc' | 'desc'>('asc')
 
+  // Inline edits — optimistic local state
+  const [inlineEdits, setInlineEdits] = useState<Record<string, Record<string, string>>>({})
+
+  function getVal(client: ApiClient, field: string): string {
+    return inlineEdits[client.id]?.[field] ?? (client as any)[field] ?? ''
+  }
+
+  async function patchCell(client: ApiClient, field: string, value: string) {
+    // Optimistic update
+    setInlineEdits(prev => ({ ...prev, [client.id]: { ...(prev[client.id] ?? {}), [field]: value } }))
+    try {
+      const res = await fetch(`/api/clients/${client.harvestProjectCode}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [field]: value || null }),
+      })
+      if (!res.ok) throw new Error()
+    } catch {
+      // Revert on failure
+      setInlineEdits(prev => {
+        const next = { ...prev }
+        if (next[client.id]) { delete next[client.id][field] }
+        return next
+      })
+    }
+  }
+
   // Filters
   const [tagFilters,       setTagFilters]       = useState<Set<string>>(new Set())
   const [statusFilter,     setStatusFilter]     = useState<StatusFilter>('all')
@@ -278,8 +305,9 @@ export default function ClientDirectory() {
   })
 
   const [tags,    setTags]    = useState<Tag[]>([])
-  const [clients, setClients] = useState<ApiClient[]>([])
-  const [loading, setLoading] = useState(true)
+  const [clients,   setClients]   = useState<ApiClient[]>([])
+  const [employees, setEmployees] = useState<any[]>([])
+  const [loading,   setLoading]   = useState(true)
   const [fetchKey, setFetchKey] = useState(0)
 
   useEffect(() => {
@@ -291,11 +319,13 @@ export default function ClientDirectory() {
 
   useEffect(() => {
     setLoading(true)
-    fetch('/api/clients')
-      .then(r => r.json())
-      .then(d => { if (Array.isArray(d.clients)) setClients(d.clients) })
-      .catch(() => {})
-      .finally(() => setLoading(false))
+    Promise.all([
+      fetch('/api/clients').then(r => r.json()),
+      fetch('/api/employees').then(r => r.json()),
+    ]).then(([cd, ed]) => {
+      if (Array.isArray(cd.clients)) setClients(cd.clients)
+      if (Array.isArray(ed)) setEmployees(ed)
+    }).catch(() => {}).finally(() => setLoading(false))
   }, [fetchKey])
 
   function refetchClients() { setFetchKey(k => k + 1) }
@@ -445,21 +475,61 @@ export default function ClientDirectory() {
           </td>
         )
       case 'bookkeeper':
-        return <td key={colKey} className="px-4 py-3 text-sm text-slate-700">{client.bookkeeper ?? <span className="text-slate-400">—</span>}</td>
+        return (
+          <td key={colKey} className="px-3 py-2">
+            <select
+              value={getVal(client, 'bookkeeper')}
+              onChange={e => patchCell(client, 'bookkeeper', e.target.value)}
+              className="w-full rounded-md border border-transparent bg-transparent px-1.5 py-1 text-sm text-slate-700 hover:border-slate-200 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400 cursor-pointer"
+            >
+              <option value="">—</option>
+              {employees.map((e: any) => <option key={e.id} value={e.name}>{e.name}</option>)}
+            </select>
+          </td>
+        )
       case 'entityType':
-        return <td key={colKey} className="px-4 py-3 text-sm text-slate-700">{client.entityType ?? <span className="text-slate-400">—</span>}</td>
+        return (
+          <td key={colKey} className="px-3 py-2">
+            <select
+              value={getVal(client, 'entityType')}
+              onChange={e => patchCell(client, 'entityType', e.target.value)}
+              className="w-full rounded-md border border-transparent bg-transparent px-1.5 py-1 text-sm text-slate-700 hover:border-slate-200 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400 cursor-pointer"
+            >
+              <option value="">—</option>
+              {['LLC','S-Corp','C-Corp','Sole Proprietor','Partnership','Non-Profit','Other'].map(o => <option key={o} value={o}>{o}</option>)}
+            </select>
+          </td>
+        )
       case 'projectType':
         return (
-          <td key={colKey} className="px-4 py-3">
-            <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${ptStyle.bg} ${ptStyle.text}`}>
-              {ptStyle.label}
-            </span>
+          <td key={colKey} className="px-3 py-2">
+            <select
+              value={getVal(client, 'projectType')}
+              onChange={e => patchCell(client, 'projectType', e.target.value)}
+              className="w-full rounded-md border border-transparent bg-transparent px-1.5 py-1 text-[11px] font-semibold text-slate-700 hover:border-slate-200 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400 cursor-pointer"
+            >
+              <option value="">—</option>
+              {[{v:'RECURRING',l:'Recurring'},{v:'CLEAN_UP',l:'Cleanup'},{v:'ANNUAL',l:'Annual'},{v:'QBO_ONLY',l:'QBO Only'},{v:'MONTHLY_MAINTENANCE',l:'Monthly Maintenance'}].map(o => <option key={o.v} value={o.v}>{o.l}</option>)}
+            </select>
           </td>
         )
       case 'revenueType':
         return (
-          <td key={colKey} className="px-4 py-3 text-xs text-slate-600">
-            {client.revenueType ? (RTYPE_LABEL[client.revenueType] ?? client.revenueType) : <span className="text-slate-400">—</span>}
+          <td key={colKey} className="px-3 py-2">
+            <select
+              value={getVal(client, 'revenueType')}
+              onChange={e => patchCell(client, 'revenueType', e.target.value)}
+              className="w-full rounded-md border border-transparent bg-transparent px-1.5 py-1 text-xs text-slate-600 hover:border-slate-200 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400 cursor-pointer"
+            >
+              <option value="">—</option>
+              {[
+                {v:'RECURRING_MONTHLY_ACH',l:'Recurring Monthly - ACH'},
+                {v:'RECURRING_MONTHLY_INVOICED',l:'Recurring Monthly - Invoiced'},
+                {v:'RECURRING_MONTHLY_HOURLY',l:'Recurring Monthly - Hourly'},
+                {v:'CLEANUP',l:'Cleanup'},{v:'HOURLY_CLEANUP',l:'Hourly Cleanup'},
+                {v:'FREE',l:'Free'},{v:'QBO_ONLY_ANCHOR',l:'QBO Only - Anchor'},{v:'QBO_ONLY_QB',l:'QBO Only - QB'},
+              ].map(o => <option key={o.v} value={o.v}>{o.l}</option>)}
+            </select>
           </td>
         )
       case 'monthlyBilling':
