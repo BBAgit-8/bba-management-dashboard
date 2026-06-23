@@ -250,11 +250,48 @@ export default function CapacityPlanningPage() {
   const unassignedClients  = activeClients.filter(c => !assignments[c.id])
   const totalAllocatedHrs  = r2(activeClients.reduce((s, c) => s + (assignments[c.id] ? clientMonthlyHrs(c) : 0), 0))
 
-  function handleAssign(clientId: string, empId: string) {
+  const [savingClients, setSavingClients] = useState<Set<string>>(new Set())
+
+  async function handleAssign(clientId: string, empId: string) {
+    // Optimistic update
     setAssignments(prev => ({ ...prev, [clientId]: empId }))
+    setSavingClients(prev => new Set(prev).add(clientId))
+
+    try {
+      const empMap: Record<string, string> = {}
+      employees.forEach((e: any) => { empMap[e.id] = e.name })
+      const bookkeeper = empMap[empId] ?? null
+
+      const res = await fetch(`/api/clients/${
+        activeClients.find(c => c.id === clientId)?.harvestProjectCode ?? clientId
+      }`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookkeeper }),
+      })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+
+      // Mark as saved — no longer "unsaved"
+      setSavedAssignments(prev => ({ ...prev, [clientId]: empId }))
+      // Broadcast to other pages
+      broadcastBookkeeperChange(clientId, bookkeeper)
+    } catch (err) {
+      console.error('Assignment save failed:', err)
+      // Revert optimistic update
+      setAssignments(prev => {
+        const next = { ...prev }
+        const saved = savedAssignments[clientId]
+        if (saved) next[clientId] = saved
+        else delete next[clientId]
+        return next
+      })
+    } finally {
+      setSavingClients(prev => { const next = new Set(prev); next.delete(clientId); return next })
+    }
   }
 
   async function handleConfirm() {
+    // Any remaining unsaved changes — save them all at once as a fallback
     setSyncStatus("saving")
     try {
       await fetch('/api/assignments/sync', {
@@ -265,7 +302,6 @@ export default function CapacityPlanningPage() {
       setSavedAssignments({ ...assignments })
       setSyncStatus("saved")
       setTimeout(() => setSyncStatus("idle"), 2200)
-      // Broadcast each changed assignment so other pages update live
       const empMap: Record<string, string> = {}
       employees.forEach((e: any) => { empMap[e.id] = e.name })
       Object.entries(assignments).forEach(([clientId, empId]) => {
@@ -511,7 +547,12 @@ export default function CapacityPlanningPage() {
                       onMouseLeave={e => { e.currentTarget.style.backgroundColor = baseBg }}
                     >
                       <td className="px-3 py-3 text-center">
-                        {isModified && <span title="Unsaved change" className="inline-block h-2 w-2 rounded-full bg-amber-400 ring-2 ring-amber-400/20 animate-pulse" />}
+                        {savingClients.has(client.id)
+                          ? <span title="Saving…" className="inline-block h-2 w-2 rounded-full bg-purple-400 ring-2 ring-purple-400/20 animate-pulse" />
+                          : isModified
+                            ? <span title="Unsaved change" className="inline-block h-2 w-2 rounded-full bg-amber-400 ring-2 ring-amber-400/20 animate-pulse" />
+                            : null
+                        }
                       </td>
 
                       <td className="px-4 py-3">
@@ -548,14 +589,21 @@ export default function CapacityPlanningPage() {
                       </td>
 
                       <td className="px-4 py-3">
-                        <select
-                          value={assignedEmpId}
-                          onChange={e => handleAssign(client.id, e.target.value)}
-                          className={`w-full max-w-[200px] rounded-lg border py-1.5 pl-3 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-bba-primary focus:border-transparent transition-colors cursor-pointer ${isModified ? "bg-amber-50 border-amber-300 text-amber-700" : "bg-white border-surface-border text-slate-700"}`}
-                        >
-                          <option value="">— Unassigned —</option>
-                          {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.name}</option>)}
-                        </select>
+                        <div className="relative">
+                          <select
+                            value={assignedEmpId}
+                            onChange={e => handleAssign(client.id, e.target.value)}
+                            disabled={savingClients.has(client.id)}
+                            className={`w-full max-w-[200px] rounded-lg border py-1.5 pl-3 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-bba-primary focus:border-transparent transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-wait ${
+                              savingClients.has(client.id) ? "bg-purple-50 border-purple-200 text-purple-700"
+                              : isModified ? "bg-amber-50 border-amber-300 text-amber-700"
+                              : "bg-white border-surface-border text-slate-700"
+                            }`}
+                          >
+                            <option value="">— Unassigned —</option>
+                            {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.name}</option>)}
+                          </select>
+                        </div>
                       </td>
 
                       <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">
