@@ -52,7 +52,7 @@ export default function EmployeeDrawer({ employee, onClose, onUpdated }: Props) 
   const [revoking,       setRevoking]      = useState(false)
   const [inviteMsg,      setInviteMsg]     = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [saving,         setSaving]        = useState(false)
-  const [pastEntry,      setPastEntry]     = useState({ rate: '', date: '', notes: '' })
+  const [pastEntry,      setPastEntry]     = useState({ rate: '', date: '', notes: '', rateType: 'hourly' as 'hourly' | 'salary' })
   const [savingPast,     setSavingPast]    = useState(false)
   const [pastMsg,        setPastMsg]       = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [saveError,      setSaveError]     = useState<string | null>(null)
@@ -106,7 +106,9 @@ export default function EmployeeDrawer({ employee, onClose, onUpdated }: Props) 
       .then(d => {
         const h = d.history ?? []
         if (h.length === 0) { setLastChange(null); return }
-        const latest = h[0]; const prev = h[1]
+        const latest = h[0]
+        // Find previous entry with same rateType for apples-to-apples comparison
+        const prev = h.slice(1).find((e: any) => e.rateType === latest.rateType) ?? h[1]
         const pct = prev
           ? parseFloat((((Number(latest.rate) - Number(prev.rate)) / Number(prev.rate)) * 100).toFixed(1))
           : null
@@ -123,7 +125,7 @@ export default function EmployeeDrawer({ employee, onClose, onUpdated }: Props) 
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         employeeId:    employee.id,
-        rateType:      employee.rateType ?? 'hourly',
+        rateType:      pastEntry.rateType,
         rate:          parseFloat(pastEntry.rate),
         effectiveDate: pastEntry.date,
         notes:         pastEntry.notes || null,
@@ -134,7 +136,7 @@ export default function EmployeeDrawer({ employee, onClose, onUpdated }: Props) 
       setPastMsg({ type: 'error', text: json.error ?? 'Failed to save.' })
     } else {
       setPastMsg({ type: 'success', text: 'Past rate entry logged.' })
-      setPastEntry({ rate: '', date: '', notes: '' })
+      setPastEntry({ rate: '', date: '', notes: '', rateType: 'hourly' })
       fetchLastChange(employee.id)
     }
     setSavingPast(false)
@@ -427,10 +429,22 @@ export default function EmployeeDrawer({ employee, onClose, onUpdated }: Props) 
                   {/* Log past rate change */}
                   <div className="rounded-xl border border-dashed border-slate-200 p-4 space-y-3 mt-2">
                     <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--bba-secondary, #b20476)' }}>Log Past Rate Change</p>
-                    <p className="text-xs text-slate-400">Manually enter a historical rate to make the rate history accurate.</p>
+                    <p className="text-xs text-slate-400">Manually enter a historical rate to make rate history accurate.</p>
+                    {/* Rate type toggle */}
+                    <div className="flex rounded-lg border border-slate-200 overflow-hidden">
+                      {(['hourly', 'salary'] as const).map(v => (
+                        <button key={v} type="button"
+                          onClick={() => setPastEntry(p => ({ ...p, rateType: v }))}
+                          className={`flex-1 py-1.5 text-xs font-medium transition-colors ${(pastEntry as any).rateType === v ? 'bg-bba-primary text-white' : 'text-slate-500 hover:bg-slate-50'}`}>
+                          {v === 'hourly' ? '⏱ Hourly' : '📅 Salary'}
+                        </button>
+                      ))}
+                    </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-xs font-medium text-slate-500 mb-1.5">Hourly Rate ($)</label>
+                        <label className="block text-xs font-medium text-slate-500 mb-1.5">
+                          {(pastEntry as any).rateType === 'salary' ? 'Annual Salary ($)' : 'Hourly Rate ($)'}
+                        </label>
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">$</span>
                           <input type="number" step="0.01" min={0} value={pastEntry.rate}
@@ -449,7 +463,7 @@ export default function EmployeeDrawer({ employee, onClose, onUpdated }: Props) 
                       <label className="block text-xs font-medium text-slate-500 mb-1.5">Note (optional)</label>
                       <input type="text" value={pastEntry.notes}
                         onChange={e => setPastEntry(p => ({ ...p, notes: e.target.value }))}
-                        placeholder="e.g. Starting rate, 2023 raise" className={inp} />
+                        placeholder="e.g. Starting salary, 2023 raise" className={inp} />
                     </div>
                     {pastMsg && (
                       <div className={`rounded-lg px-3 py-2 text-xs ${pastMsg.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-600 border border-red-200'}`}>
@@ -485,9 +499,9 @@ export default function EmployeeDrawer({ employee, onClose, onUpdated }: Props) 
                         <div key={entry.id} className={`rounded-xl border p-4 ${i === 0 ? 'border-purple-200 bg-purple-50' : 'border-slate-200 bg-white'}`}>
                           <div className="flex items-start justify-between">
                             <div>
-                              <p className="text-sm font-bold text-slate-800">${Number(entry.rate).toFixed(2)}/hr</p>
+                              <p className="text-sm font-bold text-slate-800">{entry.rateType === 'salary' ? `$${Number(entry.rate).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : `$${Number(entry.rate).toFixed(2)}/hr`}</p>
                               <p className="text-xs text-slate-400 mt-0.5">
-                                {entry.rateType === 'salary' ? 'Salary-based' : 'Hourly'} ·{' '}
+                                {entry.rateType === 'salary' ? 'Annual Salary' : 'Hourly rate'} ·{' '}
                                 Effective {new Date(entry.effectiveDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                               </p>
                               {entry.notes && <p className="text-xs text-slate-500 mt-1 italic">"{entry.notes}"</p>}
