@@ -135,9 +135,9 @@ export default function SettingsTab({ clientId }: Props) {
                 <button
                   type="button"
                   onClick={() => setOps(o => ({ ...o, okToContactAccountant: !o.okToContactAccountant }))}
-                  className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors ${ops.okToContactAccountant ? 'bg-purple-600' : 'bg-slate-200'}`}
+                  className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 ${ops.okToContactAccountant ? 'bg-purple-600' : 'bg-slate-300'}`}
                 >
-                  <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${ops.okToContactAccountant ? 'translate-x-5' : 'translate-x-0'}`} />
+                  <span className={`inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${ops.okToContactAccountant ? 'translate-x-5' : 'translate-x-0'}`} />
                 </button>
               </div>
             </div>
@@ -351,7 +351,7 @@ export default function SettingsTab({ clientId }: Props) {
                 value={confirmText}
                 onChange={e => setConfirmText(e.target.value)}
                 placeholder="Type CONFIRM to proceed"
-                className="w-full rounded-lg border border-red-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent font-mono"
+                className="w-full rounded-lg border border-red-300 bg-white px-3 py-2 text-sm text-slate-800 placeholder-red-300 focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent font-mono tracking-widest"
               />
               <div className="flex items-center gap-3">
                 <button

@@ -6,14 +6,17 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   try { body = await req.json() } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
-  const { clientId, confirmation } = (body ?? {}) as Record<string, unknown>
+  const { projectCode, confirmation } = (body ?? {}) as Record<string, unknown>
   if (confirmation !== 'CONFIRM') {
     return NextResponse.json({ error: 'Must pass confirmation: "CONFIRM"' }, { status: 400 })
   }
+  if (!projectCode) {
+    return NextResponse.json({ error: 'projectCode is required' }, { status: 400 })
+  }
   const { error } = await supabase
     .from('clients')
-    .update({ archive_status: 'ARCHIVED' })
-    .eq('id', clientId)
+    .update({ archiveStatus: 'ARCHIVED' })
+    .eq('harvestProjectCode', projectCode)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ ok: true })
 }
