@@ -55,6 +55,7 @@ export default function EmployeeDrawer({ employee, onClose, onUpdated }: Props) 
   const [pastEntry,      setPastEntry]     = useState({ rate: '', date: '', notes: '', rateType: 'hourly' as 'hourly' | 'salary' })
   const [savingPast,     setSavingPast]    = useState(false)
   const [pastMsg,        setPastMsg]       = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [deletingId,     setDeletingId]    = useState<string | null>(null)
   const [saveError,      setSaveError]     = useState<string | null>(null)
   const [saveSuccess,    setSaveSuccess]   = useState(false)
 
@@ -99,6 +100,17 @@ export default function EmployeeDrawer({ employee, onClose, onUpdated }: Props) 
     if (!s || !h) return null
     return parseFloat((s / (h * 52)).toFixed(2))
   })()
+
+  async function handleDeleteEntry(entryId: string) {
+    if (!employee) return
+    setDeletingId(entryId)
+    const res = await fetch(`/api/employees/rate-history?id=${entryId}`, { method: 'DELETE' })
+    if (res.ok) {
+      setHistory(h => h.filter(e => e.id !== entryId))
+      fetchLastChange(employee.id)
+    }
+    setDeletingId(null)
+  }
 
   function fetchLastChange(empId: string) {
     fetch(`/api/employees/rate-history?employeeId=${empId}`)
@@ -497,16 +509,31 @@ export default function EmployeeDrawer({ employee, onClose, onUpdated }: Props) 
                     <div className="space-y-2">
                       {history.map((entry, i) => (
                         <div key={entry.id} className={`rounded-xl border p-4 ${i === 0 ? 'border-purple-200 bg-purple-50' : 'border-slate-200 bg-white'}`}>
-                          <div className="flex items-start justify-between">
-                            <div>
-                              <p className="text-sm font-bold text-slate-800">{entry.rateType === 'salary' ? `$${Number(entry.rate).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : `$${Number(entry.rate).toFixed(2)}/hr`}</p>
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-bold text-slate-800">
+                                {entry.rateType === 'salary'
+                                  ? `$${Number(entry.rate).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / yr`
+                                  : `$${Number(entry.rate).toFixed(2)}/hr`}
+                              </p>
                               <p className="text-xs text-slate-400 mt-0.5">
                                 {entry.rateType === 'salary' ? 'Annual Salary' : 'Hourly rate'} ·{' '}
                                 Effective {new Date(entry.effectiveDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                               </p>
                               {entry.notes && <p className="text-xs text-slate-500 mt-1 italic">"{entry.notes}"</p>}
                             </div>
-                            {i === 0 && <span className="text-[10px] font-semibold bg-purple-200 text-purple-700 rounded-full px-2 py-0.5">Current</span>}
+                            <div className="flex items-center gap-2 shrink-0">
+                              {i === 0 && <span className="text-[10px] font-semibold bg-purple-200 text-purple-700 rounded-full px-2 py-0.5">Current</span>}
+                              <button
+                                onClick={() => handleDeleteEntry(entry.id)}
+                                disabled={deletingId === entry.id}
+                                className="text-slate-300 hover:text-red-400 transition-colors disabled:opacity-40"
+                                title="Delete entry">
+                                {deletingId === entry.id
+                                  ? <svg className="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                                  : <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>}
+                              </button>
+                            </div>
                           </div>
                         </div>
                       ))}

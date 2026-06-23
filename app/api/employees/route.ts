@@ -64,12 +64,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  // Seed initial rate history
+  // Seed initial rate history — store salary amount for salary employees, hourly rate for hourly
+  const historicalRate = rateType === 'salary' && salary ? salary : effectiveHourlyRate
   await supabase.from('employee_rate_history').insert({
     id:            crypto.randomUUID(),
     employeeId:    data.id,
     rateType,
-    rate:          effectiveHourlyRate,
+    rate:          historicalRate,
     effectiveDate: new Date().toISOString().split('T')[0],
     notes:         'Initial rate',
   })

@@ -42,3 +42,16 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ entry: data }, { status: 201 })
 }
+
+export async function DELETE(req: NextRequest): Promise<NextResponse> {
+  const id = req.nextUrl.searchParams.get('id')
+  if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 })
+
+  const { error } = await supabase
+    .from('employee_rate_history')
+    .delete()
+    .eq('id', id)
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json({ ok: true })
+}
