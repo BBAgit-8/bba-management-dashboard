@@ -252,7 +252,7 @@ export default function CapacityPlanningPage() {
 
   const [savingClients, setSavingClients] = useState<Set<string>>(new Set())
 
-  async function handleAssign(clientId: string, empId: string) {
+  async function handleAssign(clientId: string, projectCode: string, empId: string) {
     // Optimistic update
     setAssignments(prev => ({ ...prev, [clientId]: empId }))
     setSavingClients(prev => new Set(prev).add(clientId))
@@ -260,18 +260,19 @@ export default function CapacityPlanningPage() {
     try {
       const empMap: Record<string, string> = {}
       employees.forEach((e: any) => { empMap[e.id] = e.name })
-      const bookkeeper = empMap[empId] ?? null
+      const bookkeeper = empId ? (empMap[empId] ?? null) : null
 
-      const res = await fetch(`/api/clients/${
-        activeClients.find(c => c.id === clientId)?.harvestProjectCode ?? clientId
-      }`, {
+      const res = await fetch(`/api/clients/${projectCode}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ bookkeeper }),
       })
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}))
+        throw new Error(json.error ?? `HTTP ${res.status}`)
+      }
 
-      // Mark as saved — no longer "unsaved"
+      // Mark as saved
       setSavedAssignments(prev => ({ ...prev, [clientId]: empId }))
       // Broadcast to other pages
       broadcastBookkeeperChange(clientId, bookkeeper)
@@ -592,7 +593,7 @@ export default function CapacityPlanningPage() {
                         <div className="relative">
                           <select
                             value={assignedEmpId}
-                            onChange={e => handleAssign(client.id, e.target.value)}
+                            onChange={e => handleAssign(client.id, client.harvestProjectCode, e.target.value)}
                             disabled={savingClients.has(client.id)}
                             className={`w-full max-w-[200px] rounded-lg border py-1.5 pl-3 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-bba-primary focus:border-transparent transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-wait ${
                               savingClients.has(client.id) ? "bg-purple-50 border-purple-200 text-purple-700"
