@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import Link from 'next/link'
+import { useBookkeeperSync } from '@/app/hooks/useBookkeeperSync'
 
 type ProfitRow = {
   id: string; name: string; code: string; projectType: string | null
@@ -79,6 +80,11 @@ export default function ProfitabilityPage() {
   }
 
   useEffect(() => { load() }, []) // eslint-disable-line
+
+  // When a bookkeeper changes on another page, update the matching row instantly
+  useBookkeeperSync(useCallback(({ clientId, bookkeeper }) => {
+    setRows(prev => prev.map(r => r.id === clientId ? { ...r, bookkeeper: bookkeeper ?? '' } : r))
+  }, []))
 
   const bookkeepers = useMemo(() => [...new Set(rows.map(r => r.bookkeeper).filter(Boolean))].sort() as string[], [rows])
 

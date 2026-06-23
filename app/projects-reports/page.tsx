@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd'
 import type { ProjectType, RevenueType, EntityType } from '@/lib/mock-data'
+import { useBookkeeperSync } from '@/app/hooks/useBookkeeperSync'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface DbClient {
@@ -183,6 +184,14 @@ export default function ProjectsReportsPage() {
       finally { setSaving(prev => ({ ...prev, [id]: false })) }
     }, []
   )
+
+  // Keep bookkeeper in sync when changed on another page
+  useBookkeeperSync(useCallback(({ clientId, bookkeeper }) => {
+    setEdits(prev => ({
+      ...prev,
+      [clientId]: { ...(prev[clientId] ?? {}), Bookkeeper: bookkeeper ?? '' },
+    }))
+  }, []))
 
   const allRows = useMemo(() =>
     clients

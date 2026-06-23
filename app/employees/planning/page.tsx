@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
+import { broadcastBookkeeperChange, useBookkeeperSync } from "@/app/hooks/useBookkeeperSync";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface DbEmployee {
@@ -264,10 +265,30 @@ export default function CapacityPlanningPage() {
       setSavedAssignments({ ...assignments })
       setSyncStatus("saved")
       setTimeout(() => setSyncStatus("idle"), 2200)
+      // Broadcast each changed assignment so other pages update live
+      const empMap: Record<string, string> = {}
+      employees.forEach((e: any) => { empMap[e.id] = e.name })
+      Object.entries(assignments).forEach(([clientId, empId]) => {
+        broadcastBookkeeperChange(clientId, empMap[empId] ?? null)
+      })
     } catch {
       setSyncStatus("idle")
     }
   }
+
+  // Listen for bookkeeper changes from other pages — sync assignments state
+  useBookkeeperSync(useCallback(({ clientId, bookkeeper }) => {
+    if (!bookkeeper) {
+      setAssignments(prev => { const next = { ...prev }; delete next[clientId]; return next })
+      setSavedAssignments(prev => { const next = { ...prev }; delete next[clientId]; return next })
+    } else {
+      const emp = employees.find((e: any) => e.name === bookkeeper)
+      if (emp) {
+        setAssignments(prev => ({ ...prev, [clientId]: emp.id }))
+        setSavedAssignments(prev => ({ ...prev, [clientId]: emp.id }))
+      }
+    }
+  }, [employees]))
 
   // ── Loading / error ─────────────────────────────────────────────────────────
   if (loading) return (

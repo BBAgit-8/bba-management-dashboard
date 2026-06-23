@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd'
+import { broadcastBookkeeperChange, useBookkeeperSync } from '@/app/hooks/useBookkeeperSync'
 
 type Tag = { id: string; name: string; color: string }
 type ProcessingCadence = 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY' | 'QUARTERLY'
@@ -263,6 +264,10 @@ export default function ClientDirectory() {
         body: JSON.stringify({ [field]: value || null }),
       })
       if (!res.ok) throw new Error()
+      // Broadcast bookkeeper changes so other pages update
+      if (field === 'bookkeeper' || field === 'Bookkeeper') {
+        broadcastBookkeeperChange(client.id, value || null)
+      }
     } catch {
       // Revert on failure
       setInlineEdits(prev => {
@@ -272,6 +277,14 @@ export default function ClientDirectory() {
       })
     }
   }
+
+  // Sync bookkeeper changes from other pages — apply optimistically without full refetch
+  useBookkeeperSync(useCallback(({ clientId, bookkeeper }) => {
+    setInlineEdits(prev => ({
+      ...prev,
+      [clientId]: { ...(prev[clientId] ?? {}), bookkeeper: bookkeeper ?? '' },
+    }))
+  }, []))
 
   // Filters
   const [tagFilters,       setTagFilters]       = useState<Set<string>>(new Set())
