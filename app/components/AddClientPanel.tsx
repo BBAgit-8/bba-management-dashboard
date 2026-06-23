@@ -54,6 +54,9 @@ const EMPTY = {
   bankFeedTime: '', transactionsPerMonth: '', recTime: '',
   numBanksAndCCs: '', numLoans: '', numPmtPortals: '',
   pettyCash: false,
+  // Manual overrides for auto-calculated fields
+  bankFeedTimeOverride: false,
+  recTimeOverride: false,
   // Payroll
   hasPayroll: false, payrollProvider: '',
   // Other
@@ -179,10 +182,12 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
     try {
       const total    = parseFloat(form.totalHrsPerMonth) || 0
       const bkprHours = total === 0 ? '' : String(total <= 10 ? 0.25 : total <= 20 ? 0.50 : 0.75)
+      const bankFeedTime = form.bankFeedTimeOverride || !calcBankFeedTime ? form.bankFeedTime : calcBankFeedTime
+      const recTime      = form.recTimeOverride      || !calcRecTime      ? form.recTime      : calcRecTime
       const res = await fetch('/api/clients', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, bkprHours }),
+        body: JSON.stringify({ ...form, bkprHours, bankFeedTime, recTime }),
       });
       const json = await res.json();
       if (!res.ok) { setSaveError(json.error ?? `Error ${res.status}`); return; }
@@ -194,6 +199,33 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
       setSaving(false);
     }
   }
+
+  // ── Calc helpers ──────────────────────────────────────────────
+  function txnTier(txn: string) {
+    switch (txn) {
+      case '0-100':   return { bft: 0.75,  rec: 0.25 }
+      case '101-200': return { bft: 1.75,  rec: 0.50 }
+      case '201-300': return { bft: 2.50,  rec: 0.75 }
+      case '301-400': return { bft: 3.25,  rec: 1.00 }
+      case '401-500': return { bft: 4.00,  rec: 1.25 }
+      case '500+':    return { bft: 5.00,  rec: 1.50 }
+      default:        return { bft: null,  rec: null  }
+    }
+  }
+
+  const tier = txnTier(form.transactionsPerMonth)
+
+  const calcBankFeedTime = tier.bft !== null ? String(tier.bft) : ''
+  const calcRecTime = (() => {
+    if (tier.rec === null) return ''
+    const banks = parseInt(form.numBanksAndCCs) || 0
+    const loans = parseInt(form.numLoans)       || 0
+    const pmts  = parseInt(form.numPmtPortals)  || 0
+    return String(parseFloat(((banks + loans + pmts) * 0.25 + tier.rec).toFixed(2)))
+  })()
+
+  // Auto-fill calculated fields when dependencies change (unless overridden)
+  // We expose both the calculated value and the override state
 
   return (
     <>
@@ -503,9 +535,6 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
           {/* ── Transactions ── */}
           <Section label="Transactions &amp; Accounts">
             <Grid3>
-              <Field label="Bank Feed Time">
-                <input type="number" step="0.25" min={0} value={form.bankFeedTime} onChange={e => set('bankFeedTime', e.target.value)} placeholder="0" className={inp} />
-              </Field>
               <Field label="# Transactions / mo">
                 <select value={form.transactionsPerMonth} onChange={e => set('transactionsPerMonth', e.target.value)} className={sel}>
                   <option value="">— Select range —</option>
@@ -517,9 +546,6 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
                   <option value="500+">500+</option>
                 </select>
               </Field>
-              <Field label="Rec Time">
-                <input type="number" step="0.25" min={0} value={form.recTime} onChange={e => set('recTime', e.target.value)} placeholder="0" className={inp} />
-              </Field>
               <Field label="# Banks &amp; CCs">
                 <input type="number" min={0} value={form.numBanksAndCCs} onChange={e => set('numBanksAndCCs', e.target.value)} placeholder="0" className={inp} />
               </Field>
@@ -529,6 +555,86 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
               <Field label="# Pmt Portals">
                 <input type="number" min={0} value={form.numPmtPortals} onChange={e => set('numPmtPortals', e.target.value)} placeholder="0" className={inp} />
               </Field>
+
+              {/* Bank Feed Time — auto-calc with override */}
+              <div>
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <label className="text-xs font-medium text-slate-500">Bank Feed Time</label>
+                  <div className="group relative">
+                    <svg className="h-3.5 w-3.5 text-slate-300 hover:text-purple-400 cursor-help transition-colors" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
+                    <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 w-56 rounded-lg bg-slate-800 px-3 py-2 text-[11px] text-white opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
+                      Based on transaction range:<br/>
+                      0-100 = 0.75 · 101-200 = 1.75<br/>
+                      201-300 = 2.50 · 301-400 = 3.25<br/>
+                      401-500 = 4.00 · 500+ = 5.00
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800" />
+                    </div>
+                  </div>
+                  {calcBankFeedTime && !form.bankFeedTimeOverride && (
+                    <span className="text-[10px] text-purple-500 font-medium">auto</span>
+                  )}
+                  {calcBankFeedTime && (
+                    <button type="button"
+                      onClick={() => set('bankFeedTimeOverride', !form.bankFeedTimeOverride as any)}
+                      className="ml-auto text-[10px] text-slate-400 hover:text-purple-600 underline underline-offset-2 transition-colors">
+                      {form.bankFeedTimeOverride ? 'use formula' : 'override'}
+                    </button>
+                  )}
+                </div>
+                {form.bankFeedTimeOverride || !calcBankFeedTime ? (
+                  <input type="number" step="0.25" min={0}
+                    value={form.bankFeedTime}
+                    onChange={e => set('bankFeedTime', e.target.value)}
+                    placeholder="0" className={inp} />
+                ) : (
+                  <div className="flex items-center rounded-lg bg-slate-50 border border-slate-200 px-3 py-2">
+                    <span className="text-sm font-semibold text-purple-700 tabular-nums">{calcBankFeedTime}</span>
+                    <span className="ml-1 text-xs text-slate-400">hrs</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Rec Time — auto-calc with override */}
+              <div>
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <label className="text-xs font-medium text-slate-500">Rec Time</label>
+                  <div className="group relative">
+                    <svg className="h-3.5 w-3.5 text-slate-300 hover:text-purple-400 cursor-help transition-colors" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
+                    <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 w-64 rounded-lg bg-slate-800 px-3 py-2 text-[11px] text-white opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
+                      (Banks + Loans + Pmt Portals) × 0.25 + txn tier<br/>
+                      Txn tier: 0-100=0.25 · 101-200=0.50<br/>
+                      201-300=0.75 · 301-400=1.00<br/>
+                      401-500=1.25 · 500+=1.50
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800" />
+                    </div>
+                  </div>
+                  {calcRecTime && !form.recTimeOverride && (
+                    <span className="text-[10px] text-purple-500 font-medium">auto</span>
+                  )}
+                  {calcRecTime && (
+                    <button type="button"
+                      onClick={() => set('recTimeOverride', !form.recTimeOverride as any)}
+                      className="ml-auto text-[10px] text-slate-400 hover:text-purple-600 underline underline-offset-2 transition-colors">
+                      {form.recTimeOverride ? 'use formula' : 'override'}
+                    </button>
+                  )}
+                </div>
+                {form.recTimeOverride || !calcRecTime ? (
+                  <input type="number" step="0.25" min={0}
+                    value={form.recTime}
+                    onChange={e => set('recTime', e.target.value)}
+                    placeholder="0" className={inp} />
+                ) : (
+                  <div className="flex items-center rounded-lg bg-slate-50 border border-slate-200 px-3 py-2">
+                    <span className="text-sm font-semibold text-purple-700 tabular-nums">{calcRecTime}</span>
+                    <span className="ml-1 text-xs text-slate-400">hrs</span>
+                  </div>
+                )}
+              </div>
             </Grid3>
             <Toggle label="Petty Cash" value={form.pettyCash} onChange={v => set('pettyCash', v)} />
           </Section>
