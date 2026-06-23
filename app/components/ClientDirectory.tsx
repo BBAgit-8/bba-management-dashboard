@@ -51,6 +51,8 @@ type ApiClient = {
   hasSignedAutoIncrease?: boolean | null
   autoPriceIncreasePercent?: number | null
   priceAdjustmentDate?: string | null
+  accountantName?: string | null
+  guaranteedDeadlineDay?: number | null
   tags: Tag[]
   sows: Array<{ billingType: string; fixedMonthlyRate?: number | null; billingRate?: number | null; targetHours?: number | null }>
 }
@@ -66,6 +68,8 @@ type ColKey =
   | 'qaHours' | 'custSuccessMgmtHrs' | 'yeOrTaxHours' | 'auditHours' | 'bkprHours'
   | 'bankFeedTime' | 'transactionsPerMonth' | 'recTime' | 'numBanksAndCCs'
   | 'numLoans' | 'numPmtPortals' | 'pettyCash' | 'referredBy'
+  | 'guaranteedDeadlineDay' | 'hasContractedLoom' | 'hasScheduledMeetings'
+  | 'hasSignedAutoIncrease' | 'autoPriceIncreasePercent' | 'accountantName'
 
 type SortKey = ColKey
 
@@ -105,7 +109,14 @@ const ALL_COLUMNS: { key: ColKey; label: string; defaultVisible: boolean; align?
   { key: 'numLoans',           label: '# Loans',              defaultVisible: false, align: 'right' },
   { key: 'numPmtPortals',      label: '# Pmt Portals',        defaultVisible: false, align: 'right' },
   { key: 'pettyCash',          label: 'Petty Cash',           defaultVisible: false, align: 'center' },
-  { key: 'referredBy',         label: 'Referred By',          defaultVisible: true  },
+  { key: 'referredBy',         label: 'Referred By',          defaultVisible: false },
+  // Operational
+  { key: 'guaranteedDeadlineDay',  label: 'Deadline Day',         defaultVisible: false, align: 'center' as const },
+  { key: 'hasContractedLoom',      label: 'Loom',                 defaultVisible: false, align: 'center' as const },
+  { key: 'hasScheduledMeetings',   label: 'Meetings',             defaultVisible: false, align: 'center' as const },
+  { key: 'hasSignedAutoIncrease',  label: 'Auto Increase',        defaultVisible: false, align: 'center' as const },
+  { key: 'autoPriceIncreasePercent', label: 'Auto Increase %',   defaultVisible: false, align: 'right'  as const },
+  { key: 'accountantName',         label: 'Accountant',           defaultVisible: false },
 ]
 
 const DEFAULT_VISIBLE = new Set(ALL_COLUMNS.filter(c => c.defaultVisible).map(c => c.key))
@@ -249,6 +260,7 @@ export default function ClientDirectory() {
 
   // Inline edits — optimistic local state
   const [inlineEdits, setInlineEdits] = useState<Record<string, Record<string, string>>>({})
+  const [savingRows,  setSavingRows]  = useState<Set<string>>(new Set())
 
   function getVal(client: ApiClient, field: string): string {
     return inlineEdits[client.id]?.[field] ?? (client as any)[field] ?? ''
@@ -257,6 +269,7 @@ export default function ClientDirectory() {
   async function patchCell(client: ApiClient, field: string, value: string) {
     // Optimistic update
     setInlineEdits(prev => ({ ...prev, [client.id]: { ...(prev[client.id] ?? {}), [field]: value } }))
+    setSavingRows(prev => new Set(prev).add(client.id))
     try {
       const res = await fetch(`/api/clients/${client.harvestProjectCode}`, {
         method: 'PATCH',
@@ -279,6 +292,8 @@ export default function ClientDirectory() {
         if (next[client.id]) { delete next[client.id][field] }
         return next
       })
+    } finally {
+      setSavingRows(prev => { const next = new Set(prev); next.delete(client.id); return next })
     }
   }
 
@@ -551,22 +566,100 @@ export default function ClientDirectory() {
         )
       case 'monthlyBilling':
         return (
-          <td key={colKey} className="px-4 py-3 text-right">
-            <span className="font-semibold tabular-nums text-slate-800">{fmtCurrency(client.totalMonthlyAmount)}</span>
+          <td key={colKey} className="px-2 py-1.5">
+            <div className="relative">
+              <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-xs">$</span>
+              <input type="number" min={0} step={0.01}
+                value={getVal(client, 'totalMonthlyAmount')}
+                onChange={e => setInlineEdits(prev => ({ ...prev, [client.id]: { ...(prev[client.id] ?? {}), totalMonthlyAmount: e.target.value } }))}
+                onBlur={e => patchCell(client, 'totalMonthlyAmount', e.target.value)}
+                placeholder={fmtCurrency(client.totalMonthlyAmount) || '0.00'}
+                className="w-24 rounded-md border border-transparent bg-transparent pl-5 pr-2 py-1 text-sm text-slate-700 tabular-nums hover:border-slate-200 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400" />
+            </div>
           </td>
         )
       case 'bookkeepingRate':
         return (
-          <td key={colKey} className="px-4 py-3 text-right">
-            <span className="font-semibold tabular-nums text-slate-800">{fmtCurrency(client.bookkeepingRate)}</span>
+          <td key={colKey} className="px-2 py-1.5">
+            <div className="relative">
+              <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-xs">$</span>
+              <input type="number" min={0} step={0.01}
+                value={getVal(client, 'bookkeepingRate')}
+                onChange={e => setInlineEdits(prev => ({ ...prev, [client.id]: { ...(prev[client.id] ?? {}), bookkeepingRate: e.target.value } }))}
+                onBlur={e => patchCell(client, 'bookkeepingRate', e.target.value)}
+                placeholder="0.00"
+                className="w-24 rounded-md border border-transparent bg-transparent pl-5 pr-2 py-1 text-sm text-slate-700 tabular-nums hover:border-slate-200 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400" />
+            </div>
           </td>
         )
       case 'softwareRate':
         return (
-          <td key={colKey} className="px-4 py-3 text-right">
-            <span className="tabular-nums text-slate-700">{fmtCurrency(client.softwareRate)}</span>
+          <td key={colKey} className="px-2 py-1.5">
+            <div className="relative">
+              <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-xs">$</span>
+              <input type="number" min={0} step={0.01}
+                value={getVal(client, 'softwareRate')}
+                onChange={e => setInlineEdits(prev => ({ ...prev, [client.id]: { ...(prev[client.id] ?? {}), softwareRate: e.target.value } }))}
+                onBlur={e => patchCell(client, 'softwareRate', e.target.value)}
+                placeholder="0.00"
+                className="w-24 rounded-md border border-transparent bg-transparent pl-5 pr-2 py-1 text-sm text-slate-700 tabular-nums hover:border-slate-200 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400" />
+            </div>
           </td>
         )
+      case 'guaranteedDeadlineDay':
+        return (
+          <td key={colKey} className="px-2 py-1.5 text-center">
+            <input type="number" min={1} max={31}
+              value={getVal(client, 'guaranteedDeadlineDay')}
+              onChange={e => setInlineEdits(prev => ({ ...prev, [client.id]: { ...(prev[client.id] ?? {}), guaranteedDeadlineDay: e.target.value } }))}
+              onBlur={e => patchCell(client, 'guaranteedDeadlineDay', e.target.value)}
+              placeholder="—"
+              className="w-14 rounded-md border border-transparent bg-transparent py-1 text-sm text-center text-slate-700 tabular-nums hover:border-slate-200 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400" />
+          </td>
+        )
+      case 'hasContractedLoom':
+        return (
+          <td key={colKey} className="px-4 py-3 text-center">
+            <input type="checkbox"
+              checked={!!( inlineEdits[client.id]?.hasContractedLoom !== undefined ? inlineEdits[client.id].hasContractedLoom === 'true' : client.hasContractedLoom)}
+              onChange={e => patchCell(client, 'hasContractedLoom', String(e.target.checked))}
+              className="h-4 w-4 rounded border-slate-300 text-purple-600 focus:ring-purple-500 cursor-pointer" />
+          </td>
+        )
+      case 'hasScheduledMeetings':
+        return (
+          <td key={colKey} className="px-4 py-3 text-center">
+            <input type="checkbox"
+              checked={!!( inlineEdits[client.id]?.hasScheduledMeetings !== undefined ? inlineEdits[client.id].hasScheduledMeetings === 'true' : client.hasScheduledMeetings)}
+              onChange={e => patchCell(client, 'hasScheduledMeetings', String(e.target.checked))}
+              className="h-4 w-4 rounded border-slate-300 text-purple-600 focus:ring-purple-500 cursor-pointer" />
+          </td>
+        )
+      case 'hasSignedAutoIncrease':
+        return (
+          <td key={colKey} className="px-4 py-3 text-center">
+            <input type="checkbox"
+              checked={!!( inlineEdits[client.id]?.hasSignedAutoIncrease !== undefined ? inlineEdits[client.id].hasSignedAutoIncrease === 'true' : client.hasSignedAutoIncrease)}
+              onChange={e => patchCell(client, 'hasSignedAutoIncrease', String(e.target.checked))}
+              className="h-4 w-4 rounded border-slate-300 text-purple-600 focus:ring-purple-500 cursor-pointer" />
+          </td>
+        )
+      case 'autoPriceIncreasePercent':
+        return (
+          <td key={colKey} className="px-2 py-1.5">
+            <div className="relative">
+              <input type="number" min={0} max={100} step={0.1}
+                value={getVal(client, 'autoPriceIncreasePercent')}
+                onChange={e => setInlineEdits(prev => ({ ...prev, [client.id]: { ...(prev[client.id] ?? {}), autoPriceIncreasePercent: e.target.value } }))}
+                onBlur={e => patchCell(client, 'autoPriceIncreasePercent', e.target.value)}
+                placeholder="0"
+                className="w-16 rounded-md border border-transparent bg-transparent px-2 py-1 text-sm text-right text-slate-700 tabular-nums hover:border-slate-200 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400" />
+              <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 text-xs">%</span>
+            </div>
+          </td>
+        )
+      case 'accountantName':
+        return <td key={colKey} className="px-4 py-3 text-sm text-slate-700">{client.accountantName ?? <span className="text-slate-400">—</span>}</td>
       case 'status':
         return (
           <td key={colKey} className="px-4 py-3">
@@ -874,14 +967,22 @@ export default function ClientDirectory() {
                     </td>
                   </tr>
                 ) : filtered.map((client, idx) => {
+                  const isSaving = savingRows.has(client.id)
                   const baseBg = idx % 2 === 0 ? '#ffffff' : '#faf5ff'
                   return (
                     <tr
                       key={client.id}
-                      style={{ backgroundColor: baseBg, borderBottom: '1px solid #f0e8f8' }}
-                      onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#f3e8ff' }}
-                      onMouseLeave={e => { e.currentTarget.style.backgroundColor = baseBg }}
+                      style={{
+                        backgroundColor: isSaving ? '#f5f0ff' : baseBg,
+                        borderBottom: '1px solid #f0e8f8',
+                        borderLeft: `3px solid ${isSaving ? '#7c3aed' : 'transparent'}`,
+                        transition: 'background-color 0.15s, border-color 0.15s',
+                      }}
+                      onMouseEnter={e => { if (!isSaving) e.currentTarget.style.backgroundColor = '#f3e8ff' }}
+                      onMouseLeave={e => { if (!isSaving) e.currentTarget.style.backgroundColor = baseBg }}
                     >
+                      {/* Saving indicator cell — always first */}
+                      <td className="w-1 px-0" />
                       {activeColOrder.map(colKey => renderCell(colKey, client))}
                     </tr>
                   )
