@@ -14,7 +14,7 @@ interface Employee {
   createdAt?: string; updatedAt?: string
 }
 
-const WEEKS_PER_MONTH  = 52 / 12
+const WEEKS_PER_MONTH  = 4.33
 const BILLABLE_FACTOR  = 0.80
 
 type ColKey  = 'employee' | 'title' | 'email' | 'rate' | 'contractedHours' | 'hub'

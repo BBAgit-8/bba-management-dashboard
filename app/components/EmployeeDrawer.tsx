@@ -32,20 +32,86 @@ function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   )
 }
 
+function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className="block text-xs font-medium text-slate-500 mb-1.5">{label}</label>
+      {children}
+      {hint && <p className="mt-1 text-[10px] text-slate-400">{hint}</p>}
+    </div>
+  )
+}
+
 export default function EmployeeDrawer({ employee, onClose, onUpdated }: Props) {
   const open = employee != null
-  const [tab,     setTab]     = useState<'profile' | 'rate-history'>('profile')
-  const [history, setHistory] = useState<RateHistory[]>([])
+  const [tab,            setTab]           = useState<'profile' | 'edit' | 'rate-history'>('profile')
+  const [history,        setHistory]       = useState<RateHistory[]>([])
   const [loadingHistory, setLoadingHistory] = useState(false)
-  const [inviting, setInviting] = useState(false)
-  const [revoking, setRevoking] = useState(false)
-  const [inviteMsg, setInviteMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [inviting,       setInviting]      = useState(false)
+  const [revoking,       setRevoking]      = useState(false)
+  const [inviteMsg,      setInviteMsg]     = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [saving,         setSaving]        = useState(false)
+  const [saveError,      setSaveError]     = useState<string | null>(null)
+  const [saveSuccess,    setSaveSuccess]   = useState(false)
+
+  // Edit form state — seeded from employee when drawer opens
+  const [editForm, setEditForm] = useState({
+    name: '', email: '', title: '',
+    rateType: 'hourly' as 'hourly' | 'salary',
+    hourlyRate: '', salary: '', contractedHours: '',
+    adminTimePercent: '', rateChangeNote: '',
+  })
 
   useEffect(() => {
     if (!employee) return
     setTab('profile')
     setInviteMsg(null)
+    setSaveError(null)
+    setSaveSuccess(false)
+    setEditForm({
+      name:             employee.name,
+      email:            employee.email ?? '',
+      title:            employee.title ?? '',
+      rateType:         (employee.rateType as 'hourly' | 'salary') ?? 'hourly',
+      hourlyRate:       employee.rateType === 'hourly' ? String(employee.effectiveHourlyRate) : '',
+      salary:           employee.salary ? String(employee.salary) : '',
+      contractedHours:  String(employee.contractedHours),
+      adminTimePercent: String(employee.adminTimePercent),
+      rateChangeNote:   '',
+    })
   }, [employee?.id])
+
+  function setEdit<K extends keyof typeof editForm>(k: K, v: (typeof editForm)[K]) {
+    setEditForm(f => ({ ...f, [k]: v }))
+  }
+
+  // Preview effective hourly rate in edit form
+  const previewRate = (() => {
+    if (editForm.rateType === 'hourly') return parseFloat(editForm.hourlyRate) || null
+    const s = parseFloat(editForm.salary)
+    const h = parseFloat(editForm.contractedHours)
+    if (!s || !h) return null
+    return parseFloat((s / (h * 52)).toFixed(2))
+  })()
+
+  async function handleSave() {
+    if (!employee) return
+    setSaving(true); setSaveError(null); setSaveSuccess(false)
+    const res  = await fetch(`/api/employees/${employee.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(editForm),
+    })
+    const json = await res.json()
+    if (!res.ok) {
+      setSaveError(json.error ?? 'Save failed.')
+    } else {
+      setSaveSuccess(true)
+      onUpdated()
+      setTimeout(() => setSaveSuccess(false), 3000)
+    }
+    setSaving(false)
+  }
 
   async function loadHistory() {
     if (!employee) return
@@ -124,42 +190,41 @@ export default function EmployeeDrawer({ employee, onClose, onUpdated }: Props) 
 
             {/* Tabs */}
             <div className="flex border-b border-slate-200 shrink-0">
-              {(['profile', 'rate-history'] as const).map(t => (
+              {(['profile', 'edit', 'rate-history'] as const).map(t => (
                 <button key={t} onClick={() => setTab(t)}
-                  className={`flex-1 py-3 text-xs font-semibold transition-colors capitalize ${
-                    tab === t
-                      ? 'border-b-2 border-purple-600 text-purple-700'
-                      : 'text-slate-400 hover:text-slate-600'
+                  className={`flex-1 py-3 text-xs font-semibold transition-colors ${
+                    tab === t ? 'border-b-2 border-purple-600 text-purple-700' : 'text-slate-400 hover:text-slate-600'
                   }`}>
-                  {t === 'rate-history' ? 'Rate History' : 'Profile'}
+                  {t === 'rate-history' ? 'Rate History' : t.charAt(0).toUpperCase() + t.slice(1)}
                 </button>
               ))}
             </div>
 
             {/* Content */}
             <div className="flex-1 overflow-y-auto px-6 py-5">
+
+              {/* ── Profile tab ── */}
               {tab === 'profile' && (
                 <div className="space-y-5">
-                  {/* Details */}
                   <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
                     <div className="px-4 py-2.5 border-b border-slate-100" style={{ backgroundColor: 'rgba(109,40,217,0.05)' }}>
                       <p className="text-[10px] font-bold uppercase tracking-widest text-purple-700">Details</p>
                     </div>
                     <div className="px-4 py-1">
-                      <InfoRow label="Email"           value={employee.email} />
-                      <InfoRow label="Title"           value={employee.title} />
-                      <InfoRow label="Contracted Hrs"  value={employee.contractedHours ? `${employee.contractedHours} hrs/week` : null} />
-                      <InfoRow label="Admin Time"      value={employee.adminTimePercent ? `${employee.adminTimePercent}%` : null} />
+                      <InfoRow label="Email"          value={employee.email} />
+                      <InfoRow label="Title"          value={employee.title} />
+                      <InfoRow label="Contracted Hrs" value={employee.contractedHours ? `${employee.contractedHours} hrs/week` : null} />
+                      <InfoRow label="Admin Time"     value={employee.adminTimePercent ? `${employee.adminTimePercent}%` : null} />
+                      <InfoRow label="Capacity/Mo"    value={employee.contractedHours ? `${(Number(employee.contractedHours) * 4.33).toFixed(1)} hrs` : null} />
                     </div>
                   </div>
 
-                  {/* Compensation */}
                   <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
                     <div className="px-4 py-2.5 border-b border-slate-100" style={{ backgroundColor: 'rgba(109,40,217,0.05)' }}>
                       <p className="text-[10px] font-bold uppercase tracking-widest text-purple-700">Compensation</p>
                     </div>
                     <div className="px-4 py-1">
-                      <InfoRow label="Rate Type"      value={employee.rateType === 'salary' ? 'Salary' : 'Hourly'} />
+                      <InfoRow label="Rate Type"  value={employee.rateType === 'salary' ? 'Salary' : 'Hourly'} />
                       {employee.rateType === 'salary' && employee.salary && (
                         <InfoRow label="Annual Salary" value={`$${Number(employee.salary).toLocaleString()}`} />
                       )}
@@ -169,7 +234,6 @@ export default function EmployeeDrawer({ employee, onClose, onUpdated }: Props) 
                     </div>
                   </div>
 
-                  {/* Client Hub Access */}
                   <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
                     <div className="px-4 py-2.5 border-b border-slate-100" style={{ backgroundColor: 'rgba(109,40,217,0.05)' }}>
                       <p className="text-[10px] font-bold uppercase tracking-widest text-purple-700">Client Hub Access</p>
@@ -178,23 +242,16 @@ export default function EmployeeDrawer({ employee, onClose, onUpdated }: Props) 
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-sm text-slate-700">
-                            {employee.hubAccess ? (
-                              <span className="inline-flex items-center gap-1.5">
-                                <span className="h-2 w-2 rounded-full bg-green-500" />
-                                <span className="font-medium text-green-700">Active access</span>
-                              </span>
-                            ) : (
-                              <span className="text-slate-400">No access yet</span>
-                            )}
+                            {employee.hubAccess
+                              ? <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-green-500" /><span className="font-medium text-green-700">Active access</span></span>
+                              : <span className="text-slate-400">No access yet</span>}
                           </p>
                           {employee.invitedAt && (
                             <p className="text-[10px] text-slate-400 mt-0.5">
                               Invited {new Date(employee.invitedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                             </p>
                           )}
-                          {!employee.email && (
-                            <p className="text-[10px] text-amber-500 mt-0.5">⚠ Add email address to send invite</p>
-                          )}
+                          {!employee.email && <p className="text-[10px] text-amber-500 mt-0.5">⚠ Add email to send invite</p>}
                         </div>
                         {employee.hubAccess ? (
                           <button onClick={handleRevoke} disabled={revoking}
@@ -203,12 +260,10 @@ export default function EmployeeDrawer({ employee, onClose, onUpdated }: Props) 
                           </button>
                         ) : (
                           <button onClick={handleInvite} disabled={inviting || !employee.email}
-                            className="inline-flex items-center gap-1.5 rounded-lg bg-bba-primary px-3 py-1.5 text-xs font-semibold text-white hover:bg-bba-primary/85 transition-colors disabled:opacity-50">
-                            {inviting ? (
-                              <><svg className="h-3 w-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>Sending…</>
-                            ) : (
-                              <><svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>Send Invite</>
-                            )}
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-bba-primary px-3 py-1.5 text-xs font-semibold text-white hover:bg-bba-primary/85 disabled:opacity-50">
+                            {inviting
+                              ? <><svg className="h-3 w-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>Sending…</>
+                              : <><svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>Send Invite</>}
                           </button>
                         )}
                       </div>
@@ -222,9 +277,101 @@ export default function EmployeeDrawer({ employee, onClose, onUpdated }: Props) 
                 </div>
               )}
 
+              {/* ── Edit tab ── */}
+              {tab === 'edit' && (
+                <div className="space-y-5">
+                  <div className="space-y-4">
+                    <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--bba-secondary, #b20476)' }}>Identity</p>
+                    <Field label="Full Name">
+                      <input type="text" value={editForm.name} onChange={e => setEdit('name', e.target.value)} className={inp} />
+                    </Field>
+                    <div className="grid grid-cols-2 gap-3">
+                      <Field label="Email">
+                        <input type="email" value={editForm.email} onChange={e => setEdit('email', e.target.value)} placeholder="email@bbabookkeeping.com" className={inp} />
+                      </Field>
+                      <Field label="Title">
+                        <input type="text" value={editForm.title} onChange={e => setEdit('title', e.target.value)} placeholder="e.g. Senior Bookkeeper" className={inp} />
+                      </Field>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--bba-secondary, #b20476)' }}>Compensation</p>
+                    <Field label="Rate Type">
+                      <div className="flex rounded-lg border border-slate-200 overflow-hidden">
+                        {(['hourly', 'salary'] as const).map(v => (
+                          <button key={v} type="button" onClick={() => setEdit('rateType', v)}
+                            className={`flex-1 py-2 text-xs font-medium transition-colors ${editForm.rateType === v ? 'bg-bba-primary text-white' : 'text-slate-500 hover:bg-slate-50'}`}>
+                            {v === 'hourly' ? '⏱ Hourly' : '📅 Salary'}
+                          </button>
+                        ))}
+                      </div>
+                    </Field>
+                    {editForm.rateType === 'hourly' ? (
+                      <Field label="Hourly Rate ($)">
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">$</span>
+                          <input type="number" step="0.01" min={0} value={editForm.hourlyRate}
+                            onChange={e => setEdit('hourlyRate', e.target.value)} placeholder="0.00" className={`${inp} pl-6`} />
+                        </div>
+                      </Field>
+                    ) : (
+                      <Field label="Annual Salary ($)" hint="Effective hourly = salary ÷ (contracted hrs × 52)">
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">$</span>
+                          <input type="number" step="100" min={0} value={editForm.salary}
+                            onChange={e => setEdit('salary', e.target.value)} placeholder="0" className={`${inp} pl-6`} />
+                        </div>
+                      </Field>
+                    )}
+                    <div className="grid grid-cols-2 gap-3">
+                      <Field label="Contracted Hrs/Week">
+                        <input type="number" step="0.5" min={0} max={40} value={editForm.contractedHours}
+                          onChange={e => setEdit('contractedHours', e.target.value)} placeholder="40" className={inp} />
+                      </Field>
+                      <Field label="Admin Time %">
+                        <div className="relative">
+                          <input type="number" step="1" min={0} max={100} value={editForm.adminTimePercent}
+                            onChange={e => setEdit('adminTimePercent', e.target.value)} placeholder="20" className={`${inp} pr-6`} />
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">%</span>
+                        </div>
+                      </Field>
+                    </div>
+                    {previewRate != null && (
+                      <div className="rounded-lg bg-purple-50 border border-purple-100 px-4 py-3 flex items-center justify-between">
+                        <span className="text-xs text-purple-600">Effective hourly cost rate</span>
+                        <span className="text-sm font-bold text-purple-700">${previewRate.toFixed(2)}/hr</span>
+                      </div>
+                    )}
+                    <Field label="Rate Change Note" hint="Optional — appears in rate history log">
+                      <input type="text" value={editForm.rateChangeNote}
+                        onChange={e => setEdit('rateChangeNote', e.target.value)}
+                        placeholder="e.g. Annual raise, promotion" className={inp} />
+                    </Field>
+                  </div>
+
+                  {saveError && (
+                    <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3">
+                      <p className="text-sm text-red-600">{saveError}</p>
+                    </div>
+                  )}
+                  {saveSuccess && (
+                    <div className="rounded-lg bg-green-50 border border-green-200 px-4 py-3">
+                      <p className="text-sm text-green-700">✓ Changes saved.</p>
+                    </div>
+                  )}
+                  <button onClick={handleSave} disabled={saving}
+                    className="w-full rounded-lg bg-bba-primary py-2.5 text-sm font-semibold text-white hover:bg-bba-primary/85 transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
+                    {saving && <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>}
+                    {saving ? 'Saving…' : 'Save Changes'}
+                  </button>
+                </div>
+              )}
+
+              {/* ── Rate History tab ── */}
               {tab === 'rate-history' && (
                 <div className="space-y-3">
-                  <p className="text-xs text-slate-400">All rate changes are logged automatically when compensation is updated.</p>
+                  <p className="text-xs text-slate-400">Rate changes are logged automatically when compensation is updated on the Edit tab.</p>
                   {loadingHistory ? (
                     <div className="flex justify-center py-8">
                       <svg className="h-5 w-5 animate-spin text-purple-400" fill="none" viewBox="0 0 24 24">
@@ -247,11 +394,9 @@ export default function EmployeeDrawer({ employee, onClose, onUpdated }: Props) 
                                 {entry.rateType === 'salary' ? 'Salary-based' : 'Hourly'} ·{' '}
                                 Effective {new Date(entry.effectiveDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                               </p>
-                              {entry.notes && <p className="text-xs text-slate-500 mt-1">{entry.notes}</p>}
+                              {entry.notes && <p className="text-xs text-slate-500 mt-1 italic">"{entry.notes}"</p>}
                             </div>
-                            {i === 0 && (
-                              <span className="text-[10px] font-semibold bg-purple-200 text-purple-700 rounded-full px-2 py-0.5">Current</span>
-                            )}
+                            {i === 0 && <span className="text-[10px] font-semibold bg-purple-200 text-purple-700 rounded-full px-2 py-0.5">Current</span>}
                           </div>
                         </div>
                       ))}
