@@ -53,7 +53,7 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
               <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
             </svg>
           </div>
-          <span className="text-sm font-semibold" style={{ color: '#f0a0c8' }}>BBA Client Hub</span>
+          <span className="text-sm font-semibold" style={{ color: '#b20476' }}>BBA Client Hub</span>
         </div>
 
         <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-0.5">
@@ -66,13 +66,13 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                     ? 'bg-white/15 ring-1 ring-inset ring-pink-400/40'
                     : 'text-white/70 hover:bg-white/10 hover:text-white'
                 }`}
-                style={active ? { color: '#f0a0c8' } : {}}>
-                <span style={{ color: active ? '#f0a0c8' : undefined }}
+                style={active ? { color: '#b20476' } : {}}>
+                <span style={{ color: active ? '#b20476' : undefined }}
                   className={active ? '' : 'text-white/40 group-hover:text-white/70'}>
                   {item.icon}
                 </span>
                 {item.label}
-                {active && <span className="ml-auto h-1.5 w-1.5 rounded-full" style={{ backgroundColor: '#f0a0c8' }} />}
+                {active && <span className="ml-auto h-1.5 w-1.5 rounded-full" style={{ backgroundColor: '#b20476' }} />}
               </Link>
             )
           })}
@@ -81,7 +81,7 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
         <div className="border-t border-white/10 px-3 py-4 space-y-1">
           <div className="flex items-center gap-3 px-3 py-2">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/15 text-xs font-semibold"
-              style={{ color: '#f0a0c8' }}>
+              style={{ color: '#b20476' }}>
               {name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase() || '?'}
             </div>
             <div className="min-w-0">
