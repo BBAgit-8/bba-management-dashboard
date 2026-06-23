@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useEffect, useCallback } from 'react'
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd'
 import { broadcastBookkeeperChange, useBookkeeperSync } from '@/app/hooks/useBookkeeperSync'
@@ -304,6 +304,39 @@ export default function ClientDirectory() {
       [clientId]: { ...(prev[clientId] ?? {}), bookkeeper: bookkeeper ?? '' },
     }))
   }, []))
+
+  // Column widths — resizable via drag handle
+  const STORAGE_WIDTHS = 'bba-col-widths-v1'
+  const [colWidths, setColWidths] = useState<Record<string, number>>(() => {
+    if (typeof window === 'undefined') return {}
+    try { return JSON.parse(localStorage.getItem(STORAGE_WIDTHS) ?? '{}') } catch { return {} }
+  })
+  const resizingCol = useRef<{ key: string; startX: number; startW: number } | null>(null)
+
+  function startResize(e: React.MouseEvent, colKey: string, currentW: number) {
+    e.preventDefault()
+    e.stopPropagation()
+    resizingCol.current = { key: colKey, startX: e.clientX, startW: currentW }
+
+    function onMove(ev: MouseEvent) {
+      if (!resizingCol.current) return
+      const delta = ev.clientX - resizingCol.current.startX
+      const newW = Math.max(60, resizingCol.current.startW + delta)
+      setColWidths(prev => ({ ...prev, [resizingCol.current!.key]: newW }))
+    }
+    function onUp() {
+      resizingCol.current = null
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+      // Persist
+      setColWidths(prev => {
+        try { localStorage.setItem(STORAGE_WIDTHS, JSON.stringify(prev)) } catch {}
+        return prev
+      })
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+  }
 
   // Filters
   const [tagFilters,       setTagFilters]       = useState<Set<string>>(new Set())
@@ -791,6 +824,8 @@ export default function ClientDirectory() {
             <button onClick={showAllCols} className="text-xs text-purple-600 hover:text-purple-800 font-medium underline underline-offset-2">Show all</button>
             <span className="text-slate-300">·</span>
             <button onClick={resetColsToDefault} className="text-xs text-slate-500 hover:text-slate-700 font-medium underline underline-offset-2">Reset to default</button>
+            <span className="text-slate-300">·</span>
+            <button onClick={() => { setColWidths({}); try { localStorage.removeItem(STORAGE_WIDTHS) } catch {} }} className="text-xs text-slate-500 hover:text-slate-700 font-medium underline underline-offset-2">Reset widths</button>
           </div>
         </button>
         {showColPanel && (
@@ -943,12 +978,16 @@ export default function ClientDirectory() {
                         return (
                           <Draggable key={colKey} draggableId={colKey} index={index}>
                             {(provided, snapshot) => (
-                              <th
+                          <th
                                 ref={provided.innerRef}
                                 {...provided.draggableProps}
                                 {...provided.dragHandleProps}
-                                className={`px-4 py-3 ${alignCls} text-[11px] font-semibold uppercase tracking-wider whitespace-nowrap select-none cursor-grab active:cursor-grabbing transition-opacity ${snapshot.isDragging ? 'opacity-50' : ''}`}
-                                style={provided.draggableProps.style}
+                                className={`relative px-4 py-3 ${alignCls} text-[11px] font-semibold uppercase tracking-wider whitespace-nowrap select-none cursor-grab active:cursor-grabbing transition-opacity ${snapshot.isDragging ? 'opacity-50' : ''}`}
+                                style={{
+                                  ...provided.draggableProps.style,
+                                  width: colWidths[colKey] ?? undefined,
+                                  minWidth: colWidths[colKey] ?? undefined,
+                                }}
                               >
                                 <button
                                   onClick={e => { e.stopPropagation(); toggleSort(colKey as SortKey) }}
@@ -961,6 +1000,15 @@ export default function ClientDirectory() {
                                     {sortKey === colKey ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}
                                   </span>
                                 </button>
+                                {/* Resize handle */}
+                                <div
+                                  onMouseDown={e => startResize(e, colKey, colWidths[colKey] ?? (e.currentTarget.closest('th') as HTMLElement)?.offsetWidth ?? 120)}
+                                  className="absolute right-0 top-0 h-full w-3 cursor-col-resize flex items-center justify-center opacity-0 hover:opacity-100 group-hover:opacity-60 transition-opacity z-10"
+                                  title="Drag to resize"
+                                  onClick={e => e.stopPropagation()}
+                                >
+                                  <div className="h-4 w-0.5 rounded-full bg-white/40" />
+                                </div>
                               </th>
                             )}
                           </Draggable>

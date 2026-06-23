@@ -1,11 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 
-// Map incoming field names (from the frontend) to actual DB column names
+// Fields that must be remapped to their actual DB column name
 const FIELD_MAP: Record<string, string> = {
-  bookkeeper:    'Bookkeeper',   // capital-B column
-  // all others are already camelCase matching the DB
+  bookkeeper: 'Bookkeeper',
 }
+
+// Fields that must be coerced to numbers (strings from input elements)
+const NUMERIC_FIELDS = new Set([
+  'bookkeepingRate', 'softwareRate', 'totalMonthlyAmount', 'bookingRate',
+  'totalHrsPerMonth', 'apArHrs', 'qaHours', 'custSuccessMgmtHrs',
+  'yeOrTaxHours', 'auditHours', 'bkprHours', 'bankFeedTime',
+  'transactionsPerMonth', 'recTime', 'numBanksAndCCs', 'numLoans',
+  'numPmtPortals', 'guaranteedDeadlineDay', 'autoPriceIncreasePercent',
+])
+
+// Fields that must be coerced to booleans
+const BOOLEAN_FIELDS = new Set([
+  'hasContractedLoom', 'hasScheduledMeetings', 'hasSignedAutoIncrease', 'pettyCash', 'qboOnly',
+])
 
 export async function PATCH(
   req: NextRequest,
@@ -17,11 +30,21 @@ export async function PATCH(
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
 
-  // Remap any field names that differ between frontend and DB
   const raw = body as Record<string, unknown>
   const mapped: Record<string, unknown> = {}
+
   for (const [key, val] of Object.entries(raw)) {
-    mapped[FIELD_MAP[key] ?? key] = val
+    const dbKey = FIELD_MAP[key] ?? key
+    if (val === null || val === '' || val === undefined) {
+      mapped[dbKey] = null
+    } else if (NUMERIC_FIELDS.has(key)) {
+      const n = typeof val === 'string' ? parseFloat(val) : Number(val)
+      mapped[dbKey] = isNaN(n) ? null : n
+    } else if (BOOLEAN_FIELDS.has(key)) {
+      mapped[dbKey] = val === true || val === 'true'
+    } else {
+      mapped[dbKey] = val
+    }
   }
 
   const { data, error } = await supabase
