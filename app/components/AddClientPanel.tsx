@@ -177,10 +177,12 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
     e.preventDefault();
     setSaving(true); setSaveError(null);
     try {
+      const total    = parseFloat(form.totalHrsPerMonth) || 0
+      const bkprHours = total === 0 ? '' : String(total <= 10 ? 0.25 : total <= 20 ? 0.50 : 0.75)
       const res = await fetch('/api/clients', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, bkprHours }),
       });
       const json = await res.json();
       if (!res.ok) { setSaveError(json.error ?? `Error ${res.status}`); return; }
@@ -483,17 +485,13 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
               <Field label="Audit Hours">
                 <input type="number" step="0.25" min={0} value={form.auditHours} onChange={e => set('auditHours', e.target.value)} placeholder="0" className={inp} />
               </Field>
-              <Field label="Bkpr Hours" hint="Auto: Total − AP/AR − QA − YE/1099 − Audit">
+              <Field label="Bkpr Hours" hint="Auto: ≤10 hrs = 0.25 · ≤20 hrs = 0.50 · >20 hrs = 0.75">
                 {(() => {
-                  const total  = parseFloat(form.totalHrsPerMonth) || 0
-                  const ap     = parseFloat(form.apArHrs)          || 0
-                  const qa     = parseFloat(form.qaHours)          || 0
-                  const ye     = parseFloat(form.yeOrTaxHours)     || 0
-                  const audit  = parseFloat(form.auditHours)       || 0
-                  const calc   = Math.max(0, total - ap - qa - ye - audit).toFixed(2)
+                  const total = parseFloat(form.totalHrsPerMonth) || 0
+                  const calc  = total <= 10 ? 0.25 : total <= 20 ? 0.50 : 0.75
                   return (
                     <div className="flex items-center rounded-lg bg-slate-50 border border-slate-200 px-3 py-2">
-                      <span className="text-sm font-semibold text-purple-700 tabular-nums">{calc}</span>
+                      <span className="text-sm font-semibold text-purple-700 tabular-nums">{total === 0 ? '—' : calc}</span>
                       <span className="ml-1 text-xs text-slate-400">hrs</span>
                     </div>
                   )
