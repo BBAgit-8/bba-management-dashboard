@@ -178,8 +178,12 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
         set('accountantName', json.accountant.name);
         setNewAcct({ name: '', businessName: '', email: '', phoneNumber: '' });
         setShowNewAcct(false);
+      } else {
+        alert(`Failed to save accountant: ${json.error ?? 'Unknown error'}`);
       }
-    } catch { /* ignore */ } finally {
+    } catch (err) {
+      alert(`Network error: ${err}`);
+    } finally {
       setAddingAcct(false);
     }
   }
