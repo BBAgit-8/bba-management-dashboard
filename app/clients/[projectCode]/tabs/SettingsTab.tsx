@@ -1,10 +1,16 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { CLIENTS, SUBSCRIPTIONS, ACCOUNTANTS, type ProcessingCadence, type BillingCadence, type Accountant } from "@/lib/mock-data";
+import { type BillingCadence, type Accountant } from "@/lib/mock-data";
 import { useRouter } from "next/navigation";
 
-interface Props { clientId: string }
+type ProcessingCadence = 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY' | 'QUARTERLY';
+
+interface Props {
+  clientId: string
+  projectCode: string
+  client: any
+}
 
 const CADENCE_OPTS: { value: ProcessingCadence; label: string }[] = [
   { value: 'WEEKLY',    label: 'Weekly' },
@@ -31,9 +37,7 @@ interface SubRow {
 const inp = 'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent';
 const sel = 'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent';
 
-export default function SettingsTab({ clientId }: Props) {
-  const client = CLIENTS.find(c => c.id === clientId)!;
-
+export default function SettingsTab({ clientId, projectCode, client }: Props) {
   const [ops, setOps] = useState({
     autoPriceIncreasePercent: String(client?.autoPriceIncreasePercent ?? ''),
     priceAdjustmentDate:      client?.priceAdjustmentDate ?? '',
@@ -42,29 +46,63 @@ export default function SettingsTab({ clientId }: Props) {
     processingCadence:        (client?.processingCadence ?? 'MONTHLY') as ProcessingCadence,
     okToContactAccountant:    client?.okToContactAccountant ?? false,
   });
-  const [opsSaved,        setOpsSaved]       = useState(false);
+  const [opsSaved,        setOpsSaved]       = useState<'idle' | 'saving' | 'done' | 'error'>('idle');
+  const [saveError,       setSaveError]      = useState('');
   const [archiveExpanded, setArchiveExpanded] = useState(false);
   const [confirmText,     setConfirmText]    = useState('');
   const [archiveStatus,   setArchiveStatus]  = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
-  const [accountants,     setAccountants]    = useState<Accountant[]>(ACCOUNTANTS.filter(a => a.status === 'ACTIVE'));
+  const [accountants,     setAccountants]    = useState<Accountant[]>([]);
   const router = useRouter();
 
+  // Load accountants
   useEffect(() => {
     fetch('/api/accountants')
       .then(r => r.json())
-      .then(d => { if (Array.isArray(d.accountants)) setAccountants(d.accountants.filter((a: Accountant) => a.status === 'ACTIVE')) })
+      .then(d => { if (Array.isArray(d.accountants)) setAccountants(d.accountants) })
       .catch(() => {})
   }, []);
 
-  const initSubs: SubRow[] = SUBSCRIPTIONS
-    .filter(s => s.clientId === clientId)
-    .map(s => ({ id: s.id, softwareName: s.softwareName, tier: s.tier ?? '', ourCost: String(s.ourCost), clientPrice: String(s.clientPrice), billingCadence: s.billingCadence }));
-  const [subs, setSubs] = useState<SubRow[]>(initSubs);
+  // Re-populate form if parent client data changes
+  useEffect(() => {
+    if (!client) return;
+    setOps({
+      autoPriceIncreasePercent: String(client.autoPriceIncreasePercent ?? ''),
+      priceAdjustmentDate:      client.priceAdjustmentDate ?? '',
+      accountantName:           client.accountantName ?? '',
+      guaranteedDeadlineDay:    String(client.guaranteedDeadlineDay ?? ''),
+      processingCadence:        (client.processingCadence ?? 'MONTHLY') as ProcessingCadence,
+      okToContactAccountant:    client.okToContactAccountant ?? false,
+    });
+  }, [client]);
 
-  function saveOps(e: React.FormEvent) {
+  const [subs, setSubs] = useState<SubRow[]>([]);
+
+  async function saveOps(e: React.FormEvent) {
     e.preventDefault();
-    setOpsSaved(true);
-    setTimeout(() => setOpsSaved(false), 2000);
+    setOpsSaved('saving');
+    setSaveError('');
+    try {
+      const res = await fetch(`/api/clients/${projectCode}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          accountantName:           ops.accountantName           || null,
+          processingCadence:        ops.processingCadence,
+          okToContactAccountant:    ops.okToContactAccountant,
+          guaranteedDeadlineDay:    ops.guaranteedDeadlineDay ? parseInt(ops.guaranteedDeadlineDay) : null,
+          autoPriceIncreasePercent: ops.autoPriceIncreasePercent ? parseFloat(ops.autoPriceIncreasePercent) : null,
+          priceAdjustmentDate:      ops.priceAdjustmentDate      || null,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? 'Save failed');
+      setOpsSaved('done');
+      setTimeout(() => setOpsSaved('idle'), 2500);
+    } catch (err: any) {
+      setSaveError(err.message);
+      setOpsSaved('error');
+      setTimeout(() => setOpsSaved('idle'), 4000);
+    }
   }
 
   function updateSub(id: string, field: keyof SubRow, val: string) {
@@ -174,12 +212,21 @@ export default function SettingsTab({ clientId }: Props) {
             </div>
           </div>
 
-          <div className="flex justify-end pt-1">
+          <div className="flex items-center justify-end gap-3 pt-1">
+            {opsSaved === 'error' && (
+              <p className="text-xs text-red-600">{saveError || 'Save failed — try again'}</p>
+            )}
             <button
               type="submit"
-              className={`rounded-lg px-5 py-2 text-sm font-semibold transition-colors ${opsSaved ? 'bg-green-600 text-white' : 'bg-bba-primary text-white hover:bg-bba-primary/85'}`}
+              disabled={opsSaved === 'saving'}
+              className={`rounded-lg px-5 py-2 text-sm font-semibold transition-colors disabled:opacity-60 ${
+                opsSaved === 'done'   ? 'bg-green-600 text-white' :
+                opsSaved === 'error'  ? 'bg-red-600 text-white' :
+                opsSaved === 'saving' ? 'bg-bba-primary/70 text-white cursor-wait' :
+                'bg-bba-primary text-white hover:bg-bba-primary/85'
+              }`}
             >
-              {opsSaved ? '✓ Saved' : 'Save Settings'}
+              {opsSaved === 'saving' ? 'Saving…' : opsSaved === 'done' ? '✓ Saved' : opsSaved === 'error' ? '✗ Error' : 'Save Settings'}
             </button>
           </div>
         </form>
@@ -363,7 +410,7 @@ export default function SettingsTab({ clientId }: Props) {
                       const res = await fetch('/api/clients/archive', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ confirmation: 'CONFIRM', projectCode: client?.harvestProjectCode }),
+                        body: JSON.stringify({ confirmation: 'CONFIRM', projectCode }),
                       });
                       if (!res.ok) throw new Error(await res.text());
                       setArchiveStatus('done');

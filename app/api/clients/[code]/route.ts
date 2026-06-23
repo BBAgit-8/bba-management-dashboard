@@ -13,7 +13,7 @@ export async function PATCH(
   const { data, error } = await supabase
     .from('clients')
     .update(body as Record<string, unknown>)
-    .eq('harvest_project_code', code)
+    .eq('harvestProjectCode', code)
     .select()
     .single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
