@@ -43,7 +43,7 @@ export default function HubLoginPage() {
         {/* Logo */}
         <div className="text-center space-y-3">
           <div className="flex justify-center mb-1">
-            <img src="/bba-logo.png" alt="BBA Bookkeeping" className="h-36 w-auto" />
+            <img src="/bba-logo-purple.png" alt="BBA Bookkeeping" className="h-36 w-auto mix-blend-screen" />
           </div>
           <h1 className="text-2xl font-bold" style={{ color: "#b20476" }}>BBA Client Hub</h1>
           <p className="text-sm text-white/60">Sign in to access your client portal</p>
