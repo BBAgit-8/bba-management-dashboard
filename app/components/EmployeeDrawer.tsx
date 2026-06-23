@@ -52,6 +52,9 @@ export default function EmployeeDrawer({ employee, onClose, onUpdated }: Props) 
   const [revoking,       setRevoking]      = useState(false)
   const [inviteMsg,      setInviteMsg]     = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [saving,         setSaving]        = useState(false)
+  const [pastEntry,      setPastEntry]     = useState({ rate: '', date: '', notes: '' })
+  const [savingPast,     setSavingPast]    = useState(false)
+  const [pastMsg,        setPastMsg]       = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [saveError,      setSaveError]     = useState<string | null>(null)
   const [saveSuccess,    setSaveSuccess]   = useState(false)
 
@@ -109,6 +112,39 @@ export default function EmployeeDrawer({ employee, onClose, onUpdated }: Props) 
     if (!s || !h) return null
     return parseFloat((s / (h * 52)).toFixed(2))
   })()
+
+  async function handleLogPastRate() {
+    if (!employee || !pastEntry.rate || !pastEntry.date) return
+    setSavingPast(true); setPastMsg(null)
+    const res = await fetch('/api/employees/rate-history', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        employeeId:    employee.id,
+        rateType:      employee.rateType ?? 'hourly',
+        rate:          parseFloat(pastEntry.rate),
+        effectiveDate: pastEntry.date,
+        notes:         pastEntry.notes || null,
+      }),
+    })
+    const json = await res.json()
+    if (!res.ok) {
+      setPastMsg({ type: 'error', text: json.error ?? 'Failed to save.' })
+    } else {
+      setPastMsg({ type: 'success', text: 'Past rate entry logged.' })
+      setPastEntry({ rate: '', date: '', notes: '' })
+      fetch(`/api/employees/rate-history?employeeId=${employee.id}`)
+        .then(r => r.json())
+        .then(d => {
+          const h = d.history ?? []
+          if (h.length === 0) return
+          const latest = h[0]; const prev = h[1]
+          const pct = prev ? parseFloat((((Number(latest.rate) - Number(prev.rate)) / Number(prev.rate)) * 100).toFixed(1)) : null
+          setLastChange({ date: latest.effectiveDate, pct })
+        })
+    }
+    setSavingPast(false)
+  }
 
   async function handleSave() {
     if (!employee) return
@@ -393,6 +429,44 @@ export default function EmployeeDrawer({ employee, onClose, onUpdated }: Props) 
                     {saving && <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>}
                     {saving ? 'Saving…' : 'Save Changes'}
                   </button>
+
+                  {/* Log past rate change */}
+                  <div className="rounded-xl border border-dashed border-slate-200 p-4 space-y-3 mt-2">
+                    <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--bba-secondary, #b20476)' }}>Log Past Rate Change</p>
+                    <p className="text-xs text-slate-400">Manually enter a historical rate to make the rate history accurate.</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-slate-500 mb-1.5">Hourly Rate ($)</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">$</span>
+                          <input type="number" step="0.01" min={0} value={pastEntry.rate}
+                            onChange={e => setPastEntry(p => ({ ...p, rate: e.target.value }))}
+                            placeholder="0.00" className={`${inp} pl-6`} />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-slate-500 mb-1.5">Effective Date</label>
+                        <input type="date" value={pastEntry.date}
+                          onChange={e => setPastEntry(p => ({ ...p, date: e.target.value }))}
+                          className={`${inp} [color-scheme:light]`} />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-500 mb-1.5">Note (optional)</label>
+                      <input type="text" value={pastEntry.notes}
+                        onChange={e => setPastEntry(p => ({ ...p, notes: e.target.value }))}
+                        placeholder="e.g. Starting rate, 2023 raise" className={inp} />
+                    </div>
+                    {pastMsg && (
+                      <div className={`rounded-lg px-3 py-2 text-xs ${pastMsg.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-600 border border-red-200'}`}>
+                        {pastMsg.text}
+                      </div>
+                    )}
+                    <button onClick={handleLogPastRate} disabled={savingPast || !pastEntry.rate || !pastEntry.date}
+                      className="w-full rounded-lg border border-purple-300 py-2 text-xs font-semibold text-purple-700 hover:bg-purple-50 transition-colors disabled:opacity-40">
+                      {savingPast ? 'Saving…' : 'Log Past Rate Entry'}
+                    </button>
+                  </div>
                 </div>
               )}
 
