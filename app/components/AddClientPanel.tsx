@@ -631,13 +631,14 @@ function Section({ label, children }: { label: string; children: React.ReactNode
   );
 }
 
-function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
+function Field({ label, required, hint, children }: { label: string; required?: boolean; hint?: string; children: React.ReactNode }) {
   return (
     <div>
       <label className="block text-xs font-medium text-slate-500 mb-1.5">
         {label}{required && <span className="ml-0.5 text-red-400">*</span>}
       </label>
       {children}
+      {hint && <p className="mt-1 text-[10px] text-slate-400">{hint}</p>}
     </div>
   );
 }
