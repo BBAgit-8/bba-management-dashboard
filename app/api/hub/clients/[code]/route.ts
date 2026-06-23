@@ -3,8 +3,10 @@ import { supabase } from '@/lib/supabase'
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { code: string } }
+  { params }: { params: Promise<{ code: string }> }
 ) {
+  const { code } = await params
+
   const { data, error } = await supabase
     .from('clients')
     .select(`
@@ -15,9 +17,9 @@ export async function GET(
       pettyCash, hasPayroll, payrollProvider, hasContractedLoom,
       hasScheduledMeetings, meetingDuration,
       tags:client_tags(tag:tags(name, color)),
-      notes(id, content, "createdAt")
+      notes(id, content, "createdAt", "visibleToTeam")
     `)
-    .eq('harvestProjectCode', params.code)
+    .eq('harvestProjectCode', code)
     .single()
 
   if (error || !data) return NextResponse.json({ error: 'Not found' }, { status: 404 })
