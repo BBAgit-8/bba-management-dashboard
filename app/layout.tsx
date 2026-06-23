@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Comfortaa, Inter } from "next/font/google";
 import "./globals.css";
-import Sidebar from "./components/Sidebar";
+import ConditionalLayout from "./components/ConditionalLayout";
 
 const comfortaa = Comfortaa({
   variable: "--font-comfortaa",
@@ -16,8 +16,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Management Dashboard",
-  description: "Corporate management dashboard",
+  title: "BBA Management Dashboard",
+  description: "BBA Bookkeeping internal management dashboard",
 };
 
 export default function RootLayout({
@@ -26,16 +26,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${comfortaa.variable} ${inter.variable} h-full`}
-    >
+    <html lang="en" className={`${comfortaa.variable} ${inter.variable} h-full`}>
       <body className="h-full text-slate-800 antialiased bg-background">
-        <Sidebar />
-        {/* Main content — offset by sidebar width */}
-        <main className="ml-64 flex min-h-screen flex-col">
-          <div className="flex-1 p-8">{children}</div>
-        </main>
+        <ConditionalLayout>{children}</ConditionalLayout>
       </body>
     </html>
   );
