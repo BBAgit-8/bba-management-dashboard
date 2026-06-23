@@ -1,77 +1,54 @@
 'use client'
 
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd'
-import { CLIENTS, SOWS, TIME_LOGS } from '@/lib/mock-data'
+import AddEmployeePanel from '@/app/components/AddEmployeePanel'
+import EmployeeDrawer   from '@/app/components/EmployeeDrawer'
 
-// ── Types ─────────────────────────────────────────────────────────────────────
 interface Employee {
-  id: string
-  name: string
-  contractedHours: number
-  adminTimePercent: number
-  effectiveHourlyRate: number
-  createdAt?: string
-  updatedAt?: string
+  id: string; name: string; email: string | null; title: string | null
+  rateType: string; salary: number | null
+  contractedHours: number; adminTimePercent: number; effectiveHourlyRate: number
+  hubAccess: boolean; invitedAt: string | null
+  createdAt?: string; updatedAt?: string
 }
 
-// ── Constants ────────────────────────────────────────────────────────────────
-const WEEKS_PER_MONTH = 52 / 12
-const BILLABLE_FACTOR = 0.80
+const WEEKS_PER_MONTH  = 52 / 12
+const BILLABLE_FACTOR  = 0.80
 
-// ── Column definitions ────────────────────────────────────────────────────────
-type ColKey  = 'employee' | 'clients' | 'totalHrs' | 'capacity' | 'load'
+type ColKey  = 'employee' | 'title' | 'email' | 'rate' | 'contractedHours' | 'hub'
 type SortKey = ColKey
 
 const ALL_COLS: { key: ColKey; label: string }[] = [
-  { key: 'employee', label: 'Employee'          },
-  { key: 'clients',  label: 'Assigned Clients'  },
-  { key: 'totalHrs', label: 'Total Target Hrs'  },
-  { key: 'capacity', label: 'Billable Capacity' },
-  { key: 'load',     label: 'Load'              },
+  { key: 'employee',        label: 'Employee'         },
+  { key: 'title',           label: 'Title'            },
+  { key: 'email',           label: 'Email'            },
+  { key: 'rate',            label: 'Hourly Rate'      },
+  { key: 'contractedHours', label: 'Contracted Hrs'   },
+  { key: 'hub',             label: 'Hub Access'       },
 ]
 const DEFAULT_COL_ORDER: ColKey[] = ALL_COLS.map(c => c.key)
 
-const BG_CARD_HEADER = 'var(--bba-primary)'
-const BG_TABLE       = '#ffffff'
-const BG_THEAD       = 'var(--bba-primary)'
-const ROW_ODD        = '#ffffff'
-const ROW_EVEN       = '#faf5ff'
-const ROW_HOVER      = '#f3e8ff'
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
 function r2(n: number) { return Math.round((n + Number.EPSILON) * 100) / 100 }
-function initials(name: string) { return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() }
+function initials(name: string) { return name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase() }
 function billableMonthly(emp: Employee) {
   return r2(Number(emp.contractedHours) * BILLABLE_FACTOR * WEEKS_PER_MONTH)
 }
 
-function barColor(pct: number) {
-  if (pct > 100) return 'bg-red-500'
-  if (pct >= 90)  return 'bg-orange-500'
-  if (pct >= 70)  return 'bg-amber-500'
-  return 'bg-bba-primary'
-}
-function textColor(pct: number) {
-  if (pct > 100) return 'text-red-400'
-  if (pct >= 90)  return 'text-orange-400'
-  if (pct >= 70)  return 'text-amber-400'
-  return 'text-bba-secondary'
-}
-
-// ── Component ─────────────────────────────────────────────────────────────────
 export default function EmployeesPage() {
-  const [employees, setEmployees] = useState<Employee[]>([])
-  const [loading, setLoading]     = useState(true)
-  const [error, setError]         = useState<string | null>(null)
+  const [employees,    setEmployees]    = useState<Employee[]>([])
+  const [loading,      setLoading]      = useState(true)
+  const [error,        setError]        = useState<string | null>(null)
+  const [search,       setSearch]       = useState('')
+  const [colOrder,     setColOrder]     = useState<ColKey[]>(DEFAULT_COL_ORDER)
+  const [sortKey,      setSortKey]      = useState<SortKey>('employee')
+  const [sortDir,      setSortDir]      = useState<'asc' | 'desc'>('asc')
+  const [addOpen,      setAddOpen]      = useState(false)
+  const [selectedEmp,  setSelectedEmp]  = useState<Employee | null>(null)
 
-  const [search,   setSearch]   = useState('')
-  const [colOrder, setColOrder] = useState<ColKey[]>(DEFAULT_COL_ORDER)
-  const [sortKey,  setSortKey]  = useState<SortKey>('employee')
-  const [sortDir,  setSortDir]  = useState<'asc' | 'desc'>('asc')
-
-  useEffect(() => {
+  const loadEmployees = useCallback(() => {
+    setLoading(true)
     fetch('/api/employees')
       .then(r => r.json())
       .then(data => {
@@ -82,40 +59,26 @@ export default function EmployeesPage() {
       .finally(() => setLoading(false))
   }, [])
 
-  const active = CLIENTS.filter(c => c.archiveStatus === 'ACTIVE')
+  useEffect(() => { loadEmployees() }, [loadEmployees])
+
   const q = search.trim().toLowerCase()
 
-  const filteredEmployees = useMemo(() =>
-    employees.filter(emp => !q || emp.name.toLowerCase().includes(q)),
+  const filtered = useMemo(() =>
+    employees.filter(e => !q || e.name.toLowerCase().includes(q) || (e.email ?? '').toLowerCase().includes(q)),
   [employees, q])
 
-  const employeeStats = useMemo(() =>
-    filteredEmployees.map(emp => {
-      const capacityHrs     = billableMonthly(emp)
-      const assignedClients = active.filter(c => c.accountantName === emp.name)
-      const assignedHrs     = r2(assignedClients.reduce((s, c) => {
-        const sow = SOWS.find(sw => sw.clientId === c.id)
-        return s + (sow?.targetHours ?? 0)
-      }, 0))
-      const utilPct   = capacityHrs > 0 ? r2((assignedHrs / capacityHrs) * 100) : 0
-      const myLogs    = TIME_LOGS.filter(l => l.employeeId === emp.id)
-      const loggedHrs = r2(myLogs.reduce((s, l) => s + l.hoursLogged, 0))
-      const laborCost = r2(loggedHrs * Number(emp.effectiveHourlyRate))
-      return { emp, capacityHrs, assignedClients, assignedHrs, utilPct, loggedHrs, laborCost }
-    }),
-  [filteredEmployees, active])
-
-  const sortedStats = useMemo(() =>
-    [...employeeStats].sort((a, b) => {
+  const sorted = useMemo(() =>
+    [...filtered].sort((a, b) => {
       let cmp = 0
-      if (sortKey === 'employee') cmp = a.emp.name.localeCompare(b.emp.name)
-      if (sortKey === 'clients')  cmp = a.assignedClients.length - b.assignedClients.length
-      if (sortKey === 'totalHrs') cmp = a.assignedHrs - b.assignedHrs
-      if (sortKey === 'capacity') cmp = a.capacityHrs - b.capacityHrs
-      if (sortKey === 'load')     cmp = a.utilPct - b.utilPct
+      if (sortKey === 'employee')        cmp = a.name.localeCompare(b.name)
+      if (sortKey === 'title')           cmp = (a.title ?? '').localeCompare(b.title ?? '')
+      if (sortKey === 'email')           cmp = (a.email ?? '').localeCompare(b.email ?? '')
+      if (sortKey === 'rate')            cmp = Number(a.effectiveHourlyRate) - Number(b.effectiveHourlyRate)
+      if (sortKey === 'contractedHours') cmp = Number(a.contractedHours) - Number(b.contractedHours)
+      if (sortKey === 'hub')             cmp = Number(a.hubAccess) - Number(b.hubAccess)
       return sortDir === 'asc' ? cmp : -cmp
     }),
-  [employeeStats, sortKey, sortDir])
+  [filtered, sortKey, sortDir])
 
   function onDragEnd(result: DropResult) {
     if (!result.destination) return
@@ -130,245 +93,184 @@ export default function EmployeesPage() {
     else { setSortKey(k); setSortDir('asc') }
   }
 
-  function SortBtn({ k, children }: { k: SortKey; children: React.ReactNode }) {
-    const isActive = sortKey === k
-    return (
-      <button
-        onClick={e => { e.stopPropagation(); toggleSort(k) }}
-        className="flex items-center gap-1 hover:opacity-80 transition-opacity cursor-pointer select-none w-full"
-      >
-        <span className="uppercase tracking-wider font-bold text-white block w-full text-center">{children}</span>
-        <span className="text-[9px] opacity-60 shrink-0">{isActive ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}</span>
-      </button>
-    )
-  }
-
-  function renderCell(stat: typeof sortedStats[0], key: ColKey): React.ReactNode {
-    const { emp, assignedClients, assignedHrs, capacityHrs, utilPct, loggedHrs, laborCost } = stat
+  function renderCell(emp: Employee, key: ColKey): React.ReactNode {
     switch (key) {
       case 'employee':
         return (
           <td key={key} className="px-5 py-3">
             <div className="flex items-center gap-2.5">
-              <div
-                className="h-7 w-7 rounded-full flex items-center justify-center text-[10px] font-bold text-bba-primary shrink-0"
-                style={{ backgroundColor: 'rgba(78,0,142,0.1)' }}
-              >
+              <div className="h-8 w-8 rounded-full flex items-center justify-center text-[11px] font-bold text-bba-primary shrink-0"
+                style={{ backgroundColor: 'rgba(78,0,142,0.1)' }}>
                 {initials(emp.name)}
               </div>
               <span className="font-medium text-slate-800">{emp.name}</span>
             </div>
           </td>
         )
-      case 'clients':
-        return <td key={key} className="px-5 py-3 tabular-nums" style={{ color: '#4a2870' }}>{assignedClients.length}</td>
-      case 'totalHrs':
-        return <td key={key} className="px-5 py-3 tabular-nums" style={{ color: '#4a2870' }}>{assignedHrs.toFixed(1)} hrs</td>
-      case 'capacity':
-        return <td key={key} className="px-5 py-3 tabular-nums" style={{ color: '#4a2870' }}>{capacityHrs.toFixed(1)} hrs/mo</td>
-      case 'load':
+      case 'title':
+        return <td key={key} className="px-5 py-3 text-sm text-slate-600">{emp.title ?? <span className="text-slate-300">—</span>}</td>
+      case 'email':
+        return <td key={key} className="px-5 py-3 text-xs text-slate-500">{emp.email ?? <span className="text-slate-300">—</span>}</td>
+      case 'rate':
         return (
           <td key={key} className="px-5 py-3">
-            <span className={`text-xs font-semibold tabular-nums ${utilPct > 100 ? 'text-red-400' : 'text-emerald-400'}`}>
-              {utilPct.toFixed(1)}% {utilPct > 100 ? '⚠️' : ''}
+            <span className="text-sm font-semibold text-purple-700 tabular-nums">
+              ${Number(emp.effectiveHourlyRate).toFixed(2)}/hr
             </span>
+            {emp.rateType === 'salary' && <span className="ml-1 text-[10px] text-slate-400">salary</span>}
           </td>
         )
-      default:
-        return null
+      case 'contractedHours':
+        return <td key={key} className="px-5 py-3 text-sm tabular-nums text-slate-600">{emp.contractedHours} hrs/wk</td>
+      case 'hub':
+        return (
+          <td key={key} className="px-5 py-3">
+            {emp.hubAccess
+              ? <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-green-700 bg-green-50 rounded-full px-2 py-0.5"><span className="h-1.5 w-1.5 rounded-full bg-green-500" />Active</span>
+              : <span className="text-[10px] text-slate-400">No access</span>}
+          </td>
+        )
+      default: return null
     }
   }
 
-  // ── Loading / error states ──────────────────────────────────────────────────
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-bba-primary" />
-      </div>
-    )
-  }
+  if (loading) return (
+    <div className="flex items-center justify-center h-64">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-bba-primary" />
+    </div>
+  )
 
-  if (error) {
-    return (
-      <div className="rounded-xl p-6 text-sm text-red-600 bg-red-50 border border-red-200">
-        Failed to load employees: {error}
-      </div>
-    )
-  }
+  if (error) return (
+    <div className="rounded-xl p-6 text-sm text-red-600 bg-red-50 border border-red-200">
+      Failed to load employees: {error}
+    </div>
+  )
 
   return (
-    <div className="space-y-8">
-
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-100">Employees</h1>
-          <p className="mt-1 text-sm text-slate-400">
-            {employees.length} team members · capacity and assignment overview
+          <h1 className="text-2xl font-semibold tracking-tight text-slate-800">Employees</h1>
+          <p className="mt-1 text-sm text-slate-500">
+            {employees.length} team member{employees.length !== 1 ? 's' : ''} · click a row to view profile
           </p>
         </div>
-        <Link
-          href="/employees/planning"
-          className="inline-flex items-center gap-2 rounded-lg bg-bba-primary px-4 py-2 text-sm font-semibold text-white hover:bg-bba-primary/85 transition-colors"
-        >
-          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-          </svg>
-          Capacity Planning
-        </Link>
-      </div>
-
-      {/* Search */}
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1 min-w-[220px] max-w-xs">
-          <svg className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: '#b8a0c0' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-          <input
-            type="text" value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Search by name…"
-            className="w-full rounded-lg pl-9 pr-9 py-2.5 text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-bba-primary focus:border-transparent border"
-            style={{ backgroundColor: '#ffffff', borderColor: '#e2d8e8' }}
-          />
-          {search && (
-            <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 hover:opacity-70 transition-opacity" style={{ color: '#b8a0c0' }}>
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-            </button>
-          )}
-        </div>
-        {q && (
-          <button onClick={() => setSearch('')} className="text-xs underline underline-offset-2" style={{ color: '#b20476' }}>
-            Clear
+        <div className="flex items-center gap-2">
+          <Link href="/employees/planning"
+            className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors">
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+            Capacity Planning
+          </Link>
+          <button onClick={() => setAddOpen(true)}
+            className="inline-flex items-center gap-2 rounded-lg bg-bba-primary px-4 py-2 text-sm font-semibold text-white hover:bg-bba-primary/85 transition-colors">
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Add Employee
           </button>
-        )}
+        </div>
       </div>
 
-      {/* Employee Cards */}
-      {employees.length === 0 ? (
-        <div className="rounded-xl p-10 text-center text-sm border" style={{ borderColor: '#e2d8e8', backgroundColor: '#faf8f8', color: '#8a6a90' }}>
-          No employees yet — seed the employees table to see data here.
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {employeeStats.map(({ emp, utilPct, assignedClients, capacityHrs, assignedHrs, loggedHrs, laborCost }) => {
-            const over = utilPct > 100
-            const borderCol = over ? 'border-red-500/50' : utilPct >= 90 ? 'border-orange-500/40' : utilPct >= 70 ? 'border-amber-500/30' : ''
+      {/* Employee cards */}
+      {employees.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {employees.map(emp => {
+            const capacity = billableMonthly(emp)
             return (
-              <div
-                key={emp.id}
-                className={`rounded-xl border p-5 space-y-4 ${borderCol}`}
-                style={{ backgroundColor: over ? 'rgba(239,68,68,0.06)' : '#ffffff', borderColor: borderCol ? undefined : '#e2d8e8' }}
-              >
+              <button key={emp.id} onClick={() => setSelectedEmp(emp)}
+                className="rounded-xl border border-slate-200 bg-white p-5 text-left hover:shadow-md hover:border-purple-200 transition-all space-y-3 group">
                 <div className="flex items-center gap-3">
-                  <div
-                    className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-sm font-bold ${over ? 'text-red-900' : 'text-bba-primary'}`}
-                    style={{ backgroundColor: over ? 'rgba(239,68,68,0.18)' : 'rgba(78,0,142,0.1)' }}
-                  >
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-bold text-purple-700"
+                    style={{ backgroundColor: 'rgba(109,40,217,0.1)' }}>
                     {initials(emp.name)}
                   </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-slate-800 group-hover:text-purple-700 transition-colors">{emp.name}</p>
+                    <p className="text-xs text-slate-400 truncate">{emp.title ?? 'No title'}</p>
+                  </div>
+                  {emp.hubAccess && (
+                    <span className="h-2 w-2 rounded-full bg-green-400 shrink-0" title="Hub access active" />
+                  )}
+                </div>
+                <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-100 text-center">
                   <div>
-                    <p className={`font-semibold ${over ? 'text-red-950' : 'text-slate-800'}`}>{emp.name}</p>
-                    <p className="text-xs mt-0.5" style={{ color: over ? '#7f1d1d' : '#8a6a90' }}>
-                      {emp.contractedHours}h/wk · 80% billable · ${emp.effectiveHourlyRate}/hr
-                    </p>
+                    <p className="text-sm font-bold text-purple-700">${Number(emp.effectiveHourlyRate).toFixed(0)}/hr</p>
+                    <p className="text-[10px] text-slate-400">Cost Rate</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-slate-700">{emp.contractedHours}h</p>
+                    <p className="text-[10px] text-slate-400">Hrs/Week</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-slate-700">{capacity.toFixed(0)}h</p>
+                    <p className="text-[10px] text-slate-400">Cap/Mo</p>
                   </div>
                 </div>
-
-                <div>
-                  <div className="flex justify-between text-xs mb-1">
-                    <span style={{ color: over ? '#7f1d1d' : '#8a6a90' }}>Capacity Utilization</span>
-                    <span className={`font-semibold tabular-nums ${over ? 'text-red-700' : textColor(utilPct)}`}>
-                      {utilPct.toFixed(1)}%
-                    </span>
-                  </div>
-                  <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: over ? 'rgba(239,68,68,0.2)' : 'rgba(78,0,142,0.1)' }}>
-                    <div className={`h-full rounded-full transition-all ${barColor(utilPct)}`} style={{ width: `${Math.min(utilPct, 100)}%` }} />
-                  </div>
-                  <div className="flex justify-between text-[10px] mt-1" style={{ color: over ? '#991b1b' : '#b8a0c0' }}>
-                    <span>{assignedHrs.toFixed(1)} hrs assigned</span>
-                    <span>{capacityHrs.toFixed(1)} hrs capacity</span>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-2 pt-3" style={{ borderTop: `1px solid ${over ? 'rgba(127,29,29,0.2)' : '#f0e8f8'}` }}>
-                  {[
-                    { label: 'Clients',    value: assignedClients.length.toString() },
-                    { label: 'Hrs Logged', value: loggedHrs.toFixed(1) },
-                    { label: 'Labor Cost', value: `$${(laborCost / 1000).toFixed(1)}k` },
-                  ].map(s => (
-                    <div key={s.label} className="text-center">
-                      <p className={`text-sm font-bold tabular-nums ${over ? 'text-red-900' : 'text-bba-primary'}`}>{s.value}</p>
-                      <p className="text-[10px] mt-0.5" style={{ color: over ? '#7f1d1d' : '#8a6a90' }}>{s.label}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              </button>
             )
           })}
         </div>
       )}
 
-      {/* Client Assignments Table */}
+      {/* Table */}
       {employees.length > 0 && (
-        <div className="rounded-xl overflow-hidden" style={{ border: '1px solid #e2d8e8' }}>
-          <div
-            className="border-b px-5 py-3.5 flex items-center justify-between"
-            style={{ backgroundColor: BG_CARD_HEADER, borderColor: 'rgba(78,0,142,0.2)' }}
-          >
-            <h3 className="text-sm font-semibold text-white">Client Assignments</h3>
-            <span className="text-[10px] font-medium text-white">Drag headers to reorder · click to sort</span>
+        <div className="rounded-xl overflow-hidden border border-slate-200">
+          <div className="px-5 py-3.5 flex items-center justify-between border-b"
+            style={{ backgroundColor: 'var(--bba-primary)' }}>
+            <h3 className="text-sm font-semibold text-white">{sorted.length} Employee{sorted.length !== 1 ? 's' : ''}</h3>
+            <div className="relative max-w-xs">
+              <svg className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input type="text" value={search} onChange={e => setSearch(e.target.value)}
+                placeholder="Search…"
+                className="rounded-lg bg-white/10 border border-white/20 pl-8 pr-3 py-1.5 text-xs text-white placeholder-white/50 focus:outline-none focus:ring-1 focus:ring-white/40 w-44" />
+            </div>
           </div>
-          <div className="overflow-x-auto" style={{ backgroundColor: BG_TABLE }}>
+          <div className="overflow-x-auto bg-white">
             <DragDropContext onDragEnd={onDragEnd}>
               <table className="w-full text-sm">
                 <Droppable droppableId="emp-cols" direction="horizontal">
-                  {(dp) => (
+                  {dp => (
                     <thead>
-                      <tr
-                        ref={dp.innerRef}
-                        {...dp.droppableProps}
-                        style={{ backgroundColor: BG_THEAD, borderBottom: '1px solid rgba(78,0,142,0.3)' }}
-                      >
+                      <tr ref={dp.innerRef} {...dp.droppableProps}
+                        style={{ backgroundColor: 'var(--bba-primary)', borderBottom: '2px solid rgba(78,0,142,0.3)' }}>
                         {colOrder.map((key, idx) => {
                           const col = ALL_COLS.find(c => c.key === key)!
                           return (
                             <Draggable key={key} draggableId={key} index={idx}>
                               {(dragP, snap) => (
-                                <th
-                                  ref={dragP.innerRef}
-                                  {...dragP.draggableProps}
-                                  {...dragP.dragHandleProps}
-                                  className={`px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider whitespace-nowrap select-none cursor-grab active:cursor-grabbing transition-opacity ${snap.isDragging ? 'opacity-50' : ''}`}
-                                  style={dragP.draggableProps.style}
-                                >
-                                  <SortBtn k={key}>{col.label}</SortBtn>
+                                <th ref={dragP.innerRef} {...dragP.draggableProps} {...dragP.dragHandleProps}
+                                  className={`px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-white whitespace-nowrap select-none cursor-grab ${snap.isDragging ? 'opacity-50' : ''}`}
+                                  style={dragP.draggableProps.style}>
+                                  <button onClick={() => toggleSort(key)} className="flex items-center gap-1 hover:opacity-80">
+                                    {col.label}
+                                    <span className="text-[9px] opacity-60">{sortKey === key ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}</span>
+                                  </button>
                                 </th>
                               )}
                             </Draggable>
                           )
                         })}
-                        <th style={{ padding: 0, border: 'none' }}>{dp.placeholder}</th>
+                        <th style={{ padding: 0 }}>{dp.placeholder}</th>
                       </tr>
                     </thead>
                   )}
                 </Droppable>
                 <tbody>
-                  {sortedStats.length === 0 ? (
-                    <tr>
-                      <td colSpan={colOrder.length} className="px-5 py-10 text-center text-sm" style={{ color: '#8a6a90' }}>
-                        No employees match your search.
-                      </td>
-                    </tr>
-                  ) : sortedStats.map((stat, i) => {
-                    const baseBg = i % 2 === 0 ? ROW_ODD : ROW_EVEN
+                  {sorted.length === 0 ? (
+                    <tr><td colSpan={colOrder.length} className="px-5 py-10 text-center text-sm text-slate-400">No employees found.</td></tr>
+                  ) : sorted.map((emp, i) => {
+                    const bg = i % 2 === 0 ? '#ffffff' : '#faf5ff'
                     return (
-                      <tr
-                        key={stat.emp.id}
-                        style={{ backgroundColor: baseBg, borderBottom: '1px solid rgba(212,190,190,0.07)' }}
-                        onMouseEnter={e => { e.currentTarget.style.backgroundColor = ROW_HOVER }}
-                        onMouseLeave={e => { e.currentTarget.style.backgroundColor = baseBg }}
-                      >
-                        {colOrder.map(key => renderCell(stat, key))}
+                      <tr key={emp.id} onClick={() => setSelectedEmp(emp)}
+                        style={{ backgroundColor: bg, borderBottom: '1px solid #f0e8f8', cursor: 'pointer' }}
+                        onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#f3e8ff' }}
+                        onMouseLeave={e => { e.currentTarget.style.backgroundColor = bg }}>
+                        {colOrder.map(key => renderCell(emp, key))}
                       </tr>
                     )
                   })}
@@ -378,6 +280,26 @@ export default function EmployeesPage() {
           </div>
         </div>
       )}
+
+      {employees.length === 0 && !loading && (
+        <div className="rounded-xl border border-dashed border-slate-200 p-12 text-center">
+          <p className="text-slate-400 text-sm">No employees yet.</p>
+          <button onClick={() => setAddOpen(true)} className="mt-3 text-sm text-purple-600 underline underline-offset-2">
+            Add your first employee
+          </button>
+        </div>
+      )}
+
+      <AddEmployeePanel
+        open={addOpen}
+        onClose={() => setAddOpen(false)}
+        onCreated={() => { setAddOpen(false); loadEmployees() }}
+      />
+      <EmployeeDrawer
+        employee={selectedEmp}
+        onClose={() => setSelectedEmp(null)}
+        onUpdated={() => { loadEmployees(); setSelectedEmp(null) }}
+      />
     </div>
   )
 }
