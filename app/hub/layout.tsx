@@ -49,7 +49,7 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
       <aside className="fixed inset-y-0 left-0 z-40 flex w-60 flex-col bg-purple-950 border-r border-white/10">
         <div className="flex h-16 items-center gap-3 px-5 border-b border-white/10">
           <div className="flex h-8 w-8 items-center justify-center">
-            <img src="/bba-logo.png" alt="BBA" className="h-8 w-8 object-contain" />
+            <img src="/bba-logo-purple.png" alt="BBA" className="h-8 w-8 object-contain rounded-md" />
           </div>
           <span className="text-sm font-semibold" style={{ color: '#b20476' }}>BBA Client Hub</span>
         </div>
