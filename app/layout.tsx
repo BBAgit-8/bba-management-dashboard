@@ -26,7 +26,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${comfortaa.variable} ${inter.variable} h-full`}>
+    <html lang="en" className={`${comfortaa.variable} ${inter.variable} h-full`} style={{ '--sidebar-width': '256px' } as React.CSSProperties}>
       <body className="h-full text-slate-800 antialiased bg-background">
         <ConditionalLayout>{children}</ConditionalLayout>
       </body>

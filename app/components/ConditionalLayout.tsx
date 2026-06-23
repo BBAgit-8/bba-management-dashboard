@@ -13,7 +13,10 @@ export default function ConditionalLayout({ children }: { children: React.ReactN
   return (
     <>
       <Sidebar />
-      <main className="ml-64 flex min-h-screen flex-col">
+      <main
+        className="flex min-h-screen flex-col transition-all duration-300"
+        style={{ marginLeft: 'var(--sidebar-width, 256px)' }}
+      >
         <div className="flex-1 p-8">{children}</div>
       </main>
     </>
