@@ -1,6 +1,5 @@
 "use client";
 
-
 import Link from "next/link";
 import { useState, useEffect } from 'react';
 import DashboardTab     from "./tabs/DashboardTab";
@@ -44,8 +43,8 @@ interface Props { projectCode: string }
 
 export default function ClientWorkspace({ projectCode }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
-  const [client, setClient] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [client, setClient]       = useState<any>(null);
+  const [loading, setLoading]     = useState(true);
 
   useEffect(() => {
     fetch('/api/clients')
@@ -61,10 +60,7 @@ export default function ClientWorkspace({ projectCode }: Props) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-32">
-        <svg className="h-6 w-6 animate-spin text-bba-primary" fill="none" viewBox="0 0 24 24">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-        </svg>
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-bba-primary border-t-transparent" />
       </div>
     );
   }
@@ -79,7 +75,7 @@ export default function ClientWorkspace({ projectCode }: Props) {
         </div>
         <p className="text-slate-700 font-medium">Client not found</p>
         <p className="text-sm text-slate-500">No client with project code <span className="font-mono text-bba-primary">{projectCode}</span></p>
-        <Link href="/" className="mt-2 text-sm text-bba-highlight hover:text-bba-highlight/80 underline underline-offset-2 transition-colors">
+        <Link href="/" className="mt-2 text-sm text-purple-600 hover:text-purple-800 underline underline-offset-2 transition-colors">
           ← Back to directory
         </Link>
       </div>
@@ -90,27 +86,36 @@ export default function ClientWorkspace({ projectCode }: Props) {
     <div>
       {/* Breadcrumb + client header */}
       <div className="mb-6">
-        <div className="flex items-center gap-2 mb-2 text-xs text-slate-500">
-          <Link href="/" className="hover:text-slate-300 transition-colors">Directory</Link>
+        <div className="flex items-center gap-2 mb-2 text-xs text-slate-400">
+          <Link href="/" className="hover:text-slate-600 transition-colors">Directory</Link>
           <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>
-          <span className="font-mono text-slate-400">{projectCode}</span>
+          <span className="font-mono text-slate-500">{projectCode}</span>
         </div>
 
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-semibold text-slate-100">{client.name}</h1>
+            <h1 className="text-2xl font-semibold text-slate-800">{client.name}</h1>
             <div className="mt-2 flex flex-wrap items-center gap-2">
-              <span className="font-mono text-xs text-slate-500 bg-slate-800 border border-slate-700 rounded-md px-2 py-0.5">
+              <span className="font-mono text-xs text-slate-500 bg-slate-100 border border-slate-200 rounded-md px-2 py-0.5">
                 {client.harvestProjectCode}
               </span>
               {client.accountantName && (
                 <span className="text-xs text-slate-500">
-                  Acct: <span className="text-slate-300">{client.accountantName}</span>
+                  Acct: <span className="text-slate-700 font-medium">{client.accountantName}</span>
                 </span>
               )}
-              <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ${client.archiveStatus === 'ACTIVE' ? 'bg-bba-highlight/10 text-bba-highlight ring-bba-highlight/20' : 'bg-slate-700/50 text-slate-500 ring-slate-600/40'}`}>
+              {client.bookkeeper && (
+                <span className="text-xs text-slate-500">
+                  Bkpr: <span className="text-slate-700 font-medium">{client.bookkeeper}</span>
+                </span>
+              )}
+              <span className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold ring-1 ${
+                client.archiveStatus === 'ACTIVE'
+                  ? 'bg-green-50 text-green-700 ring-green-200'
+                  : 'bg-slate-100 text-slate-500 ring-slate-200'
+              }`}>
                 {client.archiveStatus}
               </span>
               {client.tags.map((tag: { id: string; name: string; color: string }) => (
@@ -127,8 +132,8 @@ export default function ClientWorkspace({ projectCode }: Props) {
         </div>
       </div>
 
-      {/* Secondary tab nav — sticky */}
-      <div className="sticky top-0 z-10 -mx-8 px-8 bg-slate-950 border-b border-slate-700/60">
+      {/* Tab nav */}
+      <div className="sticky top-0 z-10 -mx-8 px-8 bg-white border-b border-slate-200">
         <div className="flex items-center gap-1">
           {TABS.map(tab => {
             const active = activeTab === tab.id;
@@ -136,13 +141,13 @@ export default function ClientWorkspace({ projectCode }: Props) {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`relative flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors ${active ? 'text-bba-highlight' : 'text-slate-400 hover:text-slate-200'}`}
+                className={`relative flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors ${
+                  active ? 'text-purple-700' : 'text-slate-500 hover:text-slate-700'
+                }`}
               >
-                <span className={active ? 'text-bba-highlight' : 'text-slate-500'}>{tab.icon}</span>
+                <span className={active ? 'text-purple-600' : 'text-slate-400'}>{tab.icon}</span>
                 {tab.label}
-                {active && (
-                  <span className="absolute inset-x-0 bottom-0 h-0.5 rounded-t-full bg-bba-highlight" />
-                )}
+                {active && <span className="absolute inset-x-0 bottom-0 h-0.5 rounded-t-full bg-purple-600" />}
               </button>
             );
           })}
