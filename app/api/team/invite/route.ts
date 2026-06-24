@@ -31,32 +31,36 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: 'Missing employeeId or email' }, { status: 400 })
     }
 
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY
-    if (!url || !key) {
-      return NextResponse.json({ error: `Missing env: url=${!!url} key=${!!key}` }, { status: 500 })
+    // Step 1: Send invite via Supabase Admin API
+    let authUserId: string | null = null
+    try {
+      const { createClient } = await import('@supabase/supabase-js')
+      const admin = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        { auth: { autoRefreshToken: false, persistSession: false } }
+      )
+      const { data, error } = await admin.auth.admin.inviteUserByEmail(email, {
+        data: { name, role: 'employee' },
+        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/hub`,
+      })
+      if (error) {
+        const already = /already (registered|invited|been invited)/i.test(error.message)
+        if (!already) return NextResponse.json({ error: `Auth: ${error.message}` }, { status: 500 })
+      } else {
+        authUserId = data?.user?.id ?? null
+      }
+    } catch (authErr: any) {
+      return NextResponse.json({ error: `Auth exception: ${String(authErr?.message ?? authErr)}` }, { status: 500 })
     }
 
-    // Dynamically import to avoid module-level issues
-    const { createClient } = await import('@supabase/supabase-js')
-    const admin = createClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } })
-
-    const { data: inviteData, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
-      data: { name, role: 'employee' },
-      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://bba-management-dashboard.vercel.app'}/hub`,
-    })
-
-    if (inviteError) {
-      const already = /already (registered|invited|been invited)/i.test(inviteError.message)
-      if (!already) return NextResponse.json({ error: inviteError.message }, { status: 500 })
-    }
-
+    // Step 2: Mark employee as invited in DB
     const { error: updateError } = await supabase
       .from('employees')
       .update({
         hubAccess:  true,
         invitedAt:  new Date().toISOString(),
-        authUserId: inviteData?.user?.id ?? null,
+        authUserId: authUserId,
       })
       .eq('id', employeeId)
 
@@ -66,7 +70,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json({ ok: true })
   } catch (err: any) {
-    return NextResponse.json({ error: String(err?.message ?? err ?? 'unknown') }, { status: 500 })
+    return NextResponse.json({ error: `Unexpected: ${String(err?.message ?? err)}` }, { status: 500 })
   }
 }
 
@@ -85,11 +89,15 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
       .single()
 
     if (emp?.authUserId) {
-      const url = process.env.NEXT_PUBLIC_SUPABASE_URL!
-      const key = process.env.SUPABASE_SERVICE_ROLE_KEY!
-      const { createClient } = await import('@supabase/supabase-js')
-      const admin = createClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } })
-      await admin.auth.admin.deleteUser(emp.authUserId)
+      try {
+        const { createClient } = await import('@supabase/supabase-js')
+        const admin = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.SUPABASE_SERVICE_ROLE_KEY!,
+          { auth: { autoRefreshToken: false, persistSession: false } }
+        )
+        await admin.auth.admin.deleteUser(emp.authUserId)
+      } catch {}
     }
 
     const { error } = await supabase
@@ -100,6 +108,6 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     return NextResponse.json({ ok: true })
   } catch (err: any) {
-    return NextResponse.json({ error: String(err?.message ?? err ?? 'unknown') }, { status: 500 })
+    return NextResponse.json({ error: String(err?.message ?? err) }, { status: 500 })
   }
 }
