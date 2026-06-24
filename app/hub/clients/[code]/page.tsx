@@ -8,7 +8,8 @@ type ClientDetail = {
   id: string; name: string; harvestProjectCode: string
   entityType: string | null; processingCadence: string | null
   projectType: string | null; archiveStatus: string
-  contractStartDate: string | null; clientContactName: string | null
+  contractStartDate: string | null; contractEndDate: string | null
+  clientContactName: string | null; accountantName: string | null
   referredBy: string | null; totalHrsPerMonth: number | null
   apArHrs: number | null; qaHours: number | null
   bankFeedTime: number | null; transactionsPerMonth: number | null
@@ -18,6 +19,8 @@ type ClientDetail = {
   hasContractedLoom: boolean | null; hasScheduledMeetings: boolean | null
   bookkeepingRate: number | null; softwareRate: number | null
   totalMonthlyAmount: number | null
+  guaranteedDeadlineDay: number | null
+  qboOnly: boolean | null
   tags: { name: string; color: string }[]
   notes: { id: string; content: string; createdAt: string }[]
 }
@@ -113,10 +116,13 @@ export default function HubClientDetail() {
 
       {/* Identity */}
       <Section title="Client Info">
-        <InfoRow label="Contact Name"      value={client.clientContactName} />
-        <InfoRow label="Entity Type"       value={client.entityType} />
-        <InfoRow label="Contract Start"    value={fmtDate(client.contractStartDate)} />
-        <InfoRow label="Referred By"       value={client.referredBy} />
+        <InfoRow label="Contact Name"        value={client.clientContactName} />
+        <InfoRow label="Entity Type"         value={client.entityType} />
+        <InfoRow label="Accountant"          value={client.accountantName} />
+        <InfoRow label="Contract Start"      value={fmtDate(client.contractStartDate)} />
+        <InfoRow label="Contract End"        value={fmtDate(client.contractEndDate)} />
+        <InfoRow label="Close Deadline"      value={client.guaranteedDeadlineDay ? `Day ${client.guaranteedDeadlineDay} of the month` : null} />
+        <InfoRow label="Referred By"         value={client.referredBy} />
         {client.tags.length > 0 && (
           <div className="flex items-start gap-3 py-2.5 border-b border-slate-100">
             <span className="text-xs text-slate-400 w-40 shrink-0 pt-0.5">Tags</span>
@@ -149,6 +155,7 @@ export default function HubClientDetail() {
       <Section title="Scope of Work">
         <InfoRow label="Project Type"        value={client.projectType ? (PTYPE_LABEL[client.projectType] ?? client.projectType) : null} />
         <InfoRow label="Processing Cadence"  value={client.processingCadence ? CADENCE_LABEL[client.processingCadence] : null} />
+        <InfoRow label="QBO Only"            value={client.qboOnly ? 'Yes — QBO access only, no bookkeeping' : null} />
         <InfoRow label="Total Hours / Mo"    value={client.totalHrsPerMonth ? `${client.totalHrsPerMonth} hrs` : null} />
         <InfoRow label="AP / AR Hours"       value={client.apArHrs ? `${client.apArHrs} hrs` : null} />
         <InfoRow label="QA Hours"            value={client.qaHours ? `${client.qaHours} hrs` : null} />

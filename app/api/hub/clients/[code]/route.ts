@@ -11,12 +11,14 @@ export async function GET(
     .from('clients')
     .select(`
       id, name, harvestProjectCode, entityType, processingCadence,
-      projectType, archiveStatus, contractStartDate, clientContactName,
-      referredBy, totalHrsPerMonth, apArHrs, qaHours, bankFeedTime,
+      projectType, archiveStatus, contractStartDate, contractEndDate,
+      clientContactName, accountantName, referredBy,
+      totalHrsPerMonth, apArHrs, qaHours, bankFeedTime,
       transactionsPerMonth, numBanksAndCCs, numLoans, numPmtPortals,
       pettyCash, hasContractedLoom, hasScheduledMeetings,
-      hasPayroll, payrollProvider,
-      bookkeepingRate, softwareRate, totalMonthlyAmount
+      hasPayroll, payrollProvider, qboOnly,
+      bookkeepingRate, softwareRate, totalMonthlyAmount,
+      guaranteedDeadlineDay
     `)
     .eq('harvestProjectCode', code)
     .single()
