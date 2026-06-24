@@ -56,6 +56,7 @@ export default function ProfitabilityPage() {
   const [rows,             setRows]             = useState<ProfitRow[]>([])
   const [totals,           setTotals]           = useState<Totals | null>(null)
   const [harvestConnected, setHarvestConnected] = useState(false)
+  const [harvestError,     setHarvestError]     = useState<string | null>(null)
   const [loading,          setLoading]          = useState(true)
   const [error,            setError]            = useState<string | null>(null)
   const [from,             setFrom]             = useState(firstOfMonth())
@@ -74,6 +75,7 @@ export default function ProfitabilityPage() {
         setRows(d.rows ?? [])
         setTotals(d.totals ?? null)
         setHarvestConnected(d.harvestConnected ?? false)
+        setHarvestError(d.harvestError ?? null)
       })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false))
@@ -132,6 +134,11 @@ export default function ProfitabilityPage() {
             {harvestConnected
               ? <span className="ml-2 inline-flex items-center gap-1 text-green-600 text-xs font-medium"><span className="h-1.5 w-1.5 rounded-full bg-green-500" />Harvest connected</span>
               : <span className="ml-2 inline-flex items-center gap-1 text-amber-600 text-xs font-medium"><span className="h-1.5 w-1.5 rounded-full bg-amber-400" />Using budgeted hours</span>}
+            {harvestError && (
+              <span className="ml-2 text-xs text-red-500 font-mono" title={harvestError}>
+                ⚠ {harvestError.slice(0, 80)}
+              </span>
+            )}
           </p>
         </div>
         {/* Date range */}

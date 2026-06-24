@@ -41,6 +41,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   // 4. Get Harvest time entries
   let harvestEntries: any[] = []
   let harvestConnected = false
+  let harvestError: string | null = null
 
   if (token && accountId) {
     try {
@@ -56,14 +57,24 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
             },
           }
         )
-        if (!res.ok) break
+        if (!res.ok) {
+          const errText = await res.text().catch(() => `HTTP ${res.status}`)
+          harvestError = `${res.status}: ${errText.slice(0, 200)}`
+          console.error('[Harvest]', harvestError)
+          break
+        }
         const data = await res.json()
         harvestEntries = harvestEntries.concat(data.time_entries ?? [])
         if (!data.next_page) break
         page++
       }
-      harvestConnected = true
-    } catch { harvestConnected = false }
+      if (harvestEntries.length > 0 || !harvestError) harvestConnected = !harvestError
+    } catch (e: any) {
+      harvestError = e.message
+      harvestConnected = false
+    }
+  } else {
+    harvestError = 'Harvest credentials not found in settings table'
   }
 
   // 5. Aggregate hours by project code from Harvest
@@ -114,5 +125,5 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     ? parseFloat(((totals.profit / totals.revenue) * 100).toFixed(1))
     : null
 
-  return NextResponse.json({ rows, totals, harvestConnected, from, to })
+  return NextResponse.json({ rows, totals, harvestConnected, harvestError, from, to })
 }
