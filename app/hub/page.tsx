@@ -14,38 +14,34 @@ export default function HubLoginPage() {
   const [needsPassword, setNeedsPassword] = useState(false)
 
   useEffect(() => {
-    async function init() {
-      // Check if there's an invite/recovery token in the URL hash
-      const hash = window.location.hash
-      if (hash && (hash.includes('access_token') || hash.includes('type=invite') || hash.includes('type=recovery'))) {
-        // Let Supabase exchange the token from the URL
-        const { data, error } = await supabaseClient.auth.getSession()
-        if (data.session) {
-          router.replace('/hub/dashboard')
-          return
-        }
-        // Token present but no session yet — Supabase needs to process the hash
-        const { data: d2, error: e2 } = await supabaseClient.auth.exchangeCodeForSession(
-          new URLSearchParams(hash.slice(1)).get('access_token') ?? ''
-        ).catch(() => ({ data: null, error: null })) as any
+    // Safety timeout — if nothing happens in 5s, show login form
+    const timeout = setTimeout(() => setChecking(false), 5000)
 
-        if (d2?.session) {
-          // Invite flow — user needs to set a password
-          setNeedsPassword(true)
-          setChecking(false)
-          return
-        }
-      }
-
-      // Normal session check
-      const { data } = await supabaseClient.auth.getSession()
-      if (data.session) {
+    // Supabase automatically processes #access_token and ?code= from the URL.
+    // Just listen for the auth state change — it fires when the token is exchanged.
+    const { data: { subscription } } = supabaseClient.auth.onAuthStateChange(async (event, session) => {
+      clearTimeout(timeout)
+      if (event === 'SIGNED_IN' && session) {
         router.replace('/hub/dashboard')
-      } else {
+      } else if (event === 'USER_UPDATED' && session) {
+        router.replace('/hub/dashboard')
+      } else if (event === 'PASSWORD_RECOVERY') {
+        setNeedsPassword(true)
         setChecking(false)
+      } else if (event === 'INITIAL_SESSION') {
+        if (session) {
+          router.replace('/hub/dashboard')
+        } else {
+          const url = window.location.href
+          const hasToken = url.includes('access_token') || url.includes('type=invite') || url.includes('code=')
+          if (!hasToken) {
+            setChecking(false)
+          }
+        }
       }
-    }
-    init()
+    })
+
+    return () => { clearTimeout(timeout); subscription.unsubscribe() }
   }, [router])
 
   async function handleLogin(e: React.FormEvent) {
