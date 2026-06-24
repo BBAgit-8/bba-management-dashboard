@@ -115,7 +115,6 @@ export default function HubClientDetail() {
       <Section title="Client Info">
         <InfoRow label="Contact Name"      value={client.clientContactName} />
         <InfoRow label="Entity Type"       value={client.entityType} />
-        <InfoRow label="Processing"        value={client.processingCadence ? CADENCE_LABEL[client.processingCadence] : null} />
         <InfoRow label="Contract Start"    value={fmtDate(client.contractStartDate)} />
         <InfoRow label="Referred By"       value={client.referredBy} />
         {client.tags.length > 0 && (
@@ -133,19 +132,6 @@ export default function HubClientDetail() {
         )}
       </Section>
 
-      {/* Hours */}
-      <Section title="Hours &amp; Workload">
-        <InfoRow label="Total Hrs / Mo"        value={client.totalHrsPerMonth ? `${client.totalHrsPerMonth} hrs` : null} />
-        <InfoRow label="AP/AR Hours"           value={client.apArHrs ? `${client.apArHrs} hrs` : null} />
-        <InfoRow label="QA Hours"              value={client.qaHours ? `${client.qaHours} hrs` : null} />
-        <InfoRow label="Bank Feed Time"        value={client.bankFeedTime ? `${client.bankFeedTime} hrs` : null} />
-        <InfoRow label="Transactions / Mo"     value={client.transactionsPerMonth ?? null} />
-        <InfoRow label="# Banks &amp; CCs"     value={client.numBanksAndCCs ?? null} />
-        <InfoRow label="# Loans"               value={client.numLoans ?? null} />
-        <InfoRow label="# Payment Portals"     value={client.numPmtPortals ?? null} />
-        <InfoRow label="Petty Cash"            value={client.pettyCash ? 'Yes' : null} />
-      </Section>
-
       {/* Rates */}
       <Section title="Rates &amp; Billing">
         <InfoRow label="Bookkeeping Rate"  value={client.bookkeepingRate   != null ? `$${Number(client.bookkeepingRate).toFixed(2)}/mo`  : null} />
@@ -159,12 +145,22 @@ export default function HubClientDetail() {
         } />
       </Section>
 
-      {/* Services */}
-      <Section title="Services">
+      {/* Scope */}
+      <Section title="Scope of Work">
+        <InfoRow label="Project Type"        value={client.projectType ? (PTYPE_LABEL[client.projectType] ?? client.projectType) : null} />
+        <InfoRow label="Processing Cadence"  value={client.processingCadence ? CADENCE_LABEL[client.processingCadence] : null} />
+        <InfoRow label="Total Hours / Mo"    value={client.totalHrsPerMonth ? `${client.totalHrsPerMonth} hrs` : null} />
+        <InfoRow label="AP / AR Hours"       value={client.apArHrs ? `${client.apArHrs} hrs` : null} />
+        <InfoRow label="QA Hours"            value={client.qaHours ? `${client.qaHours} hrs` : null} />
+        <InfoRow label="Bank Feed Time"      value={client.bankFeedTime ? `${client.bankFeedTime} hrs` : null} />
+        <InfoRow label="Transactions / Mo"   value={client.transactionsPerMonth ?? null} />
+        <InfoRow label="# Banks &amp; CCs"   value={client.numBanksAndCCs ?? null} />
+        <InfoRow label="# Loans"             value={client.numLoans ?? null} />
+        <InfoRow label="# Payment Portals"   value={client.numPmtPortals ?? null} />
+        <InfoRow label="Petty Cash"          value={client.pettyCash ? 'Yes' : null} />
         <InfoRow label="Payroll"             value={client.hasPayroll ? (client.payrollProvider ?? 'Yes') : null} />
         <InfoRow label="Contracted Loom"     value={client.hasContractedLoom    ? 'Yes' : null} />
         <InfoRow label="Scheduled Meetings"  value={client.hasScheduledMeetings ? 'Yes' : null} />
-        <InfoRow label="Petty Cash"          value={client.pettyCash            ? 'Yes' : null} />
       </Section>
 
       {/* Notes */}
