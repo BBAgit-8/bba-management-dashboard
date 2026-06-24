@@ -14,23 +14,17 @@ export async function GET(
       projectType, archiveStatus, contractStartDate, clientContactName,
       referredBy, totalHrsPerMonth, apArHrs, qaHours, bankFeedTime,
       transactionsPerMonth, numBanksAndCCs, numLoans, numPmtPortals,
-      pettyCash, hasPayroll, payrollProvider, hasContractedLoom,
-      hasScheduledMeetings, meetingDuration,
-      tags:client_tags(tag:tags(name, color)),
-      notes(id, content, "createdAt", "visibleToTeam")
+      pettyCash, hasContractedLoom, hasScheduledMeetings
     `)
     .eq('harvestProjectCode', code)
     .single()
 
-  if (error || !data) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-
-  const client = {
-    ...data,
-    tags:  (data.tags  ?? []).map((ct: any) => ct.tag).filter(Boolean),
-    notes: ((data as any).notes ?? [])
-      .filter((n: any) => n.visibleToTeam !== false)
-      .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+  if (error || !data) {
+    console.error('[hub/clients/code]', error?.message)
+    return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
 
-  return NextResponse.json({ client })
+  return NextResponse.json({
+    client: { ...data, tags: [], notes: [] }
+  })
 }
