@@ -609,10 +609,11 @@ export default function ClientDirectory() {
         const bkr = parseFloat(String(inlineEdits[client.id]?.bookkeepingRate ?? client.bookkeepingRate ?? 0)) || 0
         const swr = parseFloat(String(inlineEdits[client.id]?.softwareRate    ?? client.softwareRate    ?? 0)) || 0
         const autoTotal = parseFloat((bkr + swr).toFixed(2))
-        // Use manually-saved total if it exists, otherwise use auto-calc
+        // Auto-calc wins when rates are set; only fall back to savedTotal if no rates exist
         const manualOverride = inlineEdits[client.id]?.totalMonthlyAmount
         const savedTotal = client.totalMonthlyAmount
-        const displayVal = manualOverride ?? (savedTotal != null ? String(savedTotal) : (autoTotal > 0 ? String(autoTotal) : ''))
+        const displayVal = manualOverride
+          ?? (autoTotal > 0 ? String(autoTotal) : (savedTotal != null ? String(savedTotal) : ''))
         return (
           <td key={colKey} className="px-2 py-1.5">
             <div className="relative">
