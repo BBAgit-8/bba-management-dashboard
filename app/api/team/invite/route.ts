@@ -47,8 +47,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       if (error) {
         const already = /already (registered|invited|been invited)/i.test(error.message)
         if (!already) {
-          const errDetail = JSON.stringify({ message: error.message, status: (error as any).status, code: (error as any).code, name: error.name })
-          return NextResponse.json({ error: `Auth: ${errDetail}` }, { status: 500 })
+          const isRateLimit = (error as any).code === 'over_email_send_rate_limit' || (error as any).status === 429
+          const msg = isRateLimit
+            ? 'Supabase email rate limit reached. Wait an hour and try again, or set up a custom SMTP provider in Supabase Auth settings.'
+            : error.message || JSON.stringify(error)
+          return NextResponse.json({ error: msg }, { status: 500 })
         }
       } else {
         authUserId = data?.user?.id ?? null
