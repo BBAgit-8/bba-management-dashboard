@@ -115,8 +115,17 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     const code        = client.harvestProjectCode?.toUpperCase()?.trim() ?? ''
     const bookkeepingRate = Number((client as any).bookkeepingRate ?? 0)
     const softwareRate    = Number((client as any).softwareRate    ?? 0)
-    const revenue     = bookkeepingRate   // profitability is based on BK rate only
-    const totalMonthly = bookkeepingRate + softwareRate
+    // Revenue for profitability = bookkeepingRate only
+    // Fall back to totalMonthlyAmount minus softwareRate if bookkeepingRate not set
+    const savedTotal = Number((client as any).totalMonthlyAmount ?? 0)
+    const revenue = bookkeepingRate > 0
+      ? bookkeepingRate
+      : savedTotal > 0
+        ? Math.max(savedTotal - softwareRate, savedTotal)  // use total if bk rate not set
+        : 0
+    const totalMonthly = bookkeepingRate > 0 || softwareRate > 0
+      ? bookkeepingRate + softwareRate
+      : savedTotal
     const bookkeeper  = (client as any).Bookkeeper ?? null
     const costRate    = bookkeeper ? (empByName[bookkeeper] ?? 0) : 0
     const harvestHrs  = harvestConnected

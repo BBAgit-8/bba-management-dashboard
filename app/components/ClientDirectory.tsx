@@ -609,10 +609,10 @@ export default function ClientDirectory() {
         const bkr = parseFloat(String(inlineEdits[client.id]?.bookkeepingRate ?? client.bookkeepingRate ?? 0)) || 0
         const swr = parseFloat(String(inlineEdits[client.id]?.softwareRate    ?? client.softwareRate    ?? 0)) || 0
         const autoTotal = parseFloat((bkr + swr).toFixed(2))
+        // Use manually-saved total if it exists, otherwise use auto-calc
+        const manualOverride = inlineEdits[client.id]?.totalMonthlyAmount
         const savedTotal = client.totalMonthlyAmount
-        const editedTotal = inlineEdits[client.id]?.totalMonthlyAmount
-        // If no manual override exists, show the auto-calculated value
-        const displayVal = editedTotal ?? (savedTotal != null ? String(savedTotal) : '')
+        const displayVal = manualOverride ?? (savedTotal != null ? String(savedTotal) : (autoTotal > 0 ? String(autoTotal) : ''))
         return (
           <td key={colKey} className="px-2 py-1.5">
             <div className="relative">
@@ -621,12 +621,9 @@ export default function ClientDirectory() {
                 value={displayVal}
                 onChange={e => setInlineEdits(prev => ({ ...prev, [client.id]: { ...(prev[client.id] ?? {}), totalMonthlyAmount: e.target.value } }))}
                 onBlur={e => patchCell(client, 'totalMonthlyAmount', e.target.value)}
-                placeholder={autoTotal > 0 ? autoTotal.toFixed(2) : '0.00'}
+                placeholder="0.00"
                 className="w-24 rounded-md border border-transparent bg-transparent pl-5 pr-2 py-1 text-sm text-slate-700 tabular-nums hover:border-slate-200 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400" />
             </div>
-            {autoTotal > 0 && !displayVal && (
-              <p className="text-[10px] text-purple-500 tabular-nums mt-0.5 pl-1">= ${autoTotal.toFixed(2)}</p>
-            )}
           </td>
         )
       }
