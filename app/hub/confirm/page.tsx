@@ -34,13 +34,22 @@ export default function HubConfirmPage() {
   async function handleSetPassword(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true); setError(null)
-    const { error } = await supabaseClient.auth.updateUser({ password })
-    if (error) {
-      setError(error.message)
+    
+    // First update the password
+    const { error: updateError } = await supabaseClient.auth.updateUser({ password })
+    if (updateError) {
+      setError(updateError.message)
       setLoading(false)
-    } else {
-      router.replace('/hub/dashboard')
+      return
     }
+
+    // Get current user's email and sign in fresh so session is fully established
+    const { data: { user } } = await supabaseClient.auth.getUser()
+    if (user?.email) {
+      await supabaseClient.auth.signInWithPassword({ email: user.email, password })
+    }
+
+    router.replace('/hub/dashboard')
   }
 
   return (

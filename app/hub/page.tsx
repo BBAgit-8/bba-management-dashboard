@@ -14,30 +14,15 @@ export default function HubLoginPage() {
   const [needsPassword, setNeedsPassword] = useState(false)
 
   useEffect(() => {
-    // Safety timeout — if nothing happens in 5s, show login form
-    const timeout = setTimeout(() => setChecking(false), 5000)
+    // Safety timeout — stop spinning after 4s no matter what
+    const timeout = setTimeout(() => setChecking(false), 4000)
 
-    // Supabase automatically processes #access_token and ?code= from the URL.
-    // Just listen for the auth state change — it fires when the token is exchanged.
-    const { data: { subscription } } = supabaseClient.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabaseClient.auth.onAuthStateChange((event, session) => {
       clearTimeout(timeout)
-      if (event === 'SIGNED_IN' && session) {
+      if (session) {
         router.replace('/hub/dashboard')
-      } else if (event === 'USER_UPDATED' && session) {
-        router.replace('/hub/dashboard')
-      } else if (event === 'PASSWORD_RECOVERY') {
-        setNeedsPassword(true)
+      } else if (event === 'INITIAL_SESSION' || event === 'SIGNED_OUT') {
         setChecking(false)
-      } else if (event === 'INITIAL_SESSION') {
-        if (session) {
-          router.replace('/hub/dashboard')
-        } else {
-          const url = window.location.href
-          const hasToken = url.includes('access_token') || url.includes('type=invite') || url.includes('code=')
-          if (!hasToken) {
-            setChecking(false)
-          }
-        }
       }
     })
 
