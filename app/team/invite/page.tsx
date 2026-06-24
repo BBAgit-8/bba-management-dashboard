@@ -31,7 +31,7 @@ export default function InvitePage() {
     })
     const json = await res.json()
     if (!res.ok) {
-      setError(json.error ?? 'Invite failed.')
+      setError(json.error ?? JSON.stringify(json) ?? 'Invite failed.')
     } else {
       setSuccess(`Invite sent to ${emp.name} (${emp.email})`)
       setEmployees(prev => prev.map(e =>
