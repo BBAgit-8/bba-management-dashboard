@@ -46,7 +46,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       })
       if (error) {
         const already = /already (registered|invited|been invited)/i.test(error.message)
-        if (!already) return NextResponse.json({ error: `Auth: ${error.message}` }, { status: 500 })
+        if (!already) {
+          const errDetail = JSON.stringify({ message: error.message, status: (error as any).status, code: (error as any).code, name: error.name })
+          return NextResponse.json({ error: `Auth: ${errDetail}` }, { status: 500 })
+        }
       } else {
         authUserId = data?.user?.id ?? null
       }
