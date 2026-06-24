@@ -76,10 +76,10 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         const data = await res.json()
         harvestEntries = data.time_entries ?? []
         harvestConnected = true
-        // If there are more pages, fetch them too (up to 5 pages = 500 entries)
-        let page = 2
-        while (data.next_page && page <= 5) {
-          const r2 = await fetchWithTimeout(
+        // Fetch all remaining pages
+        const totalPages = data.total_pages ?? 1
+        for (let page = 2; page <= Math.min(totalPages, 20); page++) {
+          const r = await fetchWithTimeout(
             `https://api.harvestapp.com/v2/time_entries?from=${from}&to=${to}&per_page=100&page=${page}`,
             { headers: {
               'Authorization': `Bearer ${token}`,
@@ -88,11 +88,9 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
             }},
             5000
           )
-          if (!r2.ok) break
-          const d2 = await r2.json()
-          harvestEntries = harvestEntries.concat(d2.time_entries ?? [])
-          if (!d2.next_page) break
-          page++
+          if (!r.ok) break
+          const d = await r.json()
+          harvestEntries = harvestEntries.concat(d.time_entries ?? [])
         }
       }
     } catch (e: any) {
@@ -111,17 +109,6 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     if (code) hoursByCode[code] = (hoursByCode[code] ?? 0) + (entry.hours ?? 0)
     if (name) hoursByName[name] = (hoursByName[name] ?? 0) + (entry.hours ?? 0)
   }
-
-  // Debug info
-  const harvestDebug = harvestEntries.slice(0, 3).map(e => ({
-    projectName: e.project?.name,
-    projectCode: e.project?.code,
-    hours: e.hours,
-    date: e.spent_date,
-    user: e.user?.name,
-  }))
-  const harvestCodes = Object.keys(hoursByCode)
-  const clientCodes  = clients.map(c => c.harvestProjectCode?.toUpperCase()?.trim())
 
   // 4. Build rows
   const rows = clients.map(client => {
@@ -157,8 +144,5 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   }
   if (totals.revenue > 0) totals.margin = parseFloat(((totals.profit / totals.revenue) * 100).toFixed(1))
 
-  return NextResponse.json({
-    rows, totals, harvestConnected, harvestError, from, to,
-    _debug: { harvestEntryCount: harvestEntries.length, harvestCodes, clientCodes, harvestDebug },
-  })
+  return NextResponse.json({ rows, totals, harvestConnected, harvestError, from, to })
 }
