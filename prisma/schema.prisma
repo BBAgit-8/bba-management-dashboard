@@ -121,6 +121,7 @@ model Client {
   hasScheduledMeetings     Boolean        @default(false)
   hasSignedAutoIncrease    Boolean        @default(false)
   softwareRate             Decimal?       @db.Decimal(10, 2)
+  bookkeepingRate          Decimal?       @db.Decimal(10, 2)
   totalMonthlyAmount       Decimal?       @db.Decimal(10, 2)
 
   // Accountant consent
