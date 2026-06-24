@@ -49,8 +49,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         if (!already) {
           const isRateLimit = (error as any).code === 'over_email_send_rate_limit' || (error as any).status === 429
           const msg = isRateLimit
-            ? 'Supabase email rate limit reached. Wait an hour and try again, or set up a custom SMTP provider in Supabase Auth settings.'
-            : error.message || JSON.stringify(error)
+            ? 'Email rate limit reached — wait an hour and try again.'
+            : `${error.message || '(no message)'} | status=${(error as any).status ?? '?'} code=${(error as any).code ?? '?'}`
           return NextResponse.json({ error: msg }, { status: 500 })
         }
       } else {
