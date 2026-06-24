@@ -49,6 +49,8 @@ export default function HubConfirmPage() {
       await supabaseClient.auth.signInWithPassword({ email: user.email, password })
     }
 
+    // Small delay to ensure session is written to localStorage before navigation
+    await new Promise(resolve => setTimeout(resolve, 500))
     router.replace('/hub/dashboard')
   }
 
