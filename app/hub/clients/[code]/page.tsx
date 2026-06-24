@@ -46,6 +46,12 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   )
 }
 
+const ENTITY_LABEL: Record<string, string> = {
+  LLC: 'LLC', S_CORP: 'S-Corp', C_CORP: 'C-Corp',
+  SOLE_PROPRIETOR: 'Sole Proprietor', PARTNERSHIP: 'Partnership',
+  NON_PROFIT: 'Non-Profit', OTHER: 'Other',
+}
+
 const CADENCE_LABEL: Record<string, string> = {
   WEEKLY: 'Weekly', BIWEEKLY: 'Bi-Weekly', MONTHLY: 'Monthly', QUARTERLY: 'Quarterly',
 }
@@ -104,7 +110,7 @@ export default function HubClientDetail() {
           <h1 className="text-2xl font-bold text-slate-800">{client.name}</h1>
           <div className="flex items-center gap-2 mt-1">
             <span className="font-mono text-xs text-slate-400">{client.harvestProjectCode}</span>
-            {client.entityType && <span className="text-xs text-slate-400">· {client.entityType}</span>}
+            {client.entityType && <span className="text-xs text-slate-400">· {ENTITY_LABEL[client.entityType] ?? client.entityType}</span>}
             {client.projectType && (
               <span className="rounded-full px-2 py-0.5 text-[10px] font-semibold bg-purple-100 text-purple-700">
                 {PTYPE_LABEL[client.projectType] ?? client.projectType}
@@ -117,7 +123,7 @@ export default function HubClientDetail() {
       {/* Identity */}
       <Section title="Client Info">
         <InfoRow label="Contact Name"        value={client.clientContactName} />
-        <InfoRow label="Entity Type"         value={client.entityType} />
+        <InfoRow label="Entity Type"         value={client.entityType ? (ENTITY_LABEL[client.entityType] ?? client.entityType) : null} />
         <InfoRow label="Accountant"          value={client.accountantName} />
         <InfoRow label="Contract Start"      value={fmtDate(client.contractStartDate)} />
         <InfoRow label="Contract End"        value={fmtDate(client.contractEndDate)} />
