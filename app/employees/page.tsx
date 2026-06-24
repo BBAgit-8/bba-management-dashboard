@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useEffect, useCallback } from 'react'
+import { useState, useMemo, useEffect, useCallback, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd'
@@ -38,6 +38,14 @@ function billableMonthly(emp: Employee) {
 }
 
 export default function EmployeesPage() {
+  return (
+    <Suspense fallback={null}>
+      <EmployeesPageInner />
+    </Suspense>
+  )
+}
+
+function EmployeesPageInner() {
   const searchParams   = useSearchParams()
   const [employees,    setEmployees]    = useState<Employee[]>([])
   const [loading,      setLoading]      = useState(true)
