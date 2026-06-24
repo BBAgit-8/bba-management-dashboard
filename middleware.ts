@@ -5,7 +5,7 @@ export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
 
   // Only protect /hub routes (not /hub login page itself)
-  if (pathname.startsWith('/hub') && pathname !== '/hub') {
+  if (pathname.startsWith('/hub') && pathname !== '/hub' && pathname !== '/hub/confirm') {
     const token = req.cookies.get('sb-access-token')?.value
       ?? req.cookies.get(`sb-${process.env.NEXT_PUBLIC_SUPABASE_URL?.split('//')[1]?.split('.')[0]}-auth-token`)?.value
 

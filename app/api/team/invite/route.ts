@@ -42,7 +42,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       )
       const { data, error } = await admin.auth.admin.inviteUserByEmail(email, {
         data: { name, role: 'employee' },
-        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/hub`,
+        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/hub/confirm`,
       })
       if (error) {
         const already = /already (registered|invited|been invited)/i.test(error.message)
