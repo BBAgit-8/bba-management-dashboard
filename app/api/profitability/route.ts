@@ -79,10 +79,29 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
   // 5. Aggregate hours by project code from Harvest
   const hoursByCode: Record<string, number> = {}
+  const hoursByName: Record<string, number> = {}
+
+  // Debug: log what we got from Harvest
+  const harvestDebug = harvestEntries.slice(0, 5).map(e => ({
+    projectId:   e.project?.id,
+    projectName: e.project?.name,
+    projectCode: e.project?.code,
+    hours:       e.hours,
+    date:        e.spent_date,
+  }))
+
   for (const entry of harvestEntries) {
-    const code = entry.project?.code?.toUpperCase()
+    // Try matching by project code first
+    const code = entry.project?.code?.toUpperCase()?.trim()
     if (code) hoursByCode[code] = (hoursByCode[code] ?? 0) + (entry.hours ?? 0)
+    // Also index by project name (uppercased) as fallback
+    const name = entry.project?.name?.toUpperCase()?.trim()
+    if (name) hoursByName[name] = (hoursByName[name] ?? 0) + (entry.hours ?? 0)
   }
+
+  // Debug: show what codes exist in Harvest
+  const harvestCodes = Object.keys(hoursByCode)
+  const clientCodes  = (clients ?? []).map(c => c.harvestProjectCode?.toUpperCase()?.trim())
 
   // 6. Build profitability rows
   const rows = (clients ?? []).map(client => {
@@ -90,7 +109,9 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     const revenue     = Number(client.totalMonthlyAmount ?? 0)
     const bookkeeper  = client.Bookkeeper ?? null
     const costRate    = bookkeeper ? (empByName[bookkeeper] ?? 0) : 0
-    const harvestHrs  = harvestConnected ? (hoursByCode[code] ?? 0) : null
+    const harvestHrs  = harvestConnected
+      ? (hoursByCode[code] ?? hoursByName[code] ?? 0)
+      : null
     const budgetedHrs = Number(client.totalHrsPerMonth ?? 0)
     const hoursUsed   = harvestHrs !== null ? harvestHrs : budgetedHrs
     const cost        = parseFloat((hoursUsed * costRate).toFixed(2))
@@ -125,5 +146,8 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     ? parseFloat(((totals.profit / totals.revenue) * 100).toFixed(1))
     : null
 
-  return NextResponse.json({ rows, totals, harvestConnected, harvestError, from, to })
+  return NextResponse.json({
+    rows, totals, harvestConnected, harvestError, from, to,
+    _debug: { harvestEntryCount: harvestEntries.length, harvestCodes, clientCodes, harvestDebug }
+  })
 }
