@@ -24,7 +24,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   const [clientRes, empRes, settingsRes] = await Promise.all([
     supabase
       .from('clients')
-      .select('id, name, harvestProjectCode, totalMonthlyAmount, "Bookkeeper", totalHrsPerMonth, projectType')
+      .select('id, name, harvestProjectCode, totalMonthlyAmount, bookkeepingRate, softwareRate, "Bookkeeper", totalHrsPerMonth, projectType')
       .neq('archiveStatus', 'ARCHIVED')
       .order('name'),
     supabase
@@ -113,7 +113,10 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   // 4. Build rows
   const rows = clients.map(client => {
     const code        = client.harvestProjectCode?.toUpperCase()?.trim() ?? ''
-    const revenue     = Number(client.totalMonthlyAmount ?? 0)
+    const bookkeepingRate = Number((client as any).bookkeepingRate ?? 0)
+    const softwareRate    = Number((client as any).softwareRate    ?? 0)
+    const revenue     = bookkeepingRate   // profitability is based on BK rate only
+    const totalMonthly = bookkeepingRate + softwareRate
     const bookkeeper  = (client as any).Bookkeeper ?? null
     const costRate    = bookkeeper ? (empByName[bookkeeper] ?? 0) : 0
     const harvestHrs  = harvestConnected
@@ -129,6 +132,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       id: client.id, name: client.name, code,
       projectType: client.projectType,
       bookkeeper, costRate, revenue,
+      totalMonthly,
       harvestHrs: harvestHrs !== null ? parseFloat(harvestHrs.toFixed(2)) : null,
       budgetedHrs,
       hoursUsed: parseFloat(hoursUsed.toFixed(2)),

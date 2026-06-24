@@ -7,7 +7,7 @@ import { useBookkeeperSync } from '@/app/hooks/useBookkeeperSync'
 type ProfitRow = {
   id: string; name: string; code: string; projectType: string | null
   bookkeeper: string | null; costRate: number
-  revenue: number; harvestHrs: number | null; budgetedHrs: number
+  revenue: number; totalMonthly: number; harvestHrs: number | null; budgetedHrs: number
   hoursUsed: number; cost: number; profit: number; margin: number | null
 }
 
@@ -209,7 +209,8 @@ export default function ProfitabilityPage() {
                 <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-white">Client</th>
                 <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-white">Bookkeeper</th>
                 <SortTh k="hoursUsed" right>Hours</SortTh>
-                <SortTh k="revenue"   right>Revenue</SortTh>
+                <SortTh k="revenue"   right>BK Revenue</SortTh>
+                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-white/80 whitespace-nowrap">Total/Mo</th>
                 <SortTh k="cost"      right>Cost</SortTh>
                 <SortTh k="profit"    right>Profit</SortTh>
                 <SortTh k="margin"    right>Margin</SortTh>
@@ -241,6 +242,7 @@ export default function ProfitabilityPage() {
                       )}
                     </td>
                     <td className="px-4 py-3 text-right tabular-nums text-slate-700">{fmtFull(row.revenue)}</td>
+                    <td className="px-4 py-3 text-right tabular-nums text-slate-500 text-sm">{fmtFull(row.totalMonthly ?? 0)}</td>
                     <td className="px-4 py-3 text-right tabular-nums text-slate-700">{fmtFull(row.cost)}</td>
                     <td className={`px-4 py-3 text-right tabular-nums font-semibold ${row.profit >= 0 ? 'text-green-700' : 'text-red-600'}`}>
                       {fmtFull(row.profit)}
@@ -268,6 +270,9 @@ export default function ProfitabilityPage() {
                   </td>
                   <td className="px-4 py-3 text-right tabular-nums text-sm font-semibold text-slate-700">
                     {fmtFull(filtered.reduce((s, r) => s + r.revenue, 0))}
+                    </td>
+                    <td className="px-4 py-3 text-right tabular-nums text-sm font-bold text-slate-600">
+                    {fmtFull(filtered.reduce((s, r) => s + (r.totalMonthly ?? 0), 0))}
                   </td>
                   <td className="px-4 py-3 text-right tabular-nums text-sm font-semibold text-slate-700">
                     {fmtFull(filtered.reduce((s, r) => s + r.cost, 0))}
