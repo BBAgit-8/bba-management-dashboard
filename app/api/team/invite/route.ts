@@ -2,12 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  { auth: { autoRefreshToken: false, persistSession: false } }
-)
-
 export async function GET(): Promise<NextResponse> {
   const { data, error } = await supabase
     .from('employees')
@@ -48,6 +42,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
       return NextResponse.json({ error: 'NEXT_PUBLIC_SUPABASE_URL not configured' }, { status: 500 })
     }
+
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY,
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    )
 
     // Send Supabase invite email
     const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
@@ -95,6 +95,12 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
 
   const { employeeId } = body
   if (!employeeId) return NextResponse.json({ error: 'Missing employeeId' }, { status: 400 })
+
+  const supabaseAdmin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  )
 
   const { data: emp } = await supabase
     .from('employees')
