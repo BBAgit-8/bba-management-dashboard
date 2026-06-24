@@ -13,7 +13,7 @@ const sections = [
       </svg>
     ),
     title: 'Software Pricing',
-    description: 'Set monthly prices for QuickBooks tiers and Dext. Used to auto-calculate software rates when adding clients.',
+    description: 'Set monthly prices for QuickBooks tiers and Double Receipts. Used to auto-calculate software rates when adding clients.',
   },
   {
     href: '/settings/pills',

@@ -93,7 +93,7 @@ function CapacityCard({ emp, assignedHrs, assignedCount, capacityHrs }: {
             {initials(emp.name)}
           </div>
           <div>
-            <a href="/employees" className={`text-sm font-semibold leading-tight hover:underline underline-offset-2 ${overloaded ? 'text-red-700' : 'text-pink-600'}`}>{emp.name}</a>
+            <a href={`/employees?open=${emp.id}`} className={`text-sm font-semibold leading-tight hover:underline underline-offset-2 ${overloaded ? 'text-red-700' : 'text-pink-600'}`}>{emp.name}</a>
             <p className={`text-[11px] mt-0.5 ${'text-slate-400'}`}>
               {emp.contractedHours}h/wk · 80% billable
             </p>

@@ -101,6 +101,22 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
   const [accountants,  setAccountants]  = useState<{ id: string; name: string }[]>([]);
   const [showNewAcct,   setShowNewAcct]  = useState(false);
   const [addingAcct,    setAddingAcct]   = useState(false);
+  const [referrerOptions, setReferrerOptions] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!open) return
+    fetch('/api/clients')
+      .then(r => r.json())
+      .then(d => {
+        if (Array.isArray(d.clients)) {
+          const names = [...new Set(
+            d.clients.map((c: any) => c.referredBy).filter(Boolean)
+          )].sort() as string[]
+          setReferrerOptions(names)
+        }
+      })
+      .catch(() => {})
+  }, [open])
   const [newAcct,       setNewAcct]       = useState({ name: '', businessName: '', email: '', phoneNumber: '' });
   const [tags, setTags] = useState<{ id: string; name: string; color: string }[]>([]);
   const [saving, setSaving] = useState(false);
@@ -323,7 +339,17 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
               </Field>
             </Grid2>
             <Field label="Referred By">
-              <input type="text" value={form.referredBy} onChange={e => set('referredBy', e.target.value)} placeholder="e.g. Chamber of Commerce" className={inp} />
+              <input
+                type="text"
+                list="referred-by-list"
+                value={form.referredBy}
+                onChange={e => set('referredBy', e.target.value)}
+                placeholder="e.g. Chamber of Commerce"
+                className={inp}
+              />
+              <datalist id="referred-by-list">
+                {referrerOptions.map(r => <option key={r} value={r} />)}
+              </datalist>
             </Field>
           </Section>
 

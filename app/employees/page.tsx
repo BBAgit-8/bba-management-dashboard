@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo, useEffect, useCallback } from 'react'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd'
 import AddEmployeePanel from '@/app/components/AddEmployeePanel'
@@ -37,6 +38,7 @@ function billableMonthly(emp: Employee) {
 }
 
 export default function EmployeesPage() {
+  const searchParams   = useSearchParams()
   const [employees,    setEmployees]    = useState<Employee[]>([])
   const [loading,      setLoading]      = useState(true)
   const [error,        setError]        = useState<string | null>(null)
@@ -52,7 +54,15 @@ export default function EmployeesPage() {
     fetch('/api/employees')
       .then(r => r.json())
       .then(data => {
-        if (Array.isArray(data)) setEmployees(data)
+        if (Array.isArray(data)) {
+          setEmployees(data)
+          // Auto-open drawer if ?open=<id> is in the URL
+          const openId = searchParams?.get('open')
+          if (openId) {
+            const emp = data.find((e: Employee) => e.id === openId)
+            if (emp) setSelectedEmp(emp)
+          }
+        }
         else setError(data.error ?? 'Unknown error')
       })
       .catch(e => setError(e.message))

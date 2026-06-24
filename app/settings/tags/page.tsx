@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { TAGS } from '@/lib/mock-data'
-import type { Tag } from '@/lib/mock-data'
+
+type Tag = { id: string; name: string; color: string }
 
 const PRESET_COLORS = [
   '#4e008e', '#b20476', '#d4bebe', '#EF4444',
@@ -11,7 +11,8 @@ const PRESET_COLORS = [
 ]
 
 export default function TagSettingsPage() {
-  const [tags,     setTags]     = useState<Tag[]>(TAGS)
+  const [tags,     setTags]     = useState<Tag[]>([])
+  const [loading,  setLoading]  = useState(true)
   const [name,     setName]     = useState('')
   const [color,    setColor]    = useState(PRESET_COLORS[0])
   const [saving,   setSaving]   = useState(false)
@@ -22,7 +23,8 @@ export default function TagSettingsPage() {
     fetch('/api/tags')
       .then(r => r.json())
       .then(d => { if (Array.isArray(d.tags)) setTags(d.tags) })
-      .catch(() => { /* DB not available — keep mock data */ })
+      .catch(() => {})
+      .finally(() => setLoading(false))
   }, [])
 
   async function handleCreate(e: React.FormEvent) {
@@ -140,9 +142,11 @@ export default function TagSettingsPage() {
       {/* Existing tags */}
       <div>
         <h2 className="mb-3 text-sm font-semibold text-slate-800">
-          Existing Tags <span className="ml-1.5 text-xs font-normal text-slate-400">({tags.length})</span>
+          Existing Tags <span className="ml-1.5 text-xs font-normal text-slate-400">({loading ? '…' : tags.length})</span>
         </h2>
-        {tags.length === 0 ? (
+        {loading ? (
+          <p className="text-sm text-slate-400">Loading tags…</p>
+        ) : tags.length === 0 ? (
           <p className="text-sm text-slate-400">No tags yet. Create one above.</p>
         ) : (
           <div className="space-y-2">

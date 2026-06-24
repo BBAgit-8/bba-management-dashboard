@@ -77,54 +77,53 @@ type StatusKey = 'active' | 'archived' | 'inactive' | 'offboarding' | 'pendingAr
 type StatusFilter = StatusKey | 'all'
 
 const ALL_COLUMNS: { key: ColKey; label: string; defaultVisible: boolean; align?: 'right' | 'center' }[] = [
-  // Default visible columns in requested order
+  // ── Default visible — exact order from spec ────────────────────────────────
   { key: 'name',               label: 'Client Name',              defaultVisible: true  },
-  { key: 'clientGroupName',    label: 'Client Group Name',        defaultVisible: true  },
+  { key: 'clientGroupName',    label: 'Client Group Name',        defaultVisible: false },
   { key: 'code',               label: 'Project Code',             defaultVisible: true  },
-  { key: 'clientContactName',  label: 'Client Contact Name',      defaultVisible: true  },
+  { key: 'clientContactName',  label: 'Client Contact Name',      defaultVisible: false },
   { key: 'projectType',        label: 'Recurring or Cleanup',     defaultVisible: true  },
-  { key: 'contractStartDate',  label: 'Contract Start Date',      defaultVisible: true  },
-  { key: 'contractEndDate',    label: 'End Date / Archive',       defaultVisible: true  },
+  { key: 'contractStartDate',  label: 'Contract Start Date',      defaultVisible: false },
+  { key: 'contractEndDate',    label: 'End Date / Archive',       defaultVisible: false },
   { key: 'entityType',         label: 'Entity Type',              defaultVisible: true  },
   { key: 'revenueType',        label: 'Rev Type',                 defaultVisible: true  },
   { key: 'bookkeepingRate',    label: 'Bookkeeping Rate',         defaultVisible: true,  align: 'right' },
   { key: 'softwareRate',       label: 'Software Rate',            defaultVisible: true,  align: 'right' },
   { key: 'monthlyBilling',     label: 'Monthly Billing',          defaultVisible: true,  align: 'right' },
   { key: 'totalHrsPerMonth',   label: 'Total Hrs/Mo',             defaultVisible: true,  align: 'right' },
-  { key: 'apArHrs',            label: 'AP Hours',                 defaultVisible: true,  align: 'right' },
-  { key: 'qaHours',            label: 'QA Hours',                 defaultVisible: true,  align: 'right' },
-  { key: 'custSuccessMgmtHrs', label: 'Cust Success / Mgmt Hrs', defaultVisible: true,  align: 'right' },
-  { key: 'yeOrTaxHours',       label: 'YE / 1099 Hours',         defaultVisible: true,  align: 'right' },
-  { key: 'auditHours',         label: 'Audit Hours',              defaultVisible: true,  align: 'right' },
+  { key: 'apArHrs',            label: 'AP Hours',                 defaultVisible: false, align: 'right' },
+  { key: 'qaHours',            label: 'QA Hours',                 defaultVisible: false, align: 'right' },
+  { key: 'custSuccessMgmtHrs', label: 'Cust Success / Mgmt Hrs', defaultVisible: false, align: 'right' },
+  { key: 'yeOrTaxHours',       label: 'YE / 1099 Hours',         defaultVisible: false, align: 'right' },
+  { key: 'auditHours',         label: 'Audit Hours',              defaultVisible: false, align: 'right' },
   { key: 'bkprHours',          label: 'Bkpr Hours',              defaultVisible: true,  align: 'right' },
-  { key: 'bankFeedTime',       label: 'Bank Feed Time',           defaultVisible: true,  align: 'right' },
-  { key: 'transactionsPerMonth',label: '# Transactions/Mo',      defaultVisible: true,  align: 'right' },
-  { key: 'recTime',            label: 'Rec Time',                 defaultVisible: true,  align: 'right' },
-  { key: 'numBanksAndCCs',     label: '# Banks & CCs',           defaultVisible: true,  align: 'right' },
-  { key: 'numLoans',           label: '# Loans',                  defaultVisible: true,  align: 'right' },
-  { key: 'numPmtPortals',      label: '# Pmt Portals',           defaultVisible: true,  align: 'right' },
-  { key: 'pettyCash',          label: 'Petty Cash',               defaultVisible: true,  align: 'center' },
+  { key: 'bankFeedTime',       label: 'Bank Feed Time',           defaultVisible: false, align: 'right' },
+  { key: 'transactionsPerMonth',label: '# Transactions/Mo',      defaultVisible: false, align: 'right' },
+  { key: 'recTime',            label: 'Rec Time',                 defaultVisible: false, align: 'right' },
+  { key: 'numBanksAndCCs',     label: '# Banks & CCs',           defaultVisible: false, align: 'right' },
+  { key: 'numLoans',           label: '# Loans',                  defaultVisible: false, align: 'right' },
+  { key: 'numPmtPortals',      label: '# Pmt Portals',           defaultVisible: false, align: 'right' },
+  { key: 'pettyCash',          label: 'Petty Cash',               defaultVisible: false, align: 'center' },
   { key: 'referredBy',         label: 'Referred By',              defaultVisible: true  },
-  // Hidden by default (available in Show Columns)
-  { key: 'bookkeeper',         label: 'Bookkeeper',               defaultVisible: false },
+  { key: 'bookkeeper',         label: 'Bookkeeper',               defaultVisible: true  },
+  // ── Hidden — available in Show Columns ─────────────────────────────────────
   { key: 'status',             label: 'Status',                   defaultVisible: false },
   { key: 'contractedCloseDate',label: 'Contracted Close Date',    defaultVisible: false },
   { key: 'doubleId',           label: 'Double ID',                defaultVisible: false },
   { key: 'qboId',              label: 'QBO ID',                   defaultVisible: false },
   { key: 'clickUpId',          label: 'ClickUp ID',               defaultVisible: false },
-  // Operational
-  { key: 'guaranteedDeadlineDay',  label: 'Deadline Day',         defaultVisible: false, align: 'center' as const },
-  { key: 'hasContractedLoom',      label: 'Loom',                 defaultVisible: false, align: 'center' as const },
-  { key: 'hasScheduledMeetings',   label: 'Meetings',             defaultVisible: false, align: 'center' as const },
-  { key: 'hasSignedAutoIncrease',  label: 'Auto Increase',        defaultVisible: false, align: 'center' as const },
-  { key: 'autoPriceIncreasePercent', label: 'Auto Increase %',   defaultVisible: false, align: 'right'  as const },
-  { key: 'accountantName',         label: 'Accountant',           defaultVisible: false },
+  { key: 'guaranteedDeadlineDay', label: 'Deadline Day',          defaultVisible: false, align: 'center' as const },
+  { key: 'hasContractedLoom',     label: 'Loom',                  defaultVisible: false, align: 'center' as const },
+  { key: 'hasScheduledMeetings',  label: 'Meetings',              defaultVisible: false, align: 'center' as const },
+  { key: 'hasSignedAutoIncrease', label: 'Auto Increase',         defaultVisible: false, align: 'center' as const },
+  { key: 'autoPriceIncreasePercent', label: 'Auto Increase %',    defaultVisible: false, align: 'right'  as const },
+  { key: 'accountantName',        label: 'Accountant',            defaultVisible: false },
 ]
 
 const DEFAULT_VISIBLE = new Set(ALL_COLUMNS.filter(c => c.defaultVisible).map(c => c.key))
 const ALL_COL_KEYS = ALL_COLUMNS.map(c => c.key)
-const STORAGE_VISIBLE = 'cd-visible-cols-v1'
-const STORAGE_ORDER   = 'cd-col-order-v4'
+const STORAGE_VISIBLE = 'cd-visible-cols-v5'  // bumped — resets saved prefs
+const STORAGE_ORDER   = 'cd-col-order-v5'     // bumped
 
 // ── Style maps ────────────────────────────────────────────────────────────────
 const dropSel = 'rounded-lg bg-white border border-surface-border px-3 py-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-bba-primary'
@@ -315,10 +314,13 @@ export default function ClientDirectory() {
   })
   const resizingCol = useRef<{ key: string; startX: number; startW: number } | null>(null)
 
-  function startResize(e: React.MouseEvent, colKey: string, currentW: number) {
+  function startResize(e: React.MouseEvent, colKey: string) {
     e.preventDefault()
     e.stopPropagation()
-    ;(e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId)
+    const th = (e.currentTarget as HTMLElement).closest('th') as HTMLTableCellElement
+    const currentW = th ? th.getBoundingClientRect().width : (colWidths[colKey] ?? 120)
+    // Snapshot width immediately so layout locks before drag starts
+    setColWidths(prev => ({ ...prev, [colKey]: currentW }))
     resizingCol.current = { key: colKey, startX: e.clientX, startW: currentW }
 
     function onMove(ev: MouseEvent) {
@@ -331,7 +333,6 @@ export default function ClientDirectory() {
       resizingCol.current = null
       window.removeEventListener('mousemove', onMove)
       window.removeEventListener('mouseup', onUp)
-      // Persist
       setColWidths(prev => {
         try { localStorage.setItem(STORAGE_WIDTHS, JSON.stringify(prev)) } catch {}
         return prev
@@ -1016,7 +1017,7 @@ export default function ClientDirectory() {
                                 </button>
                                 {/* Resize handle */}
                                 <div
-                                  onMouseDown={e => startResize(e, colKey, colWidths[colKey] ?? (e.currentTarget.closest('th') as HTMLElement)?.offsetWidth ?? 120)}
+                                  onMouseDown={e => startResize(e, colKey)}
                                   className="absolute right-0 top-0 h-full w-3 cursor-col-resize flex items-center justify-center opacity-0 hover:opacity-100 group-hover:opacity-60 transition-opacity z-10"
                                   title="Drag to resize"
                                   onClick={e => e.stopPropagation()}

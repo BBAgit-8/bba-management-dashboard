@@ -1,23 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 
-// Fields that must be remapped to their actual DB column name
 const FIELD_MAP: Record<string, string> = {
   bookkeeper: 'Bookkeeper',
 }
 
-// Fields that must be coerced to numbers (strings from input elements)
 const NUMERIC_FIELDS = new Set([
-  'bookkeepingRate', 'softwareRate', 'totalMonthlyAmount', 'bookingRate',
+  'bookkeepingRate', 'softwareRate', 'totalMonthlyAmount',
   'totalHrsPerMonth', 'apArHrs', 'qaHours', 'custSuccessMgmtHrs',
   'yeOrTaxHours', 'auditHours', 'bkprHours', 'bankFeedTime',
   'transactionsPerMonth', 'recTime', 'numBanksAndCCs', 'numLoans',
   'numPmtPortals', 'guaranteedDeadlineDay', 'autoPriceIncreasePercent',
 ])
 
-// Fields that must be coerced to booleans
 const BOOLEAN_FIELDS = new Set([
   'hasContractedLoom', 'hasScheduledMeetings', 'hasSignedAutoIncrease', 'pettyCash', 'qboOnly',
+])
+
+// Enum columns — empty string means "leave as-is", skip the update
+const ENUM_FIELDS = new Set([
+  'entityType', 'projectType', 'processingCadence', 'archiveStatus',
 ])
 
 export async function PATCH(
@@ -35,6 +37,8 @@ export async function PATCH(
 
   for (const [key, val] of Object.entries(raw)) {
     const dbKey = FIELD_MAP[key] ?? key
+    // Skip enum fields with empty value — don't null them out
+    if (ENUM_FIELDS.has(key) && (val === '' || val === null || val === undefined)) continue
     if (val === null || val === '' || val === undefined) {
       mapped[dbKey] = null
     } else if (NUMERIC_FIELDS.has(key)) {
@@ -45,6 +49,10 @@ export async function PATCH(
     } else {
       mapped[dbKey] = val
     }
+  }
+
+  if (Object.keys(mapped).length === 0) {
+    return NextResponse.json({ ok: true, skipped: true })
   }
 
   const { data, error } = await supabase

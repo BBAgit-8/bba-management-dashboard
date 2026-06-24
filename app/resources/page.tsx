@@ -8,8 +8,80 @@ type Resource = {
   description: string
   url: string
   category: 'sheet' | 'tool' | 'app'
-  embedUrl?: string   // Google Sheets publish-to-web embed URL
+  embedUrl?: string
   icon: React.ReactNode
+}
+
+function toEmbedUrl(url: string): string {
+  // Convert various Google Sheets URL formats to a previewable embed URL
+  const match = url.match(/spreadsheets\/d\/([a-zA-Z0-9_-]+)/)
+  if (match) return `https://docs.google.com/spreadsheets/d/${match[1]}/preview`
+  return url
+}
+
+function AddSheetCard({ onAdd }: { onAdd: (r: Resource) => void }) {
+  const [open,  setOpen]  = useState(false)
+  const [title, setTitle] = useState('')
+  const [desc,  setDesc]  = useState('')
+  const [url,   setUrl]   = useState('')
+  const [error, setError] = useState('')
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setError('')
+    if (!url.trim()) { setError('Please paste a URL'); return }
+    const isSheet = url.includes('docs.google.com/spreadsheets')
+    if (!isSheet && !url.startsWith('http')) { setError('Please enter a valid URL'); return }
+    onAdd({
+      id: `custom-${Date.now()}`,
+      title: title.trim() || 'Untitled Sheet',
+      description: desc.trim(),
+      url: url.trim(),
+      embedUrl: isSheet ? toEmbedUrl(url.trim()) : undefined,
+      category: isSheet ? 'sheet' : 'tool',
+      icon: SHEETS_ICON,
+    })
+    setTitle(''); setDesc(''); setUrl(''); setOpen(false)
+  }
+
+  if (!open) return (
+    <button onClick={() => setOpen(true)}
+      className="rounded-xl border border-dashed border-slate-300 bg-white/50 p-5 flex items-center gap-3 text-slate-400 hover:border-purple-300 hover:text-purple-500 transition-colors w-full text-left">
+      <svg className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+      </svg>
+      <p className="text-sm">Add a sheet or resource — paste a Google Sheet URL or any link</p>
+    </button>
+  )
+
+  return (
+    <div className="rounded-xl border border-purple-200 bg-purple-50 p-5 space-y-3">
+      <h3 className="text-sm font-semibold text-slate-700">Add Resource</h3>
+      <form onSubmit={handleSubmit} className="space-y-3">
+        <input type="text" value={title} onChange={e => setTitle(e.target.value)}
+          placeholder="Title (optional)"
+          className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+        <input type="text" value={desc} onChange={e => setDesc(e.target.value)}
+          placeholder="Description (optional)"
+          className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+        <input type="url" value={url} onChange={e => setUrl(e.target.value)}
+          placeholder="Paste Google Sheet URL or any link…"
+          autoFocus
+          className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono text-xs" />
+        {error && <p className="text-xs text-red-500">{error}</p>}
+        <div className="flex gap-2">
+          <button type="submit"
+            className="rounded-lg bg-bba-primary px-4 py-2 text-xs font-semibold text-white hover:bg-bba-primary/85">
+            Add Resource
+          </button>
+          <button type="button" onClick={() => setOpen(false)}
+            className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-medium text-slate-500 hover:text-slate-700">
+            Cancel
+          </button>
+        </div>
+      </form>
+    </div>
+  )
 }
 
 const SHEETS_ICON = (
@@ -72,6 +144,8 @@ const CATEGORY_COLOR: Record<Resource['category'], { bg: string; text: string }>
 
 export default function ResourcesPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [customSheets, setCustomSheets] = useState<Resource[]>([])
+  const allResources = [...RESOURCES, ...customSheets]
 
   function toggleEmbed(id: string) {
     setExpandedId(prev => prev === id ? null : id)
@@ -92,7 +166,7 @@ export default function ResourcesPage() {
           Sheets &amp; Trackers
         </h2>
         <div className="space-y-3">
-          {RESOURCES.map(resource => {
+          {allResources.map(resource => {
             const isExpanded = expandedId === resource.id
             const cat = CATEGORY_COLOR[resource.category]
             return (
@@ -168,13 +242,8 @@ export default function ResourcesPage() {
             )
           })}
 
-          {/* Add sheet placeholder card */}
-          <div className="rounded-xl border border-dashed border-slate-300 bg-white/50 p-5 flex items-center gap-3 text-slate-400">
-            <svg className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            <p className="text-sm">More sheets coming — paste a Google Sheet URL to add it here.</p>
-          </div>
+          {/* Add sheet form */}
+          <AddSheetCard onAdd={(r) => setCustomSheets(prev => [...prev, r])} />
         </div>
       </section>
 
