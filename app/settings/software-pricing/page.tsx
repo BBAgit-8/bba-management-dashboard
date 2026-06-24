@@ -9,7 +9,7 @@ const SETTING_KEYS = [
   { key: 'qbo_essentials',   label: 'QuickBooks Essentials',   prefix: '$' },
   { key: 'qbo_plus',         label: 'QuickBooks Plus',         prefix: '$' },
   { key: 'qbo_advanced',     label: 'QuickBooks Advanced',     prefix: '$' },
-  { key: 'dext',             label: 'Dext / Receipts',         prefix: '$' },
+  { key: 'dext',             label: 'Double Receipts',         prefix: '$' },
 ]
 
 export default function SoftwarePricingPage() {

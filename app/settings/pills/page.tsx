@@ -233,13 +233,13 @@ export default function PillManagerPage() {
         <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
         </svg>
-        <span className="text-slate-500">Visual Pill Manager</span>
+        <span className="text-slate-500">Tag Manager</span>
       </div>
 
       {/* ── Page header + sticky save bar ── */}
       <div className="flex items-start justify-between gap-6">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Visual Pill Manager</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Tag Manager</h1>
           <p className="mt-1 text-sm text-[#8a6a90]">
             Edit badge labels and brand colors for every pill type used across the dashboard.
             Changes are saved to the database and applied on the next page load.

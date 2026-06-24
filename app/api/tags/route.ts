@@ -18,7 +18,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   if (typeof color !== 'string' || !/^#[0-9a-fA-F]{6}$/.test(color))
     return NextResponse.json({ error: '"color" must be a valid hex color' }, { status: 422 })
 
-  const { data, error } = await supabase.from('tags').insert({ name: name.trim(), color }).select().single()
+  const { data, error } = await supabase.from('tags').insert({
+    id:        crypto.randomUUID(),
+    name:      name.trim(),
+    color,
+    createdAt: new Date().toISOString(),
+  }).select().single()
   if (error) {
     if (error.code === '23505') return NextResponse.json({ error: `Tag "${name}" already exists` }, { status: 409 })
     return NextResponse.json({ error: error.message }, { status: 500 })

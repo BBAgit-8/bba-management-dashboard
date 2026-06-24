@@ -77,39 +77,41 @@ type StatusKey = 'active' | 'archived' | 'inactive' | 'offboarding' | 'pendingAr
 type StatusFilter = StatusKey | 'all'
 
 const ALL_COLUMNS: { key: ColKey; label: string; defaultVisible: boolean; align?: 'right' | 'center' }[] = [
-  { key: 'name',               label: 'Client Name',          defaultVisible: true  },
-  { key: 'code',               label: 'Project Code',         defaultVisible: true  },
-  { key: 'bookkeeper',         label: 'Bookkeeper',           defaultVisible: true  },
-  { key: 'entityType',         label: 'Entity Type',          defaultVisible: true  },
-  { key: 'projectType',        label: 'Recurring or Cleanup', defaultVisible: true  },
-  { key: 'revenueType',        label: 'Rev Type',             defaultVisible: false },
-  { key: 'monthlyBilling',     label: 'Monthly Billing',      defaultVisible: true,  align: 'right' },
-  { key: 'bookkeepingRate',    label: 'Bookkeeping Rate',     defaultVisible: false, align: 'right' },
-  { key: 'softwareRate',       label: 'Software Rate',        defaultVisible: false, align: 'right' },
-  { key: 'status',             label: 'Status',               defaultVisible: false },
-  { key: 'contractStartDate',  label: 'Contract Start Date',  defaultVisible: false },
-  { key: 'contractEndDate',    label: 'End Date / Archive',   defaultVisible: false },
-  { key: 'contractedCloseDate',label: 'Contracted Close Date',defaultVisible: false },
-  { key: 'clientGroupName',    label: 'Client Group Name',    defaultVisible: false },
-  { key: 'doubleId',           label: 'Double ID',            defaultVisible: false },
-  { key: 'qboId',              label: 'QBO ID',               defaultVisible: false },
-  { key: 'clickUpId',          label: 'ClickUp ID',           defaultVisible: false },
-  { key: 'clientContactName',  label: 'Client Contact Name',  defaultVisible: false },
-  { key: 'totalHrsPerMonth',   label: 'Total Hrs/Mo',         defaultVisible: false, align: 'right' },
-  { key: 'apArHrs',            label: 'AP/AR Hrs',            defaultVisible: false, align: 'right' },
-  { key: 'qaHours',            label: 'QA Hours',             defaultVisible: false, align: 'right' },
-  { key: 'custSuccessMgmtHrs', label: 'Cust Success / Mgmt Hrs', defaultVisible: false, align: 'right' },
-  { key: 'yeOrTaxHours',       label: 'YE / 1099 Hours',      defaultVisible: false, align: 'right' },
-  { key: 'auditHours',         label: 'Audit Hours',          defaultVisible: false, align: 'right' },
-  { key: 'bkprHours',          label: 'Bkpr Hours',           defaultVisible: false, align: 'right' },
-  { key: 'bankFeedTime',       label: 'Bank Feed Time',       defaultVisible: false, align: 'right' },
-  { key: 'transactionsPerMonth',label: '# Transactions / mo', defaultVisible: false, align: 'right' },
-  { key: 'recTime',            label: 'Rec Time',             defaultVisible: false, align: 'right' },
-  { key: 'numBanksAndCCs',     label: '# Banks & CCs',        defaultVisible: false, align: 'right' },
-  { key: 'numLoans',           label: '# Loans',              defaultVisible: false, align: 'right' },
-  { key: 'numPmtPortals',      label: '# Pmt Portals',        defaultVisible: false, align: 'right' },
-  { key: 'pettyCash',          label: 'Petty Cash',           defaultVisible: false, align: 'center' },
-  { key: 'referredBy',         label: 'Referred By',          defaultVisible: false },
+  // Default visible columns in requested order
+  { key: 'name',               label: 'Client Name',              defaultVisible: true  },
+  { key: 'clientGroupName',    label: 'Client Group Name',        defaultVisible: true  },
+  { key: 'code',               label: 'Project Code',             defaultVisible: true  },
+  { key: 'clientContactName',  label: 'Client Contact Name',      defaultVisible: true  },
+  { key: 'projectType',        label: 'Recurring or Cleanup',     defaultVisible: true  },
+  { key: 'contractStartDate',  label: 'Contract Start Date',      defaultVisible: true  },
+  { key: 'contractEndDate',    label: 'End Date / Archive',       defaultVisible: true  },
+  { key: 'entityType',         label: 'Entity Type',              defaultVisible: true  },
+  { key: 'revenueType',        label: 'Rev Type',                 defaultVisible: true  },
+  { key: 'bookkeepingRate',    label: 'Bookkeeping Rate',         defaultVisible: true,  align: 'right' },
+  { key: 'softwareRate',       label: 'Software Rate',            defaultVisible: true,  align: 'right' },
+  { key: 'monthlyBilling',     label: 'Monthly Billing',          defaultVisible: true,  align: 'right' },
+  { key: 'totalHrsPerMonth',   label: 'Total Hrs/Mo',             defaultVisible: true,  align: 'right' },
+  { key: 'apArHrs',            label: 'AP Hours',                 defaultVisible: true,  align: 'right' },
+  { key: 'qaHours',            label: 'QA Hours',                 defaultVisible: true,  align: 'right' },
+  { key: 'custSuccessMgmtHrs', label: 'Cust Success / Mgmt Hrs', defaultVisible: true,  align: 'right' },
+  { key: 'yeOrTaxHours',       label: 'YE / 1099 Hours',         defaultVisible: true,  align: 'right' },
+  { key: 'auditHours',         label: 'Audit Hours',              defaultVisible: true,  align: 'right' },
+  { key: 'bkprHours',          label: 'Bkpr Hours',              defaultVisible: true,  align: 'right' },
+  { key: 'bankFeedTime',       label: 'Bank Feed Time',           defaultVisible: true,  align: 'right' },
+  { key: 'transactionsPerMonth',label: '# Transactions/Mo',      defaultVisible: true,  align: 'right' },
+  { key: 'recTime',            label: 'Rec Time',                 defaultVisible: true,  align: 'right' },
+  { key: 'numBanksAndCCs',     label: '# Banks & CCs',           defaultVisible: true,  align: 'right' },
+  { key: 'numLoans',           label: '# Loans',                  defaultVisible: true,  align: 'right' },
+  { key: 'numPmtPortals',      label: '# Pmt Portals',           defaultVisible: true,  align: 'right' },
+  { key: 'pettyCash',          label: 'Petty Cash',               defaultVisible: true,  align: 'center' },
+  { key: 'referredBy',         label: 'Referred By',              defaultVisible: true  },
+  // Hidden by default (available in Show Columns)
+  { key: 'bookkeeper',         label: 'Bookkeeper',               defaultVisible: false },
+  { key: 'status',             label: 'Status',                   defaultVisible: false },
+  { key: 'contractedCloseDate',label: 'Contracted Close Date',    defaultVisible: false },
+  { key: 'doubleId',           label: 'Double ID',                defaultVisible: false },
+  { key: 'qboId',              label: 'QBO ID',                   defaultVisible: false },
+  { key: 'clickUpId',          label: 'ClickUp ID',               defaultVisible: false },
   // Operational
   { key: 'guaranteedDeadlineDay',  label: 'Deadline Day',         defaultVisible: false, align: 'center' as const },
   { key: 'hasContractedLoom',      label: 'Loom',                 defaultVisible: false, align: 'center' as const },
@@ -316,6 +318,7 @@ export default function ClientDirectory() {
   function startResize(e: React.MouseEvent, colKey: string, currentW: number) {
     e.preventDefault()
     e.stopPropagation()
+    ;(e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId)
     resizingCol.current = { key: colKey, startX: e.clientX, startW: currentW }
 
     function onMove(ev: MouseEvent) {
@@ -561,7 +564,11 @@ export default function ClientDirectory() {
               className="w-full rounded-md border border-transparent bg-transparent px-1.5 py-1 text-sm text-slate-700 hover:border-slate-200 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400 cursor-pointer"
             >
               <option value="">—</option>
-              {['LLC','S-Corp','C-Corp','Sole Proprietor','Partnership','Non-Profit','Other'].map(o => <option key={o} value={o}>{o}</option>)}
+              {[
+                {v:'LLC',label:'LLC'},{v:'S_CORP',label:'S-Corp'},{v:'C_CORP',label:'C-Corp'},
+                {v:'SOLE_PROPRIETOR',label:'Sole Proprietor'},{v:'PARTNERSHIP',label:'Partnership'},
+                {v:'NON_PROFIT',label:'Non-Profit'},{v:'OTHER',label:'Other'},
+              ].map(o => <option key={o.v} value={o.v}>{o.label}</option>)}
             </select>
           </td>
         )
@@ -597,7 +604,10 @@ export default function ClientDirectory() {
             </select>
           </td>
         )
-      case 'monthlyBilling':
+      case 'monthlyBilling': {
+        const bkr = parseFloat(String(inlineEdits[client.id]?.bookkeepingRate ?? client.bookkeepingRate ?? 0)) || 0
+        const swr = parseFloat(String(inlineEdits[client.id]?.softwareRate    ?? client.softwareRate    ?? 0)) || 0
+        const autoTotal = bkr + swr
         return (
           <td key={colKey} className="px-2 py-1.5">
             <div className="relative">
@@ -606,11 +616,15 @@ export default function ClientDirectory() {
                 value={getVal(client, 'totalMonthlyAmount')}
                 onChange={e => setInlineEdits(prev => ({ ...prev, [client.id]: { ...(prev[client.id] ?? {}), totalMonthlyAmount: e.target.value } }))}
                 onBlur={e => patchCell(client, 'totalMonthlyAmount', e.target.value)}
-                placeholder={fmtCurrency(client.totalMonthlyAmount) || '0.00'}
+                placeholder={autoTotal > 0 ? autoTotal.toFixed(2) : '0.00'}
                 className="w-24 rounded-md border border-transparent bg-transparent pl-5 pr-2 py-1 text-sm text-slate-700 tabular-nums hover:border-slate-200 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400" />
             </div>
+            {autoTotal > 0 && !(inlineEdits[client.id]?.totalMonthlyAmount ?? client.totalMonthlyAmount) && (
+              <p className="text-[9px] text-slate-400 tabular-nums pl-2">≈ ${autoTotal.toFixed(2)}</p>
+            )}
           </td>
         )
+      }
       case 'bookkeepingRate':
         return (
           <td key={colKey} className="px-2 py-1.5">

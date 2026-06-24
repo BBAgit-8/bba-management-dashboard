@@ -438,55 +438,7 @@ export default function EmployeeDrawer({ employee, onClose, onUpdated }: Props) 
                     {saving ? 'Saving…' : 'Save Changes'}
                   </button>
 
-                  {/* Log past rate change */}
-                  <div className="rounded-xl border border-dashed border-slate-200 p-4 space-y-3 mt-2">
-                    <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--bba-secondary, #b20476)' }}>Log Past Rate Change</p>
-                    <p className="text-xs text-slate-400">Manually enter a historical rate to make rate history accurate.</p>
-                    {/* Rate type toggle */}
-                    <div className="flex rounded-lg border border-slate-200 overflow-hidden">
-                      {(['hourly', 'salary'] as const).map(v => (
-                        <button key={v} type="button"
-                          onClick={() => setPastEntry(p => ({ ...p, rateType: v }))}
-                          className={`flex-1 py-1.5 text-xs font-medium transition-colors ${(pastEntry as any).rateType === v ? 'bg-bba-primary text-white' : 'text-slate-500 hover:bg-slate-50'}`}>
-                          {v === 'hourly' ? '⏱ Hourly' : '📅 Salary'}
-                        </button>
-                      ))}
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs font-medium text-slate-500 mb-1.5">
-                          {(pastEntry as any).rateType === 'salary' ? 'Annual Salary ($)' : 'Hourly Rate ($)'}
-                        </label>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">$</span>
-                          <input type="number" step="0.01" min={0} value={pastEntry.rate}
-                            onChange={e => setPastEntry(p => ({ ...p, rate: e.target.value }))}
-                            placeholder="0.00" className={`${inp} pl-6`} />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-slate-500 mb-1.5">Effective Date</label>
-                        <input type="date" value={pastEntry.date}
-                          onChange={e => setPastEntry(p => ({ ...p, date: e.target.value }))}
-                          className={`${inp} [color-scheme:light]`} />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-slate-500 mb-1.5">Note (optional)</label>
-                      <input type="text" value={pastEntry.notes}
-                        onChange={e => setPastEntry(p => ({ ...p, notes: e.target.value }))}
-                        placeholder="e.g. Starting salary, 2023 raise" className={inp} />
-                    </div>
-                    {pastMsg && (
-                      <div className={`rounded-lg px-3 py-2 text-xs ${pastMsg.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-600 border border-red-200'}`}>
-                        {pastMsg.text}
-                      </div>
-                    )}
-                    <button onClick={handleLogPastRate} disabled={savingPast || !pastEntry.rate || !pastEntry.date}
-                      className="w-full rounded-lg border border-purple-300 py-2 text-xs font-semibold text-purple-700 hover:bg-purple-50 transition-colors disabled:opacity-40">
-                      {savingPast ? 'Saving…' : 'Log Past Rate Entry'}
-                    </button>
-                  </div>
+                  {/* Log Past Rate Change section intentionally removed — can be re-added if needed */}
                 </div>
               )}
 

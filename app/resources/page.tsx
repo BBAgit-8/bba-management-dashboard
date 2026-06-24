@@ -47,14 +47,15 @@ const RESOURCES: Resource[] = [
 ]
 
 const EXTERNAL_TOOLS = [
-  { label: 'ClickUp',    href: 'https://app.clickup.com',       color: '#7B68EE' },
-  { label: 'Double',     href: 'https://app.doublehq.com',      color: '#FF6B6B' },
-  { label: 'Harvest',    href: 'https://harvestapp.com',         color: '#FA5C00' },
-  { label: 'MailerLite', href: 'https://app.mailerlite.com',    color: '#09C269' },
-  { label: 'Gusto',      href: 'https://app.gusto.com',         color: '#F45D48' },
-  { label: 'Vercel',     href: 'https://vercel.com/dashboard',  color: '#000000' },
-  { label: 'Supabase',   href: 'https://supabase.com/dashboard',color: '#3ECF8E' },
-  { label: 'GitHub',     href: 'https://github.com/BBAgit-8',   color: '#24292F' },
+  { label: 'ClickUp',    href: 'https://app.clickup.com',            color: '#7B68EE' },
+  { label: 'Double',     href: 'https://app.doublehq.com',           color: '#FF6B6B' },
+  { label: 'Harvest',    href: 'https://harvestapp.com',              color: '#FA5C00' },
+  { label: 'Anchor',     href: 'https://app.sayanchor.com/home',      color: '#0057FF' },
+  { label: 'MailerLite', href: 'https://app.mailerlite.com',         color: '#09C269' },
+  { label: 'Gusto',      href: 'https://app.gusto.com',              color: '#F45D48' },
+  { label: 'Vercel',     href: 'https://vercel.com/dashboard',       color: '#000000' },
+  { label: 'Supabase',   href: 'https://supabase.com/dashboard',     color: '#3ECF8E' },
+  { label: 'GitHub',     href: 'https://github.com/BBAgit-8',        color: '#24292F' },
 ]
 
 const CATEGORY_LABEL: Record<Resource['category'], string> = {

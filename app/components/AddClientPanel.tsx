@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 
 type ProcessingCadence = 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY' | 'QUARTERLY';
-type EntityType = 'LLC' | 'S_CORP' | 'C_CORP' | 'SOLE_PROPRIETOR' | 'PARTNERSHIP' | 'NON_PROFIT' | 'OTHER' | 'SOLE_PROP';
+type EntityType = 'LLC' | 'S_CORP' | 'C_CORP' | 'SOLE_PROPRIETOR' | 'PARTNERSHIP' | 'NON_PROFIT' | 'OTHER';
 type OfficeType = 'HOME_OFFICE' | 'PHYSICAL';
 type ProjectType = 'ANNUAL' | 'CLEAN_UP' | 'MONTHLY_MAINTENANCE' | 'QBO_ONLY' | 'RECURRING';
 type RevType = 'RECURRING_MONTHLY_ACH' | 'RECURRING_MONTHLY_INVOICED' | 'RECURRING_MONTHLY_HOURLY' | 'CLEANUP' | 'HOURLY_CLEANUP' | 'FREE' | 'QBO_ONLY_ANCHOR' | 'QBO_ONLY_QB';
@@ -20,7 +20,7 @@ const CADENCE_OPTS = [
 ];
 const ENTITY_OPTS = [
   { value: 'LLC', label: 'LLC' }, { value: 'S_CORP', label: 'S-Corp' },
-  { value: 'C_CORP', label: 'C-Corp' }, { value: 'SOLE_PROP', label: 'Sole Proprietor' },
+  { value: 'C_CORP', label: 'C-Corp' }, { value: 'SOLE_PROPRIETOR', label: 'Sole Proprietor' },
   { value: 'PARTNERSHIP', label: 'Partnership' }, { value: 'NON_PROFIT', label: 'Non-Profit' },
   { value: 'OTHER', label: 'Other' },
 ];
@@ -395,8 +395,8 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
               </Field>
             </Grid2>
             <Grid2>
-              <Field label="Guaranteed Deadline Day">
-                <input type="number" min={1} max={31} value={form.guaranteedDeadlineDay} onChange={e => set('guaranteedDeadlineDay', e.target.value)} placeholder="1–31" className={inp} />
+              <Field label="Contracted Close Date">
+                <input type="date" min={1} max={31} value={form.contractedCloseDate} onChange={e => set('contractedCloseDate', e.target.value)} placeholder="1–31" className={`${inp} [color-scheme:light]`} />
               </Field>
               <Field label="Office Type">
                 <div className="flex rounded-lg border border-slate-200 overflow-hidden">

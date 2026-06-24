@@ -59,6 +59,7 @@ export default function AccountantsPage() {
   const [toggling,  setToggling]  = useState<string | null>(null)
   const [form,      setForm]      = useState({ name: '', businessName: '', email: '', phoneNumber: '' })
   const [error,     setError]     = useState<string | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
 
   const [colOrder, setColOrder] = useState<ColKey[]>(DEFAULT_COL_ORDER)
   const [sortCol,  setSortCol]  = useState<ColKey | null>(null)
@@ -72,12 +73,33 @@ export default function AccountantsPage() {
       .finally(() => setLoading(false))
   }, [])
 
-  function resetForm() { setForm({ name: '', businessName: '', email: '', phoneNumber: '' }); setError(null) }
+  function resetForm() { setForm({ name: '', businessName: '', email: '', phoneNumber: '' }); setError(null); setEditingId(null) }
+
+  function openEdit(acc: AccountantRow) {
+    setForm({ name: acc.name, businessName: acc.businessName ?? '', email: acc.email ?? '', phoneNumber: acc.phoneNumber ?? '' })
+    setEditingId(acc.id)
+    setModalOpen(true)
+  }
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault()
     if (!form.name.trim()) return
     setSaving(true); setError(null)
+    if (editingId) {
+      // Update existing
+      try {
+        const res = await fetch(`/api/accountants/${editingId}`, {
+          method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(form),
+        })
+        const data = await res.json()
+        if (!res.ok) { setError(data.error ?? 'Failed to update'); return }
+        setAccountants(prev => prev.map(a => a.id === editingId ? toRow(data.accountant) : a))
+        resetForm(); setModalOpen(false)
+      } catch { setError('Network error') }
+      finally { setSaving(false) }
+      return
+    }
     try {
       const res = await fetch('/api/accountants', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -284,23 +306,31 @@ export default function AccountantsPage() {
                       >
                         {colOrder.map(key => renderCell(acc, key))}
                         <td className="px-5 py-3 text-right">
-                          {acc.status === 'ACTIVE' ? (
+                          <div className="flex items-center justify-end gap-2">
                             <button
-                              onClick={() => setStatus(acc, 'ARCHIVED')}
-                              disabled={toggling === acc.id}
-                              className="text-xs text-slate-400 underline underline-offset-2 disabled:opacity-40 transition-opacity hover:text-slate-600"
+                              onClick={() => openEdit(acc)}
+                              className="text-xs text-purple-600 underline underline-offset-2 hover:text-purple-800 transition-colors"
                             >
-                              {toggling === acc.id ? '…' : 'Archive'}
+                              Edit
                             </button>
-                          ) : (
-                            <button
-                              onClick={() => setStatus(acc, 'ACTIVE')}
-                              disabled={toggling === acc.id}
-                              className="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium transition-colors disabled:opacity-40 bg-slate-100 text-slate-600 border border-slate-200 hover:bg-bba-primary hover:text-white hover:border-bba-primary"
-                            >
-                              {toggling === acc.id ? '…' : '↩ Reactivate'}
-                            </button>
-                          )}
+                            {acc.status === 'ACTIVE' ? (
+                              <button
+                                onClick={() => setStatus(acc, 'ARCHIVED')}
+                                disabled={toggling === acc.id}
+                                className="text-xs text-slate-400 underline underline-offset-2 disabled:opacity-40 transition-opacity hover:text-slate-600"
+                              >
+                                {toggling === acc.id ? '…' : 'Archive'}
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => setStatus(acc, 'ACTIVE')}
+                                disabled={toggling === acc.id}
+                                className="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium transition-colors disabled:opacity-40 bg-slate-100 text-slate-600 border border-slate-200 hover:bg-bba-primary hover:text-white hover:border-bba-primary"
+                              >
+                                {toggling === acc.id ? '…' : '↩ Reactivate'}
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     )
@@ -315,13 +345,13 @@ export default function AccountantsPage() {
       {/* Add modal */}
       {modalOpen && (
         <>
-          <div onClick={() => setModalOpen(false)} className="fixed inset-0 z-40 bg-black/40" />
+          <div onClick={() => { setModalOpen(false); resetForm(); }} className="fixed inset-0 z-40 bg-black/40" />
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl border border-surface-border">
               <div className="flex items-center justify-between px-6 py-4 border-b border-surface-border">
-                <h2 className="text-base font-semibold text-slate-800">Add New Accountant</h2>
+                <h2 className="text-base font-semibold text-slate-800">{editingId ? 'Edit Accountant' : 'Add New Accountant'}</h2>
                 <button
-                  onClick={() => setModalOpen(false)}
+                  onClick={() => { setModalOpen(false); resetForm(); }}
                   className="rounded-md p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
                 >
                   <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -360,13 +390,13 @@ export default function AccountantsPage() {
                 </div>
                 {error && <p className="text-xs text-red-500">{error}</p>}
                 <div className="flex items-center justify-end gap-3 pt-1">
-                  <button type="button" onClick={() => setModalOpen(false)}
+                  <button type="button" onClick={() => { setModalOpen(false); resetForm(); }}
                     className="rounded-lg px-4 py-2 text-sm text-slate-500 hover:text-slate-700 transition-colors">
                     Cancel
                   </button>
                   <button type="submit" disabled={saving || !form.name.trim()}
                     className="rounded-lg bg-bba-primary px-5 py-2 text-sm font-semibold text-white hover:bg-bba-primary/85 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
-                    {saving ? 'Saving…' : '+ Create Accountant'}
+                    {saving ? 'Saving…' : editingId ? 'Save Changes' : '+ Create Accountant'}
                   </button>
                 </div>
               </form>
