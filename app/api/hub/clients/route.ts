@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
       totalHrsPerMonth,
       tags:client_tags(tag:tags(name, color))
     `)
-    .eq('"Bookkeeper"', bookkeeper)
+    .eq('Bookkeeper', bookkeeper)
     .neq('archiveStatus', 'ARCHIVED')
     .order('name')
 

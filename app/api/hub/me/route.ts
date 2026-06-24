@@ -7,11 +7,11 @@ export async function GET(req: NextRequest) {
 
   const { data, error } = await supabase
     .from('employees')
-    .select('id, name, "Bookkeeper"')
+    .select('id, name')
     .eq('email', email)
     .single()
 
   if (error || !data) return NextResponse.json({ error: 'Employee not found' }, { status: 404 })
 
-  return NextResponse.json({ id: data.id, name: data.name, bookkeeper: data.Bookkeeper })
+  return NextResponse.json({ id: data.id, name: data.name })
 }
