@@ -16,7 +16,8 @@ type ClientDetail = {
   numPmtPortals: number | null; pettyCash: boolean | null
   hasPayroll: boolean | null; payrollProvider: string | null
   hasContractedLoom: boolean | null; hasScheduledMeetings: boolean | null
-  meetingDuration: number | null
+  bookkeepingRate: number | null; softwareRate: number | null
+  totalMonthlyAmount: number | null
   tags: { name: string; color: string }[]
   notes: { id: string; content: string; createdAt: string }[]
 }
@@ -145,11 +146,25 @@ export default function HubClientDetail() {
         <InfoRow label="Petty Cash"            value={client.pettyCash ? 'Yes' : null} />
       </Section>
 
-      {/* Add-ons */}
+      {/* Rates */}
+      <Section title="Rates &amp; Billing">
+        <InfoRow label="Bookkeeping Rate"  value={client.bookkeepingRate   != null ? `$${Number(client.bookkeepingRate).toFixed(2)}/mo`  : null} />
+        <InfoRow label="Software Rate"     value={client.softwareRate      != null ? `$${Number(client.softwareRate).toFixed(2)}/mo`      : null} />
+        <InfoRow label="Total Monthly"     value={
+          (client.bookkeepingRate != null || client.softwareRate != null)
+            ? `$${(Number(client.bookkeepingRate ?? 0) + Number(client.softwareRate ?? 0)).toFixed(2)}/mo`
+            : client.totalMonthlyAmount != null
+              ? `$${Number(client.totalMonthlyAmount).toFixed(2)}/mo`
+              : null
+        } />
+      </Section>
+
+      {/* Services */}
       <Section title="Services">
-        <InfoRow label="Payroll"           value={client.hasPayroll ? (client.payrollProvider ?? 'Yes') : null} />
-        <InfoRow label="Contracted Loom"   value={client.hasContractedLoom ? 'Yes' : null} />
-        <InfoRow label="Scheduled Meetings"value={client.hasScheduledMeetings ? (client.meetingDuration ? `Yes — ${client.meetingDuration} min` : 'Yes') : null} />
+        <InfoRow label="Payroll"             value={client.hasPayroll ? (client.payrollProvider ?? 'Yes') : null} />
+        <InfoRow label="Contracted Loom"     value={client.hasContractedLoom    ? 'Yes' : null} />
+        <InfoRow label="Scheduled Meetings"  value={client.hasScheduledMeetings ? 'Yes' : null} />
+        <InfoRow label="Petty Cash"          value={client.pettyCash            ? 'Yes' : null} />
       </Section>
 
       {/* Notes */}

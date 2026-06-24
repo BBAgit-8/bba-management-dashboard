@@ -14,7 +14,9 @@ export async function GET(
       projectType, archiveStatus, contractStartDate, clientContactName,
       referredBy, totalHrsPerMonth, apArHrs, qaHours, bankFeedTime,
       transactionsPerMonth, numBanksAndCCs, numLoans, numPmtPortals,
-      pettyCash, hasContractedLoom, hasScheduledMeetings
+      pettyCash, hasContractedLoom, hasScheduledMeetings,
+      hasPayroll, payrollProvider,
+      bookkeepingRate, softwareRate, totalMonthlyAmount
     `)
     .eq('harvestProjectCode', code)
     .single()
