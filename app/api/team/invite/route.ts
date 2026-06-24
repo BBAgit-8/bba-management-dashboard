@@ -30,48 +30,61 @@ export async function GET(): Promise<NextResponse> {
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
-  let body: any
-  try { body = await req.json() } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
-  }
-
-  const { employeeId, email, name } = body
-  if (!employeeId || !email) {
-    return NextResponse.json({ error: 'Missing employeeId or email' }, { status: 400 })
-  }
-
-  // Send Supabase invite email
-  const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
-    data: { name, role: 'employee' },
-    redirectTo: `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://bba-management-dashboard.vercel.app'}/hub`,
-  })
-
-  if (inviteError) {
-    const alreadyExists = inviteError.message.toLowerCase().includes('already registered')
-      || inviteError.message.toLowerCase().includes('already been invited')
-    if (!alreadyExists) {
-      console.error('[Invite] Auth error:', inviteError.message)
-      return NextResponse.json({ error: inviteError.message }, { status: 500 })
+  try {
+    let body: any
+    try { body = await req.json() } catch {
+      return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
     }
-    // User already exists — just grant access without re-sending
-  }
 
-  // Update employee record — try camelCase first (matches our DB naming)
-  const { error: updateError } = await supabase
-    .from('employees')
-    .update({
-      hubAccess:  true,
-      invitedAt:  new Date().toISOString(),
-      authUserId: inviteData?.user?.id ?? null,
+    const { employeeId, email, name } = body
+    if (!employeeId || !email) {
+      return NextResponse.json({ error: 'Missing employeeId or email' }, { status: 400 })
+    }
+
+    // Verify env vars are available
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      return NextResponse.json({ error: 'SUPABASE_SERVICE_ROLE_KEY not configured on server' }, { status: 500 })
+    }
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+      return NextResponse.json({ error: 'NEXT_PUBLIC_SUPABASE_URL not configured' }, { status: 500 })
+    }
+
+    // Send Supabase invite email
+    const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
+      data: { name, role: 'employee' },
+      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://bba-management-dashboard.vercel.app'}/hub`,
     })
-    .eq('id', employeeId)
 
-  if (updateError) {
-    console.error('[Invite] Update error:', updateError.message)
-    return NextResponse.json({ error: `DB update failed: ${updateError.message}` }, { status: 500 })
+    if (inviteError) {
+      const alreadyExists = inviteError.message.toLowerCase().includes('already registered')
+        || inviteError.message.toLowerCase().includes('already been invited')
+      if (!alreadyExists) {
+        console.error('[Invite] Auth error:', inviteError.message)
+        return NextResponse.json({ error: inviteError.message }, { status: 500 })
+      }
+      // User already exists — just grant access without re-sending
+    }
+
+    // Update employee record
+    const { error: updateError } = await supabase
+      .from('employees')
+      .update({
+        hubAccess:  true,
+        invitedAt:  new Date().toISOString(),
+        authUserId: inviteData?.user?.id ?? null,
+      })
+      .eq('id', employeeId)
+
+    if (updateError) {
+      console.error('[Invite] Update error:', updateError.message)
+      return NextResponse.json({ error: `DB update failed: ${updateError.message}` }, { status: 500 })
+    }
+
+    return NextResponse.json({ ok: true })
+  } catch (err: any) {
+    console.error('[Invite] Unexpected error:', err)
+    return NextResponse.json({ error: err?.message ?? String(err) ?? 'Unexpected server error' }, { status: 500 })
   }
-
-  return NextResponse.json({ ok: true })
 }
 
 export async function DELETE(req: NextRequest): Promise<NextResponse> {
