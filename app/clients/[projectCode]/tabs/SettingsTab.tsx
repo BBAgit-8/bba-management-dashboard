@@ -257,9 +257,7 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
   function removeRow(id: string) { setSubs(prev => prev.filter(s => s.id !== id)); }
 
   const monthlySubs  = subs.filter(s => s.billingCadence === 'MONTHLY');
-  const totalOurCost = monthlySubs.reduce((s, r) => s + (parseFloat(r.ourCost) || 0), 0);
   const totalClPrice = monthlySubs.reduce((s, r) => s + (parseFloat(r.clientPrice) || 0), 0);
-  const totalMargin  = totalClPrice - totalOurCost;
 
   return (
     <div className="space-y-8">
@@ -554,7 +552,7 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200">
-                  {['Software', 'Tier', 'Our Cost', 'Client Price', 'Margin', 'Cadence', ''].map(h => (
+                  {['Software', 'Tier', 'Client Price', 'Cadence', ''].map(h => (
                     <th key={h} className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500 whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
@@ -562,90 +560,57 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
               <tbody className="divide-y divide-slate-100">
                 {subs.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-4 py-8 text-center text-sm text-slate-400">
+                    <td colSpan={5} className="px-4 py-8 text-center text-sm text-slate-400">
                       No subscriptions yet. Click "Add Row" to start tracking.
                     </td>
                   </tr>
                 )}
-                {subs.map(sub => {
-                  const margin    = (parseFloat(sub.clientPrice) || 0) - (parseFloat(sub.ourCost) || 0);
-                  const hasValues = sub.ourCost && sub.clientPrice;
-                  const mColor    = !hasValues ? 'text-slate-400' : margin > 0 ? 'text-green-600' : margin < 0 ? 'text-red-600' : 'text-slate-500';
-                  return (
+                {subs.map(sub => (
                     <tr key={sub.id} className="hover:bg-slate-50 transition-colors">
                       <td className="px-3 py-2 min-w-[160px]">
-                        <input
-                          type="text" value={sub.softwareName}
+                        <input type="text" value={sub.softwareName}
                           onChange={e => updateSub(sub.id, 'softwareName', e.target.value)}
                           placeholder="Software name"
-                          className="w-full bg-transparent rounded px-2 py-1 text-sm text-slate-700 placeholder-slate-300 border border-transparent hover:border-slate-200 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400"
-                        />
+                          className="w-full bg-transparent rounded px-2 py-1 text-sm text-slate-700 placeholder-slate-300 border border-transparent hover:border-slate-200 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400" />
                       </td>
                       <td className="px-3 py-2">
-                        <input
-                          type="text" value={sub.tier}
+                        <input type="text" value={sub.tier}
                           onChange={e => updateSub(sub.id, 'tier', e.target.value)}
                           placeholder="Tier"
-                          className="w-20 bg-transparent rounded px-2 py-1 text-xs text-slate-600 placeholder-slate-300 border border-transparent hover:border-slate-200 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400"
-                        />
+                          className="w-20 bg-transparent rounded px-2 py-1 text-xs text-slate-600 placeholder-slate-300 border border-transparent hover:border-slate-200 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400" />
                       </td>
                       <td className="px-3 py-2">
-                        <div className="relative w-24">
+                        <div className="relative w-28">
                           <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-xs">$</span>
-                          <input
-                            type="number" step="0.01" value={sub.ourCost}
-                            onChange={e => updateSub(sub.id, 'ourCost', e.target.value)}
-                            placeholder="0.00"
-                            className="w-full bg-transparent rounded pl-5 pr-2 py-1 text-sm text-slate-700 placeholder-slate-300 border border-transparent hover:border-slate-200 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400 tabular-nums"
-                          />
-                        </div>
-                      </td>
-                      <td className="px-3 py-2">
-                        <div className="relative w-24">
-                          <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-xs">$</span>
-                          <input
-                            type="number" step="0.01" value={sub.clientPrice}
+                          <input type="number" step="0.01" value={sub.clientPrice}
                             onChange={e => updateSub(sub.id, 'clientPrice', e.target.value)}
                             placeholder="0.00"
-                            className="w-full bg-transparent rounded pl-5 pr-2 py-1 text-sm text-slate-700 placeholder-slate-300 border border-transparent hover:border-slate-200 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400 tabular-nums"
-                          />
+                            className="w-full bg-transparent rounded pl-5 pr-2 py-1 text-sm text-slate-700 placeholder-slate-300 border border-transparent hover:border-slate-200 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400 tabular-nums" />
                         </div>
                       </td>
                       <td className="px-3 py-2">
-                        <span className={`text-sm font-semibold tabular-nums ${mColor}`}>
-                          {hasValues ? `${margin >= 0 ? '+' : ''}$${margin.toFixed(2)}` : '—'}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2">
-                        <select
-                          value={sub.billingCadence}
+                        <select value={sub.billingCadence}
                           onChange={e => updateSub(sub.id, 'billingCadence', e.target.value)}
-                          className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs text-slate-600 focus:outline-none focus:ring-1 focus:ring-purple-500"
-                        >
+                          className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs text-slate-600 focus:outline-none focus:ring-1 focus:ring-purple-500">
                           {BILLING_OPTS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                         </select>
                       </td>
                       <td className="px-3 py-2">
-                        <button
-                          onClick={() => removeRow(sub.id)}
-                          className="rounded p-1 text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors"
-                        >
+                        <button onClick={() => removeRow(sub.id)}
+                          className="rounded p-1 text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors">
                           <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                           </svg>
                         </button>
                       </td>
                     </tr>
-                  );
-                })}
+                  ))}
               </tbody>
               {subs.length > 0 && (
                 <tfoot>
                   <tr className="border-t border-slate-200 bg-slate-50">
-                    <td colSpan={2} className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Monthly Totals</td>
-                    <td className="px-4 py-3 text-sm font-semibold tabular-nums text-slate-700">${totalOurCost.toFixed(2)}</td>
+                    <td colSpan={2} className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Monthly Total</td>
                     <td className="px-4 py-3 text-sm font-semibold tabular-nums text-slate-700">${totalClPrice.toFixed(2)}</td>
-                    <td className="px-4 py-3 text-sm font-bold tabular-nums text-green-600">+${totalMargin.toFixed(2)}</td>
                     <td colSpan={2} />
                   </tr>
                 </tfoot>
