@@ -152,11 +152,11 @@ const RTYPE_LABEL: Record<string, string> = {
 }
 
 const STATUS_PILL: Record<StatusKey, { bg: string; text: string; ring: string; label: string }> = {
-  active:         { bg: 'bg-green-500/10',  text: 'text-green-700',  ring: 'ring-green-500/20',  label: 'Active'          },
-  offboarding:    { bg: 'bg-amber-500/10',  text: 'text-amber-700',  ring: 'ring-amber-500/20',  label: 'Off-boarding'    },
-  inactive:       { bg: 'bg-slate-200',     text: 'text-slate-500',  ring: 'ring-slate-300',     label: 'Inactive'        },
-  archived:       { bg: 'bg-slate-200',     text: 'text-slate-400',  ring: 'ring-slate-300',     label: 'Archived'        },
-  pendingArchive: { bg: 'bg-orange-500/10', text: 'text-orange-600', ring: 'ring-orange-500/20', label: 'Pending Archive' },
+  active:         { bg: 'bg-green-500',   text: 'text-white',       ring: 'ring-green-600',   label: 'Active'          },
+  offboarding:    { bg: 'bg-amber-400',   text: 'text-white',       ring: 'ring-amber-500',   label: 'Off-boarding'    },
+  inactive:       { bg: 'bg-slate-400',   text: 'text-white',       ring: 'ring-slate-500',   label: 'Inactive'        },
+  archived:       { bg: 'bg-slate-300',   text: 'text-slate-600',   ring: 'ring-slate-400',   label: 'Archived'        },
+  pendingArchive: { bg: 'bg-orange-400',  text: 'text-white',       ring: 'ring-orange-500',  label: 'Pending Archive' },
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
