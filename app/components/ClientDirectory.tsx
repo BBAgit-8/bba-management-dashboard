@@ -85,7 +85,7 @@ const ALL_COLUMNS: { key: ColKey; label: string; defaultVisible: boolean; align?
   { key: 'clientContactName',  label: 'Client Contact Name',      defaultVisible: false },
   { key: 'projectType',        label: 'Recurring or Cleanup',     defaultVisible: true  },
   { key: 'contractStartDate',  label: 'Contract Start Date',      defaultVisible: false },
-  { key: 'contractEndDate',    label: 'End Date / Archive',       defaultVisible: false },
+  { key: 'contractEndDate',    label: 'Contract End Date',       defaultVisible: false },
   { key: 'entityType',         label: 'Entity Type',              defaultVisible: true  },
   { key: 'revenueType',        label: 'Rev Type',                 defaultVisible: true  },
   { key: 'bookkeepingRate',    label: 'Bookkeeping Rate',         defaultVisible: true,  align: 'right' },
@@ -688,7 +688,7 @@ export default function ClientDirectory() {
               className="w-full rounded-md border border-transparent bg-transparent px-1.5 py-1 text-[11px] font-semibold text-slate-700 hover:border-slate-200 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400 cursor-pointer"
             >
               <option value="">—</option>
-              {[{v:'RECURRING',l:'Recurring'},{v:'CLEAN_UP',l:'Cleanup'},{v:'ANNUAL',l:'Annual'},{v:'QBO_ONLY',l:'QBO Only'},{v:'MONTHLY_MAINTENANCE',l:'Monthly Maintenance'}].map(o => <option key={o.v} value={o.v}>{o.l}</option>)}
+              {[{v:'RECURRING',l:'Recurring'},{v:'CLEAN_UP',l:'Cleanup'},{v:'ANNUAL',l:'Annual'},{v:'QBO_ONLY',l:'QBO Only'},].map(o => <option key={o.v} value={o.v}>{o.l}</option>)}
             </select>
           </td>
         )
@@ -1023,7 +1023,7 @@ export default function ClientDirectory() {
           ]} />
           <MultiFilter label="Project Type" filters={ptFilters} setFilters={setPtFilters} options={[
             { v: 'RECURRING',           label: 'Recurring'           },
-            { v: 'MONTHLY_MAINTENANCE', label: 'Monthly Maintenance' },
+            
             { v: 'ANNUAL',              label: 'Annual'              },
             { v: 'CLEAN_UP',            label: 'Cleanup'             },
             { v: 'QBO_ONLY',            label: 'QBO Only'            },
