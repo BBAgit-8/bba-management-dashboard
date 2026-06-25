@@ -237,6 +237,31 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
       });
       const json = await res.json();
       if (!res.ok) { setSaveError(json.error ?? `Error ${res.status}`); return; }
+
+      // Create software subscriptions if any were selected
+      const newClientId = json.client?.id
+      if (newClientId) {
+        const subs = []
+        if (form.qboTier && prices[form.qboTier]) {
+          subs.push({ softwareName: 'QuickBooks Online', tier: form.qboTier.replace('qbo_','').replace(/_/g,' '), ourCost: String(prices[form.qboTier]), clientPrice: String(prices[form.qboTier]), billingCadence: 'MONTHLY' })
+        }
+        if (form.hasDouble && prices['dext']) {
+          subs.push({ softwareName: 'Double Receipts', tier: '', ourCost: String(prices['dext']), clientPrice: String(prices['dext']), billingCadence: 'MONTHLY' })
+        }
+        for (const o of form.otherSoftware) {
+          if (o.name.trim() && o.amount) {
+            subs.push({ softwareName: o.name.trim(), tier: '', ourCost: o.amount, clientPrice: o.amount, billingCadence: 'MONTHLY' })
+          }
+        }
+        if (subs.length > 0) {
+          await fetch('/api/clients/subscriptions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ clientId: newClientId, subscriptions: subs }),
+          })
+        }
+      }
+
       onCreated?.();
       handleClose();
     } catch {
