@@ -357,13 +357,26 @@ export default function ClientDirectory() {
         const json = await res.json().catch(() => ({}))
         throw new Error(json.error ?? `HTTP ${res.status}`)
       }
+      // Update clients array so the value persists without a full refresh
+      setClients(prev => prev.map(c => c.id === client.id ? { ...c, [field]: value || null } : c))
+      // Clear inlineEdit for this field since it's now in the source data
+      setInlineEdits(prev => {
+        const next = { ...prev }
+        if (next[client.id]) {
+          const fields = { ...next[client.id] }
+          delete fields[field]
+          if (Object.keys(fields).length === 0) delete next[client.id]
+          else next[client.id] = fields
+        }
+        return next
+      })
       // Broadcast bookkeeper changes so other pages update
       if (field === 'bookkeeper' || field === 'Bookkeeper') {
         broadcastBookkeeperChange(client.id, value || null)
       }
     } catch (err) {
       console.error('patchCell failed:', err)
-      // Revert on failure
+      // Revert optimistic update on failure
       setInlineEdits(prev => {
         const next = { ...prev }
         if (next[client.id]) { delete next[client.id][field] }

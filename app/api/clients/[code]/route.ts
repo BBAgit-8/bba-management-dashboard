@@ -53,8 +53,13 @@ export async function PATCH(
     } else if (BOOLEAN_FIELDS.has(key)) {
       mapped[dbKey] = val === true || val === 'true'
     } else if (DATE_FIELDS.has(key)) {
-      // Ensure date strings are stored as ISO timestamps
-      mapped[dbKey] = typeof val === 'string' ? new Date(val).toISOString() : val
+      // Store as date-only string to avoid UTC timezone shift (e.g. "2025-06-23" not "2025-06-22T00:00:00Z")
+      if (typeof val === 'string' && val) {
+        // Keep just the date portion, append noon UTC to avoid timezone shifting
+        mapped[dbKey] = new Date(val + 'T12:00:00Z').toISOString()
+      } else {
+        mapped[dbKey] = null
+      }
     } else {
       mapped[dbKey] = val
     }
