@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
-import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd'
+
 import { broadcastBookkeeperChange, useBookkeeperSync } from '@/app/hooks/useBookkeeperSync'
 
 type Tag = { id: string; name: string; color: string }
@@ -423,13 +423,51 @@ export default function ClientDirectory() {
     localStorage.setItem(STORAGE_VISIBLE, JSON.stringify([...DEFAULT_VISIBLE]))
   }
 
-  function onDragEnd(result: DropResult) {
-    if (!result.destination) return
-    const next = Array.from(colOrder)
-    const [removed] = next.splice(result.source.index, 1)
-    next.splice(result.destination.index, 0, removed)
-    setColOrder(next)
-    localStorage.setItem(STORAGE_ORDER, JSON.stringify(next))
+  // Pointer-based column reorder (no DnD library)
+  const colDrag = useRef<{ key: string; startIdx: number } | null>(null)
+  const [dragOverKey, setDragOverKey] = useState<string | null>(null)
+
+  function startColDrag(e: React.MouseEvent, colKey: string, index: number) {
+    e.preventDefault()
+    colDrag.current = { key: colKey, startIdx: index }
+    setDragOverKey(null)
+    let latestOverKey: string | null = null
+
+    function onMove(ev: MouseEvent) {
+      if (!colDrag.current) return
+      const ths = document.querySelectorAll('[data-col-key]')
+      for (const th of ths) {
+        const rect = th.getBoundingClientRect()
+        if (ev.clientX >= rect.left && ev.clientX <= rect.right) {
+          const key = (th as HTMLElement).dataset.colKey ?? null
+          latestOverKey = key
+          setDragOverKey(key)
+          break
+        }
+      }
+    }
+    function onUp() {
+      const dragging = colDrag.current
+      if (dragging && latestOverKey && latestOverKey !== dragging.key) {
+        setColOrder(prev => {
+          const next = [...prev]
+          const fromIdx = next.indexOf(dragging.key as ColKey)
+          const toIdx   = next.indexOf(latestOverKey as ColKey)
+          if (fromIdx !== -1 && toIdx !== -1) {
+            next.splice(fromIdx, 1)
+            next.splice(toIdx, 0, dragging.key as ColKey)
+          }
+          localStorage.setItem(STORAGE_ORDER, JSON.stringify(next))
+          return next
+        })
+      }
+      colDrag.current = null
+      setDragOverKey(null)
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
   }
 
   function toggleSort(k: SortKey) {
@@ -978,70 +1016,55 @@ export default function ClientDirectory() {
         </div>
 
         <div className="overflow-x-auto">
-          <DragDropContext onDragEnd={onDragEnd}>
-            <table className="w-full text-sm">
+          <table className="w-full text-sm">
               <thead>
-                <Droppable droppableId="columns" direction="horizontal">
-                  {(provided) => (
-                    <tr
-                      ref={provided.innerRef}
-                      {...provided.droppableProps}
-                      style={{ backgroundColor: 'var(--bba-primary)', borderBottom: '2px solid rgba(78,0,142,0.3)' }}
-                    >
-                      <th className="w-1 px-0 shrink-0" />
-                      {activeColOrder.map((colKey, index) => {
-                        const col = ALL_COLUMNS.find(c => c.key === colKey)!
-                        const alignCls = col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left'
-                        return (
-                          <Draggable key={colKey} draggableId={colKey} index={index}>
-                            {(provided, snapshot) => (
-                          <th
-                                ref={provided.innerRef}
-                                {...provided.draggableProps}
-                                className={`relative px-4 py-3 ${alignCls} text-[11px] font-semibold uppercase tracking-wider select-none transition-opacity ${snapshot.isDragging ? 'opacity-50' : ''}`}
-                                style={{
-                                  ...provided.draggableProps.style,
-                                  width: colWidths[colKey] ?? undefined,
-                                  minWidth: colWidths[colKey] ?? undefined,
-                                }}
-                              >
-                                <div className="flex items-start gap-1 w-full">
-                                  {/* Drag grip — only this activates column reorder */}
-                                  <span
-                                    {...provided.dragHandleProps}
-                                    className="cursor-grab active:cursor-grabbing shrink-0 opacity-30 hover:opacity-70 transition-opacity pt-px"
-                                    title="Drag to reorder"
-                                  >⠿</span>
-                                  <button
-                                    onClick={e => { e.stopPropagation(); toggleSort(colKey as SortKey) }}
-                                    className="flex items-center gap-1 hover:opacity-80 transition-opacity cursor-pointer select-none flex-1 min-w-0"
-                                  >
-                                    <span className={`uppercase tracking-wider font-bold text-white leading-tight ${col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left'}`}>
-                                      {col.label}
-                                    </span>
-                                    <span className="text-[9px] opacity-60 shrink-0">
-                                      {sortKey === colKey ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}
-                                    </span>
-                                  </button>
-                                </div>
-                                {/* Resize handle — completely separate from drag */}
-                                <div
-                                  onMouseDown={e => startResize(e, colKey)}
-                                  className="absolute right-0 top-0 h-full w-3 cursor-col-resize flex items-center justify-center opacity-0 hover:opacity-100 group-hover:opacity-60 transition-opacity z-10"
-                                  title="Drag to resize"
-                                  onClick={e => e.stopPropagation()}
-                                >
-                                  <div className="h-4 w-0.5 rounded-full bg-white/40" />
-                                </div>
-                              </th>
-                            )}
-                          </Draggable>
-                        )
-                      })}
-                      {provided.placeholder}
-                    </tr>
-                  )}
-                </Droppable>
+                <tr style={{ backgroundColor: 'var(--bba-primary)', borderBottom: '2px solid rgba(78,0,142,0.3)' }}>
+                  <th className="w-1 px-0 shrink-0" />
+                  {activeColOrder.map((colKey, index) => {
+                    const col = ALL_COLUMNS.find(c => c.key === colKey)!
+                    const isDragOver = dragOverKey === colKey && colDrag.current?.key !== colKey
+                    return (
+                      <th
+                        key={colKey}
+                        data-col-key={colKey}
+                        className={`relative px-3 py-3 text-center text-[11px] font-semibold uppercase tracking-wider select-none transition-colors ${isDragOver ? 'bg-white/20' : ''}`}
+                        style={{
+                          width: colWidths[colKey] ?? undefined,
+                          minWidth: colWidths[colKey] ?? undefined,
+                        }}
+                      >
+                        <div className="flex flex-col items-center gap-0.5 w-full">
+                          {/* Drag grip */}
+                          <span
+                            onMouseDown={e => startColDrag(e, colKey, index)}
+                            className="cursor-grab active:cursor-grabbing opacity-30 hover:opacity-70 transition-opacity text-white text-xs leading-none"
+                            title="Drag to reorder"
+                          >⠿</span>
+                          <button
+                            onClick={e => { e.stopPropagation(); toggleSort(colKey as SortKey) }}
+                            className="flex items-center justify-center gap-1 hover:opacity-80 transition-opacity cursor-pointer select-none w-full"
+                          >
+                            <span className="font-bold text-white leading-tight text-center">
+                              {col.label}
+                            </span>
+                            <span className="text-[9px] opacity-60 shrink-0">
+                              {sortKey === colKey ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}
+                            </span>
+                          </button>
+                        </div>
+                        {/* Resize handle */}
+                        <div
+                          onMouseDown={e => startResize(e, colKey)}
+                          className="absolute right-0 top-0 h-full w-3 cursor-col-resize flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity z-10"
+                          title="Resize column"
+                          onClick={e => e.stopPropagation()}
+                        >
+                          <div className="h-4 w-0.5 rounded-full bg-white/40" />
+                        </div>
+                      </th>
+                    )
+                  })}
+                </tr>
               </thead>
               <tbody>
                 {loading ? (
@@ -1081,7 +1104,6 @@ export default function ClientDirectory() {
                 })}
               </tbody>
             </table>
-          </DragDropContext>
         </div>
       </div>
 
