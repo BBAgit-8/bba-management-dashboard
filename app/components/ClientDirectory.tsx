@@ -47,6 +47,7 @@ type ApiClient = {
   numPmtPortals?: number | null
   pettyCash?: boolean | null
   referredBy?: string | null
+  state?: string | null
   hasContractedLoom?: boolean | null
   hasScheduledMeetings?: boolean | null
   hasSignedAutoIncrease?: boolean | null
@@ -64,6 +65,7 @@ import AddClientPanel from './AddClientPanel'
 type ColKey =
   | 'name' | 'code' | 'projectType' | 'revenueType' | 'bookkeepingRate' | 'status'
   | 'bookkeeper' | 'entityType' | 'monthlyBilling' | 'contractStartDate' | 'contractEndDate'
+  | 'state'
   | 'clientGroupName' | 'doubleId' | 'qboId' | 'clickUpId' | 'clientContactName'
   | 'contractedCloseDate' | 'softwareRate' | 'totalHrsPerMonth' | 'apArHrs'
   | 'qaHours' | 'custSuccessMgmtHrs' | 'yeOrTaxHours' | 'auditHours' | 'bkprHours'
@@ -106,6 +108,7 @@ const ALL_COLUMNS: { key: ColKey; label: string; defaultVisible: boolean; align?
   { key: 'numPmtPortals',      label: '# Pmt Portals',           defaultVisible: false, align: 'right' },
   { key: 'pettyCash',          label: 'Petty Cash',               defaultVisible: false, align: 'center' },
   { key: 'referredBy',         label: 'Referred By',              defaultVisible: true  },
+  { key: 'state',              label: 'State',                    defaultVisible: true  },
   { key: 'bookkeeper',         label: 'Bookkeeper',               defaultVisible: true  },
   // ── Hidden — available in Show Columns ─────────────────────────────────────
   { key: 'status',             label: 'Status',                   defaultVisible: false },
@@ -123,8 +126,8 @@ const ALL_COLUMNS: { key: ColKey; label: string; defaultVisible: boolean; align?
 
 const DEFAULT_VISIBLE = new Set(ALL_COLUMNS.filter(c => c.defaultVisible).map(c => c.key))
 const ALL_COL_KEYS = ALL_COLUMNS.map(c => c.key)
-const STORAGE_VISIBLE = 'cd-visible-cols-v5'  // bumped — resets saved prefs
-const STORAGE_ORDER   = 'cd-col-order-v5'     // bumped
+const STORAGE_VISIBLE = 'cd-visible-cols-v6'  // bumped — resets saved prefs
+const STORAGE_ORDER   = 'cd-col-order-v6'     // bumped
 
 // ── Style maps ────────────────────────────────────────────────────────────────
 const dropSel = 'rounded-lg bg-white border border-surface-border px-3 py-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-bba-primary'
@@ -827,9 +830,31 @@ export default function ClientDirectory() {
       case 'contractStartDate':
         return <td key={colKey} className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">{fmtDate(client.contractStartDate)}</td>
       case 'contractEndDate':
-        return <td key={colKey} className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">{fmtDate(client.contractEndDate)}</td>
+        return (
+          <td key={colKey} className="px-3 py-2">
+            <input
+              type="date"
+              value={client.contractEndDate ? client.contractEndDate.slice(0, 10) : ''}
+              onChange={e => patchCell(client, 'contractEndDate', e.target.value || null)}
+              className="w-36 bg-transparent rounded px-2 py-1 text-xs text-slate-600 border border-transparent hover:border-slate-200 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400 [color-scheme:light]"
+            />
+          </td>
+        )
       case 'contractedCloseDate':
         return <td key={colKey} className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">{fmtDate(client.contractedCloseDate)}</td>
+      case 'state':
+        return (
+          <td key={colKey} className="px-3 py-2">
+            <input
+              type="text"
+              value={client.state ?? ''}
+              onChange={e => patchCell(client, 'state', e.target.value || null)}
+              placeholder="—"
+              maxLength={2}
+              className="w-14 bg-transparent rounded px-2 py-1 text-xs text-slate-700 uppercase placeholder-slate-300 border border-transparent hover:border-slate-200 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400"
+            />
+          </td>
+        )
       case 'clientGroupName':
         return <td key={colKey} className="px-4 py-3 text-sm text-slate-700">{client.clientGroupName ?? <span className="text-slate-400">—</span>}</td>
       case 'doubleId':

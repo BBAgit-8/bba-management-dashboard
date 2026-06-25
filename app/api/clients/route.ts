@@ -74,6 +74,7 @@ export async function GET(): Promise<NextResponse> {
     numPmtPortals:            c.numPmtPortals       != null ? Number(c.numPmtPortals)       : null,
     pettyCash:                c.pettyCash           ?? false,
     referredBy:               c.referredBy          ?? null,
+    state:                    c.state               ?? null,
     tags: (c.tags ?? []).map((ct: any) => ct.tag).filter(Boolean),
     sows: (c.sows ?? []).map((s: any) => ({
       billingType:      s.billingType,
