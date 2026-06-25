@@ -16,6 +16,15 @@ export async function GET(): Promise<NextResponse> {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
+  // Fetch employee rates to enrich client records with costRate
+  const { data: employees } = await supabase
+    .from('employees')
+    .select('name, effectiveHourlyRate')
+  const empRateByName: Record<string, number> = {}
+  for (const e of employees ?? []) {
+    if (e.name) empRateByName[e.name] = Number(e.effectiveHourlyRate) || 0
+  }
+
   const shaped = (data ?? []).map((c: any) => ({
     id:                       c.id,
     name:                     c.name,
@@ -40,6 +49,7 @@ export async function GET(): Promise<NextResponse> {
     priceAdjustmentDate:      c.priceAdjustmentDate ?? null,
     // Bookkeeper (text field on clients table)
     bookkeeper:               c.Bookkeeper          ?? null,
+    costRate:                 c.Bookkeeper ? (empRateByName[c.Bookkeeper] ?? 0) : 0,
     accountantName:           c.accountantName      ?? null,
     // New fields
     clientGroupName:          c.clientGroupName     ?? null,
