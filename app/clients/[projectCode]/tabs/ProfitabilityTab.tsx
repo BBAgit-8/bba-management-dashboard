@@ -1,6 +1,6 @@
 "use client";
 
-import { SOWS, TIME_LOGS, EMPLOYEES } from "@/lib/mock-data";
+import { useState, useEffect } from "react";
 
 interface Props { clientId: string }
 
@@ -9,56 +9,80 @@ function fmt(n: number) {
 }
 
 export default function ProfitabilityTab({ clientId }: Props) {
-  const sow        = SOWS.find(s => s.clientId === clientId);
-  const logs       = TIME_LOGS.filter(l => l.clientId === clientId);
-  const totalHours = logs.reduce((sum, l) => sum + l.hoursLogged, 0);
+  const [data,    setData]    = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [error,   setError]   = useState<string | null>(null)
 
-  const revenue =
-    sow?.billingType === 'FLAT'
-      ? (sow.fixedMonthlyRate ?? 0)
-      : totalHours * (sow?.billingRate ?? 0);
+  useEffect(() => {
+    // Find this client in the profitability API
+    const now   = new Date()
+    const from  = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
+    const today = now.toISOString().split('T')[0]
 
-  const employeeRows = EMPLOYEES.map(emp => {
-    const empLogs = logs.filter(l => l.employeeId === emp.id);
-    const hrs     = empLogs.reduce((sum, l) => sum + l.hoursLogged, 0);
-    const cost    = hrs * emp.effectiveHourlyRate;
-    return { ...emp, hrs, cost };
-  }).filter(e => e.hrs > 0);
+    fetch(`/api/profitability?from=${from}&to=${today}`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.error) { setError(d.error); return }
+        const row = (d.rows ?? []).find((r: any) => r.id === clientId)
+        if (row) setData({ ...row, harvestConnected: d.harvestConnected })
+        else setError('Client not found in profitability data')
+      })
+      .catch(e => setError(e.message))
+      .finally(() => setLoading(false))
+  }, [clientId])
 
-  const totalCost  = employeeRows.reduce((sum, e) => sum + e.cost, 0);
-  const netProfit  = revenue - totalCost;
-  const margin     = revenue > 0 ? (netProfit / revenue) * 100 : 0;
-  const isPositive = netProfit >= 0;
+  if (loading) return (
+    <div className="flex items-center justify-center py-20">
+      <div className="h-6 w-6 animate-spin rounded-full border-2 border-purple-600 border-t-transparent" />
+    </div>
+  )
+
+  if (error || !data) return (
+    <div className="rounded-xl border border-red-100 bg-red-50 p-6 text-sm text-red-600">
+      {error ?? 'No data available'}
+    </div>
+  )
+
+  const revenue    = data.revenue    ?? 0
+  const totalCost  = data.cost       ?? 0
+  const netProfit  = data.profit     ?? 0
+  const margin     = data.margin     ?? 0
+  const hoursUsed  = data.hoursUsed  ?? 0
+  const harvestHrs = data.harvestHrs
+  const budgetHrs  = data.budgetedHrs ?? 0
+  const isPositive = netProfit >= 0
 
   return (
     <div className="space-y-6">
 
       {/* Hero metrics */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-3 gap-4">
         <div className="rounded-xl border border-slate-200 bg-white p-5">
           <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Net Profitability</p>
           <p className={`mt-2 text-4xl font-bold tracking-tight tabular-nums ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
             {isPositive ? '+' : '−'}${fmt(Math.abs(netProfit))}
           </p>
           <p className={`mt-1 text-xs font-medium ${isPositive ? 'text-green-600' : 'text-red-500'}`}>
-            {margin.toFixed(1)}% margin
+            {margin != null ? `${margin.toFixed(1)}% margin` : '—'}
           </p>
         </div>
 
         <div className="rounded-xl border border-slate-200 bg-white p-5">
-          <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Revenue</p>
+          <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">BK Revenue</p>
           <p className="mt-2 text-3xl font-bold text-slate-800 tabular-nums">${fmt(revenue)}</p>
-          <p className="mt-1 text-xs text-slate-400">
-            {sow?.billingType === 'FLAT'
-              ? 'Fixed monthly rate'
-              : `${totalHours.toFixed(1)} hrs × $${sow?.billingRate}/hr`}
-          </p>
+          <p className="mt-1 text-xs text-slate-400">Bookkeeping rate (excl. software)</p>
         </div>
 
         <div className="rounded-xl border border-slate-200 bg-white p-5">
-          <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Total Cost</p>
+          <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Cost of Delivery</p>
           <p className="mt-2 text-3xl font-bold text-slate-800 tabular-nums">${fmt(totalCost)}</p>
-          <p className="mt-1 text-xs text-slate-400">{totalHours.toFixed(1)} hrs logged this period</p>
+          <p className="mt-1 text-xs text-slate-400">
+            {hoursUsed.toFixed(2)} hrs × ${data.costRate ?? 0}/hr
+            {data.harvestConnected
+              ? <span className="ml-1.5 inline-flex items-center gap-1 text-green-600"><span className="h-1.5 w-1.5 rounded-full bg-green-500" />Harvest</span>
+              : <span className="ml-1.5 text-amber-500">budgeted</span>
+            }
+          </p>
         </div>
       </div>
 
@@ -66,8 +90,8 @@ export default function ProfitabilityTab({ clientId }: Props) {
       <div className="rounded-xl border border-slate-200 bg-white p-5 space-y-3">
         <h3 className="text-sm font-semibold text-slate-700">Revenue vs Cost</h3>
         {[
-          { label: 'Revenue',    value: revenue,    color: 'bg-purple-500' },
-          { label: 'Total Cost', value: totalCost,  color: isPositive ? 'bg-rose-400' : 'bg-red-600' },
+          { label: 'BK Revenue',   value: revenue,   color: 'bg-purple-500' },
+          { label: 'Cost of Delivery', value: totalCost, color: isPositive ? 'bg-rose-400' : 'bg-red-600' },
         ].map(row => (
           <div key={row.label}>
             <div className="flex justify-between text-xs text-slate-500 mb-1.5">
@@ -75,10 +99,8 @@ export default function ProfitabilityTab({ clientId }: Props) {
               <span className="tabular-nums font-medium text-slate-700">${fmt(row.value)}</span>
             </div>
             <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
-              <div
-                className={`h-full rounded-full transition-all duration-700 ${row.color}`}
-                style={{ width: `${revenue > 0 ? Math.min((row.value / revenue) * 100, 100) : 0}%` }}
-              />
+              <div className={`h-full rounded-full transition-all duration-700 ${row.color}`}
+                style={{ width: `${revenue > 0 ? Math.min((row.value / revenue) * 100, 100) : 0}%` }} />
             </div>
           </div>
         ))}
@@ -86,65 +108,35 @@ export default function ProfitabilityTab({ clientId }: Props) {
           isPositive ? 'bg-green-50 text-green-700 border border-green-100' : 'bg-red-50 text-red-700 border border-red-100'
         }`}>
           <span>{isPositive ? '▲' : '▼'}</span>
-          Net {isPositive ? 'profit' : 'loss'} of ${fmt(Math.abs(netProfit))} — {margin.toFixed(1)}% margin
+          Net {isPositive ? 'profit' : 'loss'} of ${fmt(Math.abs(netProfit))}
+          {margin != null ? ` — ${margin.toFixed(1)}% margin` : ''}
         </div>
       </div>
 
-      {/* Employee breakdown */}
+      {/* Hours detail */}
       <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
-        <div className="px-5 py-3.5 flex items-center justify-between border-b border-slate-100"
-          style={{ backgroundColor: 'var(--bba-primary)' }}>
-          <h3 className="text-sm font-semibold text-white">Employee Cost Breakdown</h3>
+        <div className="px-5 py-3.5 border-b border-slate-100 bg-bba-primary">
+          <h3 className="text-sm font-semibold text-white">Hours Detail</h3>
         </div>
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="bg-slate-50 border-b border-slate-200">
-              {['Employee', 'Hours Logged', 'Effective Rate', 'Total Cost', '% of Costs'].map(h => (
-                <th key={h} className={`px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500 ${h === 'Employee' ? 'text-left' : 'text-right'}`}>
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {employeeRows.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="px-5 py-10 text-center text-sm text-slate-400">
-                  No time logs recorded for this client.
-                </td>
-              </tr>
-            ) : employeeRows.map(emp => (
-              <tr key={emp.id} className="hover:bg-slate-50 transition-colors">
-                <td className="px-5 py-3">
-                  <div className="flex items-center gap-2.5">
-                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-purple-100 text-[10px] font-bold text-purple-700">
-                      {emp.name.split(' ').map((w: string) => w[0]).join('')}
-                    </div>
-                    <span className="font-medium text-slate-700">{emp.name}</span>
-                  </div>
-                </td>
-                <td className="px-5 py-3 text-right tabular-nums text-slate-600">{emp.hrs.toFixed(1)} hrs</td>
-                <td className="px-5 py-3 text-right tabular-nums text-slate-500">${emp.effectiveHourlyRate}/hr</td>
-                <td className="px-5 py-3 text-right tabular-nums font-medium text-slate-700">${fmt(emp.cost)}</td>
-                <td className="px-5 py-3 text-right tabular-nums text-slate-500">
-                  {totalCost > 0 ? ((emp.cost / totalCost) * 100).toFixed(1) : 0}%
-                </td>
-              </tr>
-            ))}
-          </tbody>
-          {employeeRows.length > 0 && (
-            <tfoot>
-              <tr className="border-t border-slate-200 bg-slate-50">
-                <td className="px-5 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">Total</td>
-                <td className="px-5 py-3 text-right font-semibold tabular-nums text-slate-700">{totalHours.toFixed(1)} hrs</td>
-                <td />
-                <td className="px-5 py-3 text-right font-semibold tabular-nums text-slate-700">${fmt(totalCost)}</td>
-                <td className="px-5 py-3 text-right text-slate-500">100%</td>
-              </tr>
-            </tfoot>
-          )}
-        </table>
+        <div className="divide-y divide-slate-100">
+          {[
+            { label: 'Bookkeeper', value: data.bookkeeper ?? '—' },
+            { label: 'Effective Rate', value: data.costRate ? `$${data.costRate}/hr` : '—' },
+            { label: 'Hours Used', value: `${hoursUsed.toFixed(2)} hrs`, note: data.harvestConnected ? 'from Harvest' : 'budgeted estimate' },
+            { label: 'Harvest Hours', value: harvestHrs != null ? `${harvestHrs.toFixed(2)} hrs` : '—', note: 'actual logged' },
+            { label: 'Budgeted Hours', value: `${budgetHrs.toFixed(2)} hrs`, note: 'from client record' },
+          ].map(({ label, value, note }) => (
+            <div key={label} className="flex items-center justify-between px-5 py-3">
+              <span className="text-sm text-slate-500">{label}</span>
+              <span className="text-sm font-medium text-slate-700">
+                {value}
+                {note && <span className="ml-1.5 text-xs text-slate-400">({note})</span>}
+              </span>
+            </div>
+          ))}
+        </div>
       </div>
+
     </div>
   );
 }
