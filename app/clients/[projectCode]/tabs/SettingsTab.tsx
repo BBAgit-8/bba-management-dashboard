@@ -99,11 +99,32 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
 
   const [subs, setSubs] = useState<SubRow[]>([]);
 
+  // Load subscriptions from DB
+  useEffect(() => {
+    if (!clientId) return;
+    fetch(`/api/clients/subscriptions?clientId=${clientId}`)
+      .then(r => r.json())
+      .then(d => {
+        if (Array.isArray(d.subscriptions)) {
+          setSubs(d.subscriptions.map((s: any) => ({
+            id:            s.id,
+            softwareName:  s.softwareName ?? '',
+            tier:          s.tier ?? '',
+            ourCost:       s.ourCost != null ? String(s.ourCost) : '',
+            clientPrice:   s.clientPrice != null ? String(s.clientPrice) : '',
+            billingCadence: s.billingCadence ?? 'MONTHLY',
+          })))
+        }
+      })
+      .catch(() => {})
+  }, [clientId]);
+
   async function saveOps(e: React.FormEvent) {
     e.preventDefault();
     setOpsSaved('saving');
     setSaveError('');
     try {
+      // Save ops fields
       const res = await fetch(`/api/clients/${projectCode}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -118,6 +139,14 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? 'Save failed');
+
+      // Save subscriptions
+      await fetch('/api/clients/subscriptions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId, subscriptions: subs }),
+      });
+
       setOpsSaved('done');
       setTimeout(() => setOpsSaved('idle'), 2500);
     } catch (err: any) {
