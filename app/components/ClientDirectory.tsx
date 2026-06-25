@@ -420,7 +420,7 @@ export default function ClientDirectory() {
 
   // Filters — all multi-select Sets
   const [tagFilters,        setTagFilters]        = useState<Set<string>>(new Set())
-  const [statusFilters,     setStatusFilters]     = useState<Set<string>>(new Set(['active']))
+  const [statusFilters,     setStatusFilters]     = useState<Set<string>>(new Set())
   const [bookkeeperFilters, setBookkeeperFilters] = useState<Set<string>>(new Set())
   const [entityTypeFilters, setEntityTypeFilters] = useState<Set<string>>(new Set())
   const [ptFilters,         setPtFilters]         = useState<Set<string>>(new Set())
@@ -575,6 +575,7 @@ export default function ClientDirectory() {
       if (cadenceFilters.size > 0 && !cadenceFilters.has(c.processingCadence ?? '')) return false
       if (ptFilters.size > 0 && !ptFilters.has(c.projectType ?? 'MONTHLY_MAINTENANCE')) return false
       if (statusFilters.size > 0 && !statusFilters.has(deriveStatus(merged))) return false
+      // empty statusFilters = show all statuses
       if (bookkeeperFilters.size > 0 && !bookkeeperFilters.has(c.bookkeeper ?? '')) return false
       if (entityTypeFilters.size > 0 && !entityTypeFilters.has(c.entityType ?? '')) return false
       const q = search.trim().toLowerCase()
@@ -600,12 +601,12 @@ export default function ClientDirectory() {
   }, [clients, inlineEdits, search, tagFilters, cadenceFilters, ptFilters, statusFilters, bookkeeperFilters, entityTypeFilters, sortKey, sortDir])
 
   const anyFilter = tagFilters.size > 0 || cadenceFilters.size > 0 || ptFilters.size > 0 ||
-    (statusFilters.size > 0 && !(statusFilters.size === 1 && statusFilters.has('active'))) ||
+    statusFilters.size > 0 ||
     bookkeeperFilters.size > 0 || entityTypeFilters.size > 0 || !!search.trim()
 
   function clearFilters() {
     setTagFilters(new Set()); setCadenceFilters(new Set()); setPtFilters(new Set())
-    setStatusFilters(new Set(['active'])); setBookkeeperFilters(new Set()); setEntityTypeFilters(new Set()); setSearch('')
+    setStatusFilters(new Set()); setBookkeeperFilters(new Set()); setEntityTypeFilters(new Set()); setSearch('')
   }
 
   function SortBtn({ k, children }: { k: SortKey; children: React.ReactNode }) {
@@ -826,10 +827,17 @@ export default function ClientDirectory() {
         return <td key={colKey} className="px-4 py-3 text-sm text-slate-700">{client.accountantName ?? <span className="text-slate-400">—</span>}</td>
       case 'status':
         return (
-          <td key={colKey} className="px-4 py-3">
-            <span className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold ring-1 ${pill.bg} ${pill.text} ${pill.ring}`}>
-              {pill.label}
-            </span>
+          <td key={colKey} className="px-3 py-2">
+            <select
+              value={merged.archiveStatus ?? 'ACTIVE'}
+              onChange={e => patchCell(client, 'archiveStatus', e.target.value)}
+              className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ring-1 border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-400 ${pill.bg} ${pill.text} ${pill.ring}`}
+            >
+              <option value="ACTIVE">Active</option>
+              <option value="OFF_BOARDING">Off-boarding</option>
+              <option value="INACTIVE">Inactive</option>
+              <option value="ARCHIVED">Archived</option>
+            </select>
           </td>
         )
       case 'contractStartDate':
@@ -839,8 +847,8 @@ export default function ClientDirectory() {
           <td key={colKey} className="px-2 py-2">
             <input
               type="date"
-              defaultValue={client.contractEndDate ? client.contractEndDate.slice(0, 10) : ''}
-              key={client.contractEndDate ?? 'empty'}
+              defaultValue={(inlineEdits[client.id]?.contractEndDate ?? client.contractEndDate ?? '').slice(0, 10)}
+              key={inlineEdits[client.id]?.contractEndDate ?? client.contractEndDate ?? 'empty'}
               onBlur={e => patchCell(client, 'contractEndDate', e.target.value || '')}
               className="w-full bg-transparent rounded px-1 py-1 text-xs text-slate-600 border border-transparent hover:border-slate-200 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400 [color-scheme:light]"
             />
