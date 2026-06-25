@@ -118,46 +118,49 @@ export default function DashboardTab({ client, projectCode }: Props) {
     <div className="space-y-6">
 
       {/* Monthly Bookkeeper Budget */}
-      <div className="rounded-2xl bg-bba-primary text-white overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4">
+      <div className="rounded-2xl overflow-hidden border border-purple-100">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 bg-bba-primary text-white">
           <h2 className="text-base font-semibold">Monthly Bookkeeper Budget</h2>
           <span className="text-sm font-medium opacity-70">
             {rate > 0 ? `$${rate}/hr` : 'Rate not set'}
           </span>
         </div>
-        <div className="grid grid-cols-3 divide-x divide-white/10 bg-white/5">
+        {/* Stats row */}
+        <div className="grid grid-cols-3 divide-x divide-purple-100 bg-purple-50">
           {[
-            { label: 'Total Hrs / Mo',   value: fmtHrs(target)  },
+            { label: 'Total Hrs / Mo',   value: fmtHrs(target)    },
             { label: 'Pool Deductions',  value: fmtHrs(POOL_TOTAL) },
             { label: 'Net Bkkeeper Hrs', value: fmtHrs(NET_BK), highlight: true },
           ].map(({ label, value, highlight }) => (
             <div key={label} className="px-6 py-4 text-center">
-              <p className={`text-2xl font-bold ${highlight ? 'text-green-300' : 'text-white'}`}>{value}</p>
-              <p className="text-xs text-white/60 mt-1">{label}</p>
+              <p className={`text-2xl font-bold ${highlight ? 'text-purple-700' : 'text-slate-700'}`}>{value}</p>
+              <p className="text-xs text-slate-400 mt-1">{label}</p>
             </div>
           ))}
         </div>
-        <div className="px-6 py-3 bg-white/5 flex items-center justify-between text-sm">
-          <span className="text-white/70">
+        {/* Usage row */}
+        <div className="px-6 py-3 bg-purple-50 border-t border-purple-100 flex items-center justify-between text-sm">
+          <span className="text-slate-600">
             {fmtHrs(bkUsed)} bookkeeper hrs used
             {harvestConnected
-              ? <span className="ml-2 inline-flex items-center gap-1 text-green-300 text-xs"><span className="h-1.5 w-1.5 rounded-full bg-green-400" />Live from Harvest</span>
+              ? <span className="ml-2 inline-flex items-center gap-1 text-green-600 text-xs"><span className="h-1.5 w-1.5 rounded-full bg-green-500" />Live from Harvest</span>
               : harvestLoading
-                ? <span className="ml-2 text-white/40 text-xs">Loading Harvest…</span>
-                : <span className="ml-2 text-amber-300 text-xs">⚠ {harvestError ?? 'Not connected'}</span>
+                ? <span className="ml-2 text-slate-400 text-xs">Loading Harvest…</span>
+                : <span className="ml-2 text-amber-600 text-xs">⚠ {harvestError ?? 'Not connected'}</span>
             }
           </span>
-          <span className="text-white/70">{fmtHrs(remaining)} hrs remaining</span>
+          <span className="text-slate-500">{fmtHrs(remaining)} hrs remaining</span>
         </div>
         {/* Progress bar */}
-        <div className="px-6 pb-4">
-          <div className="h-2 rounded-full bg-white/10">
-            <div className={`h-2 rounded-full transition-all ${isOver ? 'bg-red-400' : 'bg-green-400'}`}
+        <div className="px-6 pb-4 bg-purple-50">
+          <div className="h-2 rounded-full bg-purple-100">
+            <div className={`h-2 rounded-full transition-all ${isOver ? 'bg-red-500' : 'bg-purple-500'}`}
               style={{ width: `${Math.min(pct, 100)}%` }} />
           </div>
-          <div className="flex justify-between mt-1 text-xs text-white/40">
-            <span className={isOver ? 'text-red-300 font-medium' : ''}>
-              {pct.toFixed(1)}% of net budget {isOver ? '— OVER' : ''}
+          <div className="flex justify-between mt-1.5 text-xs text-slate-400">
+            <span className={isOver ? 'text-red-500 font-medium' : ''}>
+              {pct.toFixed(1)}% of net budget {isOver ? '— OVER BUDGET' : ''}
             </span>
             <span>{fmtHrs(NET_BK)} hrs available</span>
           </div>
