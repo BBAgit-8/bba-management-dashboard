@@ -47,6 +47,7 @@ export async function GET(): Promise<NextResponse> {
     hasSignedAutoIncrease:    c.hasSignedAutoIncrease ?? false,
     autoPriceIncreasePercent: c.autoPriceIncreasePercent != null ? Number(c.autoPriceIncreasePercent) : null,
     priceAdjustmentDate:      c.priceAdjustmentDate ?? null,
+    okToContactAccountant:    c.okToContactAccountant ?? false,
     // Bookkeeper (text field on clients table)
     bookkeeper:               c.Bookkeeper          ?? null,
     costRate:                 c.Bookkeeper ? (empRateByName[c.Bookkeeper] ?? 0) : 0,

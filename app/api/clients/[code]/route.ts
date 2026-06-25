@@ -14,7 +14,13 @@ const NUMERIC_FIELDS = new Set([
 ])
 
 const BOOLEAN_FIELDS = new Set([
-  'hasContractedLoom', 'hasScheduledMeetings', 'hasSignedAutoIncrease', 'pettyCash', 'qboOnly',
+  'hasContractedLoom', 'hasScheduledMeetings', 'hasSignedAutoIncrease',
+  'pettyCash', 'qboOnly', 'okToContactAccountant',
+])
+
+// Date fields — sent as ISO date strings, stored as timestamptz
+const DATE_FIELDS = new Set([
+  'priceAdjustmentDate', 'contractStartDate', 'contractEndDate', 'contractedCloseDate',
 ])
 
 // Enum columns — empty string means "leave as-is", skip the update
@@ -46,6 +52,9 @@ export async function PATCH(
       mapped[dbKey] = isNaN(n) ? null : n
     } else if (BOOLEAN_FIELDS.has(key)) {
       mapped[dbKey] = val === true || val === 'true'
+    } else if (DATE_FIELDS.has(key)) {
+      // Ensure date strings are stored as ISO timestamps
+      mapped[dbKey] = typeof val === 'string' ? new Date(val).toISOString() : val
     } else {
       mapped[dbKey] = val
     }
