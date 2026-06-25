@@ -999,7 +999,7 @@ export default function ClientDirectory() {
                                 ref={provided.innerRef}
                                 {...provided.draggableProps}
                                 {...provided.dragHandleProps}
-                                className={`relative px-4 py-3 ${alignCls} text-[11px] font-semibold uppercase tracking-wider whitespace-nowrap select-none cursor-grab active:cursor-grabbing transition-opacity ${snapshot.isDragging ? 'opacity-50' : ''}`}
+                                className={`relative px-4 py-3 ${alignCls} text-[11px] font-semibold uppercase tracking-wider select-none cursor-grab active:cursor-grabbing transition-opacity ${snapshot.isDragging ? 'opacity-50' : ''}`}
                                 style={{
                                   ...provided.draggableProps.style,
                                   width: colWidths[colKey] ?? undefined,
@@ -1010,16 +1010,21 @@ export default function ClientDirectory() {
                                   onClick={e => { e.stopPropagation(); toggleSort(colKey as SortKey) }}
                                   className="flex items-center gap-1 hover:opacity-80 transition-opacity cursor-pointer select-none w-full"
                                 >
-                                  <span className={`uppercase tracking-wider font-bold text-white block w-full ${col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left'}`}>
+                                  <span className={`uppercase tracking-wider font-bold text-white block w-full leading-tight ${col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left'}`}>
                                     {col.label}
                                   </span>
                                   <span className="text-[9px] opacity-60 shrink-0">
                                     {sortKey === colKey ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}
                                   </span>
                                 </button>
-                                {/* Resize handle */}
+                                {/* Resize handle — must stop propagation so DnD doesn't intercept */}
                                 <div
-                                  onMouseDown={e => startResize(e, colKey)}
+                                  onMouseDown={e => {
+                                    e.stopPropagation()
+                                    e.preventDefault()
+                                    startResize(e, colKey)
+                                  }}
+                                  onPointerDown={e => e.stopPropagation()}
                                   className="absolute right-0 top-0 h-full w-3 cursor-col-resize flex items-center justify-center opacity-0 hover:opacity-100 group-hover:opacity-60 transition-opacity z-10"
                                   title="Drag to resize"
                                   onClick={e => e.stopPropagation()}
