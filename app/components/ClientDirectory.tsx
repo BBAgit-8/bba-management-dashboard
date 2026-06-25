@@ -300,6 +300,17 @@ function MultiFilter({ label, filters, setFilters, options }: {
       </button>
       {open && (
         <div className="absolute top-full left-0 mt-1 z-50 min-w-[160px] rounded-lg border border-slate-200 bg-white shadow-lg py-1">
+          <div className="flex items-center gap-1 px-3 py-1.5 border-b border-slate-100">
+            <button
+              onClick={() => setFilters(new Set(options.map(o => o.v)))}
+              className="text-xs text-purple-600 hover:text-purple-800 font-medium"
+            >Select All</button>
+            <span className="text-slate-300 text-xs">·</span>
+            <button
+              onClick={() => setFilters(new Set())}
+              className="text-xs text-slate-400 hover:text-slate-600"
+            >Clear</button>
+          </div>
           {options.map(o => (
             <label key={o.v} className="flex items-center gap-2.5 px-3 py-2 hover:bg-slate-50 cursor-pointer">
               <input
@@ -311,17 +322,6 @@ function MultiFilter({ label, filters, setFilters, options }: {
               <span className="text-xs text-slate-700">{o.label}</span>
             </label>
           ))}
-          {filters.size > 0 && (
-            <>
-              <div className="my-1 border-t border-slate-100" />
-              <button
-                onClick={() => { setFilters(new Set()); setOpen(false) }}
-                className="w-full px-3 py-1.5 text-left text-xs text-slate-400 hover:text-slate-600 hover:bg-slate-50"
-              >
-                Clear
-              </button>
-            </>
-          )}
         </div>
       )}
     </div>
@@ -1032,11 +1032,10 @@ export default function ClientDirectory() {
         {/* Dropdown filters */}
         <div className="flex items-center gap-2 flex-wrap">
           <MultiFilter label="Status" filters={statusFilters} setFilters={setStatusFilters} options={[
-            { v: 'active',        label: 'Active'          },
-            { v: 'offboarding',   label: 'Off-boarding'    },
-            { v: 'inactive',      label: 'Inactive'        },
-            { v: 'archived',      label: 'Archived'        },
-            { v: 'pendingArchive',label: 'Pending Archive' },
+            { v: 'active',        label: 'Active'       },
+            { v: 'offboarding',   label: 'Off-boarding' },
+            { v: 'inactive',      label: 'Inactive'     },
+            { v: 'archived',      label: 'Archived'     },
           ]} />
           <MultiFilter label="Bookkeeper" filters={bookkeeperFilters} setFilters={setBookkeeperFilters} options={bookkeepers.map(b => ({ v: b, label: b }))} />
           <MultiFilter label="Entity Type" filters={entityTypeFilters} setFilters={setEntityTypeFilters} options={[
