@@ -35,20 +35,44 @@ export default function DashboardTab({ client, projectCode }: Props) {
   const from  = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
   const today = now.toISOString().split('T')[0]
 
+  // Pool accumulation periods
+  const qtrStart = (() => {
+    const m = now.getMonth()
+    const qtrMonth = Math.floor(m / 3) * 3
+    return `${now.getFullYear()}-${String(qtrMonth + 1).padStart(2, '0')}-01`
+  })()
+  const yearStart = `${now.getFullYear()}-01-01`
+  const monthsInQtr  = Math.floor((now.getMonth() % 3)) + 1
+  const monthsInYear = now.getMonth() + 1
+
+  const [harvestAccum, setHarvestAccum] = useState<{ qa: number; ye: number; mgmt: number } | null>(null)
+
   // Fetch Harvest hours for this client
   const loadHarvest = useCallback(() => {
     if (!projectCode) return
     setHarvestLoading(true)
-    fetch(`/api/harvest/hours?code=${projectCode}&from=${from}&to=${today}`)
-      .then(r => r.json())
-      .then(d => {
-        setHarvestConnected(d.connected ?? false)
-        setHarvestError(d.error ?? null)
-        if (d.hours) setHarvest(d.hours)
+
+    // Current month hours
+    Promise.all([
+      fetch(`/api/harvest/hours?code=${projectCode}&from=${from}&to=${today}`).then(r => r.json()),
+      fetch(`/api/harvest/hours?code=${projectCode}&from=${qtrStart}&to=${today}`).then(r => r.json()),
+      fetch(`/api/harvest/hours?code=${projectCode}&from=${yearStart}&to=${today}`).then(r => r.json()),
+    ])
+      .then(([month, qtr, year]) => {
+        setHarvestConnected(month.connected ?? false)
+        setHarvestError(month.error ?? null)
+        if (month.hours) setHarvest(month.hours)
+        if (qtr.hours && year.hours) {
+          setHarvestAccum({
+            qa:   qtr.hours.qa   ?? 0,
+            mgmt: qtr.hours.mgmt ?? 0,
+            ye:   year.hours.ye  ?? 0,
+          })
+        }
       })
       .catch(e => setHarvestError(e.message))
       .finally(() => setHarvestLoading(false))
-  }, [projectCode, from, today])
+  }, [projectCode, from, today, qtrStart, yearStart])
 
   useEffect(() => { loadHarvest() }, [loadHarvest])
 
@@ -76,20 +100,23 @@ export default function DashboardTab({ client, projectCode }: Props) {
   const rate = Number(client?.costRate ?? 0)
 
   // Pool progress helpers
-  function PoolCard({ label, used, budget, color }: { label: string; used: number; budget: number; color: string }) {
+  function PoolCard({ label, sublabel, used, budget, color }: { label: string; sublabel: string; used: number; budget: number; color: string }) {
     const poolPct = budget > 0 ? Math.min((used / budget) * 100, 100) : 0
     const over    = used > budget && budget > 0
     return (
       <div className={`rounded-xl border p-4 space-y-2 ${over ? 'border-red-200 bg-red-50' : 'bg-white border-slate-100'}`}>
+        <div>
+          <span className="text-xs font-semibold text-slate-600 uppercase tracking-wider">{label}</span>
+          <p className="text-[10px] text-slate-400 mt-0.5">{sublabel}</p>
+        </div>
         <div className="flex items-baseline justify-between">
-          <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{label}</span>
+          <p className="text-2xl font-bold" style={{ color: over ? '#ef4444' : color }}>
+            {fmtHrs(used)} <span className="text-sm font-normal text-slate-400">hrs used</span>
+          </p>
           <span className={`text-xs font-medium ${over ? 'text-red-600' : 'text-slate-400'}`}>
-            {budget > 0 ? `${fmtHrs(budget)} h/mo` : '—'}
+            of {budget > 0 ? fmtHrs(budget) : '—'}
           </span>
         </div>
-        <p className={`text-2xl font-bold ${over ? 'text-red-600' : `text-[${color}]`}`} style={{ color: over ? undefined : color }}>
-          {fmtHrs(used)} <span className="text-sm font-normal text-slate-400">hrs</span>
-        </p>
         {budget > 0 && (
           <div className="h-1.5 rounded-full bg-slate-100">
             <div className="h-1.5 rounded-full transition-all" style={{ width: `${poolPct}%`, backgroundColor: over ? '#ef4444' : color }} />
@@ -99,7 +126,10 @@ export default function DashboardTab({ client, projectCode }: Props) {
     )
   }
 
-  async function handleSubmitNotes(e: React.FormEvent) {
+  // Accumulated pool budgets
+  const QA_ACCUM     = parseFloat((QA_BUDGET   * monthsInQtr).toFixed(2))
+  const YE_ACCUM     = parseFloat((YE_BUDGET   * monthsInYear).toFixed(2))
+  const MGMT_ACCUM   = parseFloat((MGMT_BUDGET * monthsInQtr).toFixed(2))
     e.preventDefault()
     if (!rawNotes.trim()) return
     setSubmit('loading')
@@ -169,9 +199,27 @@ export default function DashboardTab({ client, projectCode }: Props) {
 
       {/* Pool cards */}
       <div className="grid grid-cols-3 gap-4">
-        <PoolCard label="QA"       used={qaUsed}   budget={QA_BUDGET}   color="#8b5cf6" />
-        <PoolCard label="Mgmt + CS" used={mgmtUsed} budget={MGMT_BUDGET} color="#ec4899" />
-        <PoolCard label="Year-End" used={yeUsed}   budget={YE_BUDGET}   color="#f59e0b" />
+        <PoolCard
+          label="Rolling QA Pool"
+          sublabel={`Quarter to date · ${monthsInQtr} of 3 months`}
+          used={harvestConnected && harvestAccum ? harvestAccum.qa : qaUsed * monthsInQtr}
+          budget={QA_ACCUM}
+          color="#8b5cf6"
+        />
+        <PoolCard
+          label="Mgmt + CS Pool"
+          sublabel={`Quarter to date · ${monthsInQtr} of 3 months`}
+          used={harvestConnected && harvestAccum ? harvestAccum.mgmt : mgmtUsed * monthsInQtr}
+          budget={MGMT_ACCUM}
+          color="#ec4899"
+        />
+        <PoolCard
+          label="Annual YE Pool"
+          sublabel={`Year to date · ${monthsInYear} of 12 months`}
+          used={harvestConnected && harvestAccum ? harvestAccum.ye : yeUsed * monthsInYear}
+          budget={YE_ACCUM}
+          color="#f59e0b"
+        />
       </div>
 
       {/* Harvest breakdown (if connected) */}
