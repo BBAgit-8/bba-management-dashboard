@@ -555,19 +555,9 @@ export default function ClientDirectory() {
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white" style={{ backgroundColor: 'rgba(78,0,142,0.12)' }}>
                 {initials(client.name)}
               </div>
-              <div className="flex items-center gap-2 min-w-0">
+              <div className="flex items-center min-w-0">
                 <Link href={`/clients/${client.harvestProjectCode}`} className="font-medium text-slate-800 hover:text-purple-700 transition-colors whitespace-nowrap">
                   {client.name}
-                </Link>
-                <Link
-                  href={`/clients/${client.harvestProjectCode}`}
-                  className="shrink-0 inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium transition-colors"
-                  style={{ backgroundColor: 'rgba(78,0,142,0.08)', color: '#6a4c80', border: '1px solid rgba(78,0,142,0.2)' }}
-                >
-                  Open
-                  <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
                 </Link>
               </div>
             </div>
