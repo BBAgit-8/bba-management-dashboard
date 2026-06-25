@@ -130,6 +130,8 @@ export default function DashboardTab({ client, projectCode }: Props) {
   const QA_ACCUM     = parseFloat((QA_BUDGET   * monthsInQtr).toFixed(2))
   const YE_ACCUM     = parseFloat((YE_BUDGET   * monthsInYear).toFixed(2))
   const MGMT_ACCUM   = parseFloat((MGMT_BUDGET * monthsInQtr).toFixed(2))
+
+  async function handleSubmitNotes(e: React.FormEvent) {
     e.preventDefault()
     if (!rawNotes.trim()) return
     setSubmit('loading')
