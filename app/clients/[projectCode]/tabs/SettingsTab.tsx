@@ -52,6 +52,9 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
   const [confirmText,     setConfirmText]    = useState('');
   const [archiveStatus,   setArchiveStatus]  = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
   const [accountants,     setAccountants]    = useState<Accountant[]>([]);
+  const [showAddAcct,     setShowAddAcct]    = useState(false);
+  const [newAcct,         setNewAcct]        = useState({ name: '', businessName: '', email: '' });
+  const [addingAcct,      setAddingAcct]     = useState(false);
   const router = useRouter();
 
   // Load accountants
@@ -61,6 +64,25 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
       .then(d => { if (Array.isArray(d.accountants)) setAccountants(d.accountants) })
       .catch(() => {})
   }, []);
+
+  async function handleAddAccountant() {
+    if (!newAcct.name.trim()) return;
+    setAddingAcct(true);
+    try {
+      const res = await fetch('/api/accountants', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newAcct.name.trim(), businessName: newAcct.businessName.trim() || null, email: newAcct.email.trim() || null }),
+      });
+      const d = await res.json();
+      if (d.accountant) {
+        setAccountants(prev => [...prev, d.accountant]);
+        setOps(o => ({ ...o, accountantName: d.accountant.name }));
+        setNewAcct({ name: '', businessName: '', email: '' });
+        setShowAddAcct(false);
+      }
+    } catch {} finally { setAddingAcct(false); }
+  }
 
   // Re-populate form if parent client data changes
   useEffect(() => {
@@ -157,14 +179,44 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
               <label className="block text-xs font-medium text-slate-500 mb-1.5">Accountant</label>
               <select
                 value={ops.accountantName}
-                onChange={e => setOps(o => ({ ...o, accountantName: e.target.value }))}
+                onChange={e => {
+                  if (e.target.value === '__add_new__') { setShowAddAcct(true); return; }
+                  setOps(o => ({ ...o, accountantName: e.target.value }))
+                }}
                 className={sel}
               >
                 <option value="">— Select accountant —</option>
                 {accountants.map(a => (
                   <option key={a.id} value={a.name}>{a.name}{a.businessName ? ` — ${a.businessName}` : ''}</option>
                 ))}
+                <option value="__add_new__">+ Add new accountant…</option>
               </select>
+
+              {/* Inline add accountant form */}
+              {showAddAcct && (
+                <div className="mt-2 rounded-lg border border-purple-200 bg-purple-50 p-3 space-y-2">
+                  <p className="text-xs font-semibold text-purple-700">New Accountant</p>
+                  <input type="text" placeholder="Full name *" value={newAcct.name}
+                    onChange={e => setNewAcct(n => ({ ...n, name: e.target.value }))}
+                    className="w-full rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                  <input type="text" placeholder="Business / firm name" value={newAcct.businessName}
+                    onChange={e => setNewAcct(n => ({ ...n, businessName: e.target.value }))}
+                    className="w-full rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                  <input type="email" placeholder="Email" value={newAcct.email}
+                    onChange={e => setNewAcct(n => ({ ...n, email: e.target.value }))}
+                    className="w-full rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                  <div className="flex gap-2 pt-1">
+                    <button type="button" onClick={handleAddAccountant} disabled={addingAcct || !newAcct.name.trim()}
+                      className="rounded-md bg-purple-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-purple-700 disabled:opacity-50">
+                      {addingAcct ? 'Adding…' : 'Add Accountant'}
+                    </button>
+                    <button type="button" onClick={() => { setShowAddAcct(false); setNewAcct({ name: '', businessName: '', email: '' }); }}
+                      className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-500 hover:text-slate-700">
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
               <div className="mt-3 flex items-center justify-between rounded-lg bg-slate-50 border border-slate-200 px-4 py-3">
                 <div>
                   <span className="text-sm text-slate-700">Okay to contact accountant directly?</span>
