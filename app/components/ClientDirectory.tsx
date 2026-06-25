@@ -831,13 +831,13 @@ export default function ClientDirectory() {
         return <td key={colKey} className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">{fmtDate(client.contractStartDate)}</td>
       case 'contractEndDate':
         return (
-          <td key={colKey} className="px-3 py-2">
+          <td key={colKey} className="px-2 py-2">
             <input
               type="date"
               defaultValue={client.contractEndDate ? client.contractEndDate.slice(0, 10) : ''}
               key={client.contractEndDate ?? 'empty'}
               onBlur={e => patchCell(client, 'contractEndDate', e.target.value || '')}
-              className="w-36 bg-transparent rounded px-2 py-1 text-xs text-slate-600 border border-transparent hover:border-slate-200 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400 [color-scheme:light]"
+              className="w-full bg-transparent rounded px-1 py-1 text-xs text-slate-600 border border-transparent hover:border-slate-200 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400 [color-scheme:light]"
             />
           </td>
         )
@@ -1123,7 +1123,7 @@ export default function ClientDirectory() {
                           // Don't start col drag if clicking the resize handle (rightmost 12px)
                           const th = e.currentTarget
                           const rect = th.getBoundingClientRect()
-                          if (e.clientX > rect.right - 12) return
+                          if (e.clientX > rect.right - 16) return
                           startColDrag(e, colKey, index)
                         }}
                         className={`relative px-3 py-3 text-center text-[11px] font-semibold uppercase tracking-wider select-none transition-colors cursor-grab active:cursor-grabbing ${isDragOver ? 'bg-white/20' : ''}`}
@@ -1148,7 +1148,7 @@ export default function ClientDirectory() {
                         {/* Resize handle */}
                         <div
                           onMouseDown={e => { e.stopPropagation(); startResize(e, colKey) }}
-                          className="absolute right-0 top-0 h-full w-3 cursor-col-resize flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity z-10"
+                          className="absolute right-0 top-0 h-full w-4 cursor-col-resize flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity z-10"
                           title="Resize column"
                           onClick={e => e.stopPropagation()}
                         >
