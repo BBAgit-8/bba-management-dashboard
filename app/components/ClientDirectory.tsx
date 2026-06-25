@@ -570,10 +570,11 @@ export default function ClientDirectory() {
 
   const filtered = useMemo(() => {
     const list = clients.filter(c => {
+      const merged: ApiClient = inlineEdits[c.id] ? { ...c, ...inlineEdits[c.id] } : c
       if (tagFilters.size > 0 && !c.tags.some(t => tagFilters.has(t.id))) return false
       if (cadenceFilters.size > 0 && !cadenceFilters.has(c.processingCadence ?? '')) return false
       if (ptFilters.size > 0 && !ptFilters.has(c.projectType ?? 'MONTHLY_MAINTENANCE')) return false
-      if (statusFilters.size > 0 && !statusFilters.has(deriveStatus(c))) return false
+      if (statusFilters.size > 0 && !statusFilters.has(deriveStatus(merged))) return false
       if (bookkeeperFilters.size > 0 && !bookkeeperFilters.has(c.bookkeeper ?? '')) return false
       if (entityTypeFilters.size > 0 && !entityTypeFilters.has(c.entityType ?? '')) return false
       const q = search.trim().toLowerCase()
@@ -596,7 +597,7 @@ export default function ClientDirectory() {
       }
       return sortDir === 'asc' ? cmp : -cmp
     })
-  }, [clients, search, tagFilters, cadenceFilters, ptFilters, statusFilters, bookkeeperFilters, entityTypeFilters, sortKey, sortDir])
+  }, [clients, inlineEdits, search, tagFilters, cadenceFilters, ptFilters, statusFilters, bookkeeperFilters, entityTypeFilters, sortKey, sortDir])
 
   const anyFilter = tagFilters.size > 0 || cadenceFilters.size > 0 || ptFilters.size > 0 ||
     (statusFilters.size > 0 && !(statusFilters.size === 1 && statusFilters.has('active'))) ||
@@ -621,9 +622,13 @@ export default function ClientDirectory() {
   }
 
   function renderCell(colKey: ColKey, client: ApiClient) {
-    const statusKey = deriveStatus(client)
+    // Merge any pending inline edits so derived values (status) reflect unsaved changes
+    const merged: ApiClient = inlineEdits[client.id]
+      ? { ...client, ...inlineEdits[client.id] }
+      : client
+    const statusKey = deriveStatus(merged)
     const pill = STATUS_PILL[statusKey]
-    const pt = client.projectType ?? 'MONTHLY_MAINTENANCE'
+    const pt = merged.projectType ?? 'MONTHLY_MAINTENANCE'
     const ptStyle = PTYPE_STYLE[pt] ?? PTYPE_STYLE.MONTHLY_MAINTENANCE
     const col = ALL_COLUMNS.find(c => c.key === colKey)!
     const alignCls = col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left'
