@@ -835,7 +835,7 @@ export default function ClientDirectory() {
             <input
               type="date"
               value={client.contractEndDate ? client.contractEndDate.slice(0, 10) : ''}
-              onChange={e => patchCell(client, 'contractEndDate', e.target.value || null)}
+              onChange={e => patchCell(client, 'contractEndDate', e.target.value || '')}
               className="w-36 bg-transparent rounded px-2 py-1 text-xs text-slate-600 border border-transparent hover:border-slate-200 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400 [color-scheme:light]"
             />
           </td>
@@ -848,7 +848,7 @@ export default function ClientDirectory() {
             <input
               type="text"
               value={client.state ?? ''}
-              onChange={e => patchCell(client, 'state', e.target.value || null)}
+              onChange={e => patchCell(client, 'state', e.target.value || '')}
               placeholder="—"
               maxLength={2}
               className="w-14 bg-transparent rounded px-2 py-1 text-xs text-slate-700 uppercase placeholder-slate-300 border border-transparent hover:border-slate-200 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400"
