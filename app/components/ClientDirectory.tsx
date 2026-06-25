@@ -253,6 +253,78 @@ function exportToCSV(clients: ApiClient[], visibleCols: Set<ColKey>) {
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
+// ── MultiFilter dropdown ────────────────────────────────────────
+function MultiFilter({ label, filters, setFilters, options }: {
+  label: string
+  filters: Set<string>
+  setFilters: React.Dispatch<React.SetStateAction<Set<string>>>
+  options: { v: string; label: string }[]
+}) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function onDown(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', onDown)
+    return () => document.removeEventListener('mousedown', onDown)
+  }, [])
+
+  const active = filters.size > 0
+  const btnLabel = filters.size === 0
+    ? `All ${label}s`
+    : filters.size === 1
+      ? (options.find(o => filters.has(o.v))?.label ?? label)
+      : `${label} (${filters.size})`
+
+  function toggle(v: string) {
+    setFilters(prev => { const n = new Set(prev); n.has(v) ? n.delete(v) : n.add(v); return n })
+  }
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium border transition-all ${
+          active ? 'bg-purple-50 border-purple-300 text-purple-700' : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+        }`}
+      >
+        {btnLabel}
+        <svg className={`h-3 w-3 transition-transform ${open ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      {open && (
+        <div className="absolute top-full left-0 mt-1 z-50 min-w-[160px] rounded-lg border border-slate-200 bg-white shadow-lg py-1">
+          {options.map(o => (
+            <label key={o.v} className="flex items-center gap-2.5 px-3 py-2 hover:bg-slate-50 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={filters.has(o.v)}
+                onChange={() => toggle(o.v)}
+                className="rounded border-slate-300 text-purple-600 focus:ring-purple-500"
+              />
+              <span className="text-xs text-slate-700">{o.label}</span>
+            </label>
+          ))}
+          {filters.size > 0 && (
+            <>
+              <div className="my-1 border-t border-slate-100" />
+              <button
+                onClick={() => { setFilters(new Set()); setOpen(false) }}
+                className="w-full px-3 py-1.5 text-left text-xs text-slate-400 hover:text-slate-600 hover:bg-slate-50"
+              >
+                Clear
+              </button>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function ClientDirectory() {
   const [search,        setSearch]       = useState('')
   const [panelOpen,     setPanelOpen]    = useState(false)
@@ -930,99 +1002,50 @@ export default function ClientDirectory() {
           })}
         </div>
 
-        {/* Multi-select pill filters */}
-        <div className="space-y-2">
-          {/* Status */}
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 w-20 shrink-0">Status</span>
-            {([
-              { v: 'active',        label: 'Active'          },
-              { v: 'offboarding',   label: 'Off-boarding'    },
-              { v: 'inactive',      label: 'Inactive'        },
-              { v: 'archived',      label: 'Archived'        },
-              { v: 'pendingArchive',label: 'Pending Archive' },
-            ] as {v:string;label:string}[]).map(o => (
-              <button key={o.v} onClick={() => toggleFilter(statusFilters, setStatusFilters, o.v)}
-                className={`rounded-full px-3 py-1 text-xs font-medium ring-1 transition-all ${statusFilters.has(o.v) ? 'bg-purple-600 text-white ring-purple-600' : 'bg-white text-slate-600 ring-slate-200 hover:ring-purple-300 hover:text-purple-700'}`}>
-                {o.label}
-              </button>
-            ))}
-          </div>
-          {/* Bookkeeper */}
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 w-20 shrink-0">Bookkeeper</span>
-            {bookkeepers.map(b => (
-              <button key={b} onClick={() => toggleFilter(bookkeeperFilters, setBookkeeperFilters, b)}
-                className={`rounded-full px-3 py-1 text-xs font-medium ring-1 transition-all ${bookkeeperFilters.has(b) ? 'bg-purple-600 text-white ring-purple-600' : 'bg-white text-slate-600 ring-slate-200 hover:ring-purple-300 hover:text-purple-700'}`}>
-                {b}
-              </button>
-            ))}
-          </div>
-          {/* Entity Type */}
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 w-20 shrink-0">Entity</span>
-            {([
-              { v: 'LLC',              label: 'LLC'             },
-              { v: 'S_CORP',           label: 'S-Corp'          },
-              { v: 'C_CORP',           label: 'C-Corp'          },
-              { v: 'SOLE_PROPRIETOR',  label: 'Sole Prop'       },
-              { v: 'PARTNERSHIP',      label: 'Partnership'     },
-              { v: 'NON_PROFIT',       label: 'Non-Profit'      },
-              { v: 'OTHER',            label: 'Other'           },
-            ] as {v:string;label:string}[]).map(o => (
-              <button key={o.v} onClick={() => toggleFilter(entityTypeFilters, setEntityTypeFilters, o.v)}
-                className={`rounded-full px-3 py-1 text-xs font-medium ring-1 transition-all ${entityTypeFilters.has(o.v) ? 'bg-purple-600 text-white ring-purple-600' : 'bg-white text-slate-600 ring-slate-200 hover:ring-purple-300 hover:text-purple-700'}`}>
-                {o.label}
-              </button>
-            ))}
-          </div>
-          {/* Project Type */}
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 w-20 shrink-0">Project</span>
-            {([
-              { v: 'RECURRING',            label: 'Recurring'    },
-              { v: 'MONTHLY_MAINTENANCE',  label: 'Monthly Maint'},
-              { v: 'ANNUAL',               label: 'Annual'       },
-              { v: 'CLEAN_UP',             label: 'Cleanup'      },
-              { v: 'QBO_ONLY',             label: 'QBO Only'     },
-            ] as {v:string;label:string}[]).map(o => (
-              <button key={o.v} onClick={() => toggleFilter(ptFilters, setPtFilters, o.v)}
-                className={`rounded-full px-3 py-1 text-xs font-medium ring-1 transition-all ${ptFilters.has(o.v) ? 'bg-purple-600 text-white ring-purple-600' : 'bg-white text-slate-600 ring-slate-200 hover:ring-purple-300 hover:text-purple-700'}`}>
-                {o.label}
-              </button>
-            ))}
-          </div>
-          {/* Cadence */}
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 w-20 shrink-0">Cadence</span>
-            {([
-              { v: 'WEEKLY',     label: 'Weekly'    },
-              { v: 'BIWEEKLY',   label: 'Bi-Weekly' },
-              { v: 'MONTHLY',    label: 'Monthly'   },
-              { v: 'QUARTERLY',  label: 'Quarterly' },
-            ] as {v:string;label:string}[]).map(o => (
-              <button key={o.v} onClick={() => toggleFilter(cadenceFilters, setCadenceFilters, o.v)}
-                className={`rounded-full px-3 py-1 text-xs font-medium ring-1 transition-all ${cadenceFilters.has(o.v) ? 'bg-purple-600 text-white ring-purple-600' : 'bg-white text-slate-600 ring-slate-200 hover:ring-purple-300 hover:text-purple-700'}`}>
-                {o.label}
-              </button>
-            ))}
-          </div>
-          <div className="flex items-center pt-1">
-            <button
-              onClick={clearFilters}
-              className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-all border ${
-                anyFilter
-                  ? 'bg-purple-50 border-purple-300 text-purple-700 hover:bg-purple-100'
-                  : 'bg-white border-slate-200 text-slate-400 cursor-default'
-              }`}
-              disabled={!anyFilter}
-            >
-              <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-              Clear filters
-            </button>
-          </div>
+        {/* Dropdown filters */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <MultiFilter label="Status" filters={statusFilters} setFilters={setStatusFilters} options={[
+            { v: 'active',        label: 'Active'          },
+            { v: 'offboarding',   label: 'Off-boarding'    },
+            { v: 'inactive',      label: 'Inactive'        },
+            { v: 'archived',      label: 'Archived'        },
+            { v: 'pendingArchive',label: 'Pending Archive' },
+          ]} />
+          <MultiFilter label="Bookkeeper" filters={bookkeeperFilters} setFilters={setBookkeeperFilters} options={bookkeepers.map(b => ({ v: b, label: b }))} />
+          <MultiFilter label="Entity Type" filters={entityTypeFilters} setFilters={setEntityTypeFilters} options={[
+            { v: 'LLC',             label: 'LLC'            },
+            { v: 'S_CORP',          label: 'S-Corp'         },
+            { v: 'C_CORP',          label: 'C-Corp'         },
+            { v: 'SOLE_PROPRIETOR', label: 'Sole Proprietor'},
+            { v: 'PARTNERSHIP',     label: 'Partnership'    },
+            { v: 'NON_PROFIT',      label: 'Non-Profit'     },
+            { v: 'OTHER',           label: 'Other'          },
+          ]} />
+          <MultiFilter label="Project Type" filters={ptFilters} setFilters={setPtFilters} options={[
+            { v: 'RECURRING',           label: 'Recurring'           },
+            { v: 'MONTHLY_MAINTENANCE', label: 'Monthly Maintenance' },
+            { v: 'ANNUAL',              label: 'Annual'              },
+            { v: 'CLEAN_UP',            label: 'Cleanup'             },
+            { v: 'QBO_ONLY',            label: 'QBO Only'            },
+          ]} />
+          <MultiFilter label="Cadence" filters={cadenceFilters} setFilters={setCadenceFilters} options={[
+            { v: 'WEEKLY',    label: 'Weekly'    },
+            { v: 'BIWEEKLY',  label: 'Bi-Weekly' },
+            { v: 'MONTHLY',   label: 'Monthly'   },
+            { v: 'QUARTERLY', label: 'Quarterly' },
+          ]} />
+          <button
+            onClick={clearFilters}
+            disabled={!anyFilter}
+            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium border transition-all ${
+              anyFilter ? 'bg-purple-50 border-purple-300 text-purple-700 hover:bg-purple-100' : 'bg-white border-slate-200 text-slate-400 cursor-default'
+            }`}
+          >
+            <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            Clear
+          </button>
         </div>
 
         {/* Search */}
