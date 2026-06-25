@@ -203,43 +203,53 @@ function exportToCSV(clients: ApiClient[], visibleCols: Set<ColKey>) {
 
   const rows = clients.map(client => {
     const statusKey = deriveStatus(client)
+    const bkr = client.bookkeepingRate ?? 0
+    const swr = client.softwareRate ?? 0
+    const monthlyBilling = client.totalMonthlyAmount ?? (bkr + swr > 0 ? bkr + swr : null)
     return cols.map(col => {
       let val: string | number | boolean | null | undefined
       switch (col.key) {
-        case 'name':               val = client.name; break
-        case 'code':               val = client.harvestProjectCode; break
-        case 'bookkeeper':         val = client.bookkeeper; break
-        case 'entityType':         val = client.entityType; break
-        case 'projectType':        val = PTYPE_STYLE[client.projectType ?? 'MONTHLY_MAINTENANCE']?.label; break
-        case 'revenueType':        val = RTYPE_LABEL[client.revenueType ?? ''] ?? client.revenueType; break
-        case 'monthlyBilling':     val = client.totalMonthlyAmount; break
-        case 'bookkeepingRate':    val = client.bookkeepingRate; break
-        case 'softwareRate':       val = client.softwareRate; break
-        case 'status':             val = STATUS_PILL[statusKey].label; break
-        case 'contractStartDate':  val = client.contractStartDate; break
-        case 'contractEndDate':    val = client.contractEndDate; break
-        case 'contractedCloseDate':val = client.contractedCloseDate; break
-        case 'clientGroupName':    val = client.clientGroupName; break
-        case 'doubleId':           val = client.doubleId; break
-        case 'qboId':              val = client.qboId; break
-        case 'clickUpId':          val = client.clickUpId; break
-        case 'clientContactName':  val = client.clientContactName; break
-        case 'totalHrsPerMonth':   val = client.totalHrsPerMonth; break
-        case 'apArHrs':            val = client.apArHrs; break
-        case 'qaHours':            val = client.qaHours; break
-        case 'custSuccessMgmtHrs': val = client.custSuccessMgmtHrs; break
-        case 'yeOrTaxHours':       val = client.yeOrTaxHours; break
-        case 'auditHours':         val = client.auditHours; break
-        case 'bkprHours':          val = client.bkprHours; break
-        case 'bankFeedTime':       val = client.bankFeedTime; break
-        case 'transactionsPerMonth':val = client.transactionsPerMonth; break
-        case 'recTime':            val = client.recTime; break
-        case 'numBanksAndCCs':     val = client.numBanksAndCCs; break
-        case 'numLoans':           val = client.numLoans; break
-        case 'numPmtPortals':      val = client.numPmtPortals; break
-        case 'pettyCash':          val = client.pettyCash ? 'Yes' : 'No'; break
-        case 'referredBy':         val = client.referredBy; break
-        default:                   val = ''
+        case 'name':                   val = client.name; break
+        case 'code':                   val = client.harvestProjectCode; break
+        case 'bookkeeper':             val = client.bookkeeper; break
+        case 'entityType':             val = client.entityType; break
+        case 'projectType':            val = PTYPE_STYLE[client.projectType ?? 'MONTHLY_MAINTENANCE']?.label; break
+        case 'revenueType':            val = RTYPE_LABEL[client.revenueType ?? ''] ?? client.revenueType; break
+        case 'monthlyBilling':         val = monthlyBilling; break
+        case 'bookkeepingRate':        val = client.bookkeepingRate; break
+        case 'softwareRate':           val = client.softwareRate; break
+        case 'status':                 val = STATUS_PILL[statusKey].label; break
+        case 'contractStartDate':      val = fmtDate(client.contractStartDate); break
+        case 'contractEndDate':        val = fmtDate(client.contractEndDate); break
+        case 'contractedCloseDate':    val = fmtDate(client.contractedCloseDate); break
+        case 'clientGroupName':        val = client.clientGroupName; break
+        case 'doubleId':               val = client.doubleId; break
+        case 'qboId':                  val = client.qboId; break
+        case 'clickUpId':              val = client.clickUpId; break
+        case 'clientContactName':      val = client.clientContactName; break
+        case 'totalHrsPerMonth':       val = client.totalHrsPerMonth; break
+        case 'apArHrs':                val = client.apArHrs; break
+        case 'qaHours':                val = client.qaHours; break
+        case 'custSuccessMgmtHrs':     val = client.custSuccessMgmtHrs; break
+        case 'yeOrTaxHours':           val = client.yeOrTaxHours; break
+        case 'auditHours':             val = client.auditHours; break
+        case 'bkprHours':              val = client.bkprHours; break
+        case 'bankFeedTime':           val = client.bankFeedTime; break
+        case 'transactionsPerMonth':   val = client.transactionsPerMonth; break
+        case 'recTime':                val = client.recTime; break
+        case 'numBanksAndCCs':         val = client.numBanksAndCCs; break
+        case 'numLoans':               val = client.numLoans; break
+        case 'numPmtPortals':          val = client.numPmtPortals; break
+        case 'pettyCash':              val = client.pettyCash ? 'Yes' : 'No'; break
+        case 'referredBy':             val = client.referredBy; break
+        case 'state':                  val = client.state; break
+        case 'guaranteedDeadlineDay':  val = client.guaranteedDeadlineDay; break
+        case 'hasContractedLoom':      val = client.hasContractedLoom ? 'Yes' : 'No'; break
+        case 'hasScheduledMeetings':   val = client.hasScheduledMeetings ? 'Yes' : 'No'; break
+        case 'hasSignedAutoIncrease':  val = client.hasSignedAutoIncrease ? 'Yes' : 'No'; break
+        case 'autoPriceIncreasePercent': val = client.autoPriceIncreasePercent; break
+        case 'accountantName':         val = client.accountantName; break
+        default:                       val = (client as any)[col.key] ?? ''
       }
       if (val == null) return '""'
       return `"${String(val).replace(/"/g, '""')}"`
@@ -739,11 +749,10 @@ export default function ClientDirectory() {
         const bkr = parseFloat(String(inlineEdits[client.id]?.bookkeepingRate ?? client.bookkeepingRate ?? 0)) || 0
         const swr = parseFloat(String(inlineEdits[client.id]?.softwareRate    ?? client.softwareRate    ?? 0)) || 0
         const autoTotal = parseFloat((bkr + swr).toFixed(2))
-        // Auto-calc wins when rates are set; only fall back to savedTotal if no rates exist
         const manualOverride = inlineEdits[client.id]?.totalMonthlyAmount
-        const savedTotal = client.totalMonthlyAmount
+        // Auto-calc always wins when bkr is set; manual override only applies mid-edit
         const displayVal = manualOverride
-          ?? (autoTotal > 0 ? String(autoTotal) : (savedTotal != null ? String(savedTotal) : ''))
+          ?? (bkr > 0 ? String(autoTotal) : (client.totalMonthlyAmount != null ? String(client.totalMonthlyAmount) : ''))
         return (
           <td key={colKey} className="px-2 py-1.5">
             <div className="relative">
