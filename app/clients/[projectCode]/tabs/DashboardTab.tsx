@@ -199,31 +199,6 @@ export default function DashboardTab({ client, projectCode }: Props) {
         </div>
       </div>
 
-      {/* Pool cards */}
-      <div className="grid grid-cols-3 gap-4">
-        <PoolCard
-          label="Rolling QA Pool"
-          sublabel={`Quarter to date · ${monthsInQtr} of 3 months`}
-          used={harvestConnected && harvestAccum ? harvestAccum.qa : qaUsed * monthsInQtr}
-          budget={QA_ACCUM}
-          color="#8b5cf6"
-        />
-        <PoolCard
-          label="Mgmt + CS Pool"
-          sublabel={`Quarter to date · ${monthsInQtr} of 3 months`}
-          used={harvestConnected && harvestAccum ? harvestAccum.mgmt : mgmtUsed * monthsInQtr}
-          budget={MGMT_ACCUM}
-          color="#ec4899"
-        />
-        <PoolCard
-          label="Annual YE Pool"
-          sublabel={`Year to date · ${monthsInYear} of 12 months`}
-          used={harvestConnected && harvestAccum ? harvestAccum.ye : yeUsed * monthsInYear}
-          budget={YE_ACCUM}
-          color="#f59e0b"
-        />
-      </div>
-
       {/* Harvest breakdown (if connected) */}
       {harvestConnected && harvest && harvest.total > 0 && (
         <div className="rounded-xl border border-slate-100 bg-white p-5">
@@ -251,6 +226,31 @@ export default function DashboardTab({ client, projectCode }: Props) {
           </div>
         </div>
       )}
+
+      {/* Pool cards */}
+      <div className="grid grid-cols-3 gap-4">
+        <PoolCard
+          label="Rolling QA Pool"
+          sublabel={`Quarter to date · ${monthsInQtr} of 3 months`}
+          used={harvestConnected && harvestAccum ? harvestAccum.qa : qaUsed * monthsInQtr}
+          budget={QA_ACCUM}
+          color="#8b5cf6"
+        />
+        <PoolCard
+          label="Mgmt + CS Pool"
+          sublabel={`Quarter to date · ${monthsInQtr} of 3 months`}
+          used={harvestConnected && harvestAccum ? harvestAccum.mgmt : mgmtUsed * monthsInQtr}
+          budget={MGMT_ACCUM}
+          color="#ec4899"
+        />
+        <PoolCard
+          label="Annual YE Pool"
+          sublabel={`Year to date · ${monthsInYear} of 12 months`}
+          used={harvestConnected && harvestAccum ? harvestAccum.ye : yeUsed * monthsInYear}
+          budget={YE_ACCUM}
+          color="#f59e0b"
+        />
+      </div>
 
       {/* AI Call Log */}
       <div className="rounded-xl border border-slate-100 bg-white p-5 space-y-4">
