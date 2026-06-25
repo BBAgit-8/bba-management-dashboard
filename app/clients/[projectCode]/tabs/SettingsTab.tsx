@@ -39,14 +39,44 @@ const sel = 'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-s
 
 export default function SettingsTab({ clientId, projectCode, client }: Props) {
   const [ops, setOps] = useState({
+    // Rates
     bookkeepingRate:          String(client?.bookkeepingRate ?? ''),
     softwareRate:             String(client?.softwareRate ?? ''),
+    // Hours budget
+    totalHrsPerMonth:         String(client?.totalHrsPerMonth ?? ''),
+    bkprHours:                String(client?.bkprHours ?? ''),
+    qaHours:                  String(client?.qaHours ?? ''),
+    custSuccessMgmtHrs:       String(client?.custSuccessMgmtHrs ?? ''),
+    yeOrTaxHours:             String(client?.yeOrTaxHours ?? ''),
+    auditHours:               String(client?.auditHours ?? ''),
+    apArHrs:                  String(client?.apArHrs ?? ''),
+    bankFeedTime:             String(client?.bankFeedTime ?? ''),
+    transactionsPerMonth:     String(client?.transactionsPerMonth ?? ''),
+    numBanksAndCCs:           String(client?.numBanksAndCCs ?? ''),
+    numLoans:                 String(client?.numLoans ?? ''),
+    numPmtPortals:            String(client?.numPmtPortals ?? ''),
+    // Identity
+    entityType:               client?.entityType ?? '',
+    projectType:              client?.projectType ?? '',
+    revType:                  client?.revType ?? '',
+    clientContactName:        client?.clientContactName ?? '',
+    referredBy:               client?.referredBy ?? '',
+    contractStartDate:        client?.contractStartDate ?? '',
+    contractEndDate:          client?.contractEndDate ?? '',
+    // Services
+    pettyCash:                client?.pettyCash ?? false,
+    hasPayroll:               client?.hasPayroll ?? false,
+    payrollProvider:          client?.payrollProvider ?? '',
+    hasContractedLoom:        client?.hasContractedLoom ?? false,
+    hasScheduledMeetings:     client?.hasScheduledMeetings ?? false,
+    // Pricing
     autoPriceIncreasePercent: String(client?.autoPriceIncreasePercent ?? ''),
     priceAdjustmentDate:      client?.priceAdjustmentDate ?? '',
-    accountantName:           client?.accountantName ?? '',
     guaranteedDeadlineDay:    String(client?.guaranteedDeadlineDay ?? ''),
-    processingCadence:        (client?.processingCadence ?? 'MONTHLY') as ProcessingCadence,
+    // Accountant
+    accountantName:           client?.accountantName ?? '',
     okToContactAccountant:    client?.okToContactAccountant ?? false,
+    processingCadence:        (client?.processingCadence ?? 'MONTHLY') as ProcessingCadence,
   });
   const [opsSaved,        setOpsSaved]       = useState<'idle' | 'saving' | 'done' | 'error'>('idle');
   const [saveError,       setSaveError]      = useState('');
@@ -92,12 +122,36 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
     setOps({
       bookkeepingRate:          String(client.bookkeepingRate ?? ''),
       softwareRate:             String(client.softwareRate ?? ''),
+      totalHrsPerMonth:         String(client.totalHrsPerMonth ?? ''),
+      bkprHours:                String(client.bkprHours ?? ''),
+      qaHours:                  String(client.qaHours ?? ''),
+      custSuccessMgmtHrs:       String(client.custSuccessMgmtHrs ?? ''),
+      yeOrTaxHours:             String(client.yeOrTaxHours ?? ''),
+      auditHours:               String(client.auditHours ?? ''),
+      apArHrs:                  String(client.apArHrs ?? ''),
+      bankFeedTime:             String(client.bankFeedTime ?? ''),
+      transactionsPerMonth:     String(client.transactionsPerMonth ?? ''),
+      numBanksAndCCs:           String(client.numBanksAndCCs ?? ''),
+      numLoans:                 String(client.numLoans ?? ''),
+      numPmtPortals:            String(client.numPmtPortals ?? ''),
+      entityType:               client.entityType ?? '',
+      projectType:              client.projectType ?? '',
+      revType:                  client.revType ?? '',
+      clientContactName:        client.clientContactName ?? '',
+      referredBy:               client.referredBy ?? '',
+      contractStartDate:        client.contractStartDate ?? '',
+      contractEndDate:          client.contractEndDate ?? '',
+      pettyCash:                client.pettyCash ?? false,
+      hasPayroll:               client.hasPayroll ?? false,
+      payrollProvider:          client.payrollProvider ?? '',
+      hasContractedLoom:        client.hasContractedLoom ?? false,
+      hasScheduledMeetings:     client.hasScheduledMeetings ?? false,
       autoPriceIncreasePercent: String(client.autoPriceIncreasePercent ?? ''),
       priceAdjustmentDate:      client.priceAdjustmentDate ?? '',
-      accountantName:           client.accountantName ?? '',
       guaranteedDeadlineDay:    String(client.guaranteedDeadlineDay ?? ''),
-      processingCadence:        (client.processingCadence ?? 'MONTHLY') as ProcessingCadence,
+      accountantName:           client.accountantName ?? '',
       okToContactAccountant:    client.okToContactAccountant ?? false,
+      processingCadence:        (client.processingCadence ?? 'MONTHLY') as ProcessingCadence,
     });
   }, [client]);
 
@@ -133,14 +187,44 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          // Rates
           bookkeepingRate:          ops.bookkeepingRate ? parseFloat(ops.bookkeepingRate) : null,
           softwareRate:             ops.softwareRate ? parseFloat(ops.softwareRate) : null,
-          accountantName:           ops.accountantName           || null,
-          processingCadence:        ops.processingCadence,
-          okToContactAccountant:    ops.okToContactAccountant,
-          guaranteedDeadlineDay:    ops.guaranteedDeadlineDay ? parseInt(ops.guaranteedDeadlineDay) : null,
+          // Hours budget
+          totalHrsPerMonth:         ops.totalHrsPerMonth ? parseFloat(ops.totalHrsPerMonth) : null,
+          bkprHours:                ops.bkprHours ? parseFloat(ops.bkprHours) : null,
+          qaHours:                  ops.qaHours ? parseFloat(ops.qaHours) : null,
+          custSuccessMgmtHrs:       ops.custSuccessMgmtHrs ? parseFloat(ops.custSuccessMgmtHrs) : null,
+          yeOrTaxHours:             ops.yeOrTaxHours ? parseFloat(ops.yeOrTaxHours) : null,
+          auditHours:               ops.auditHours ? parseFloat(ops.auditHours) : null,
+          apArHrs:                  ops.apArHrs ? parseFloat(ops.apArHrs) : null,
+          bankFeedTime:             ops.bankFeedTime ? parseFloat(ops.bankFeedTime) : null,
+          transactionsPerMonth:     ops.transactionsPerMonth ? parseFloat(ops.transactionsPerMonth) : null,
+          numBanksAndCCs:           ops.numBanksAndCCs ? parseFloat(ops.numBanksAndCCs) : null,
+          numLoans:                 ops.numLoans ? parseFloat(ops.numLoans) : null,
+          numPmtPortals:            ops.numPmtPortals ? parseFloat(ops.numPmtPortals) : null,
+          // Identity
+          entityType:               ops.entityType || null,
+          projectType:              ops.projectType || null,
+          revType:                  ops.revType || null,
+          clientContactName:        ops.clientContactName || null,
+          referredBy:               ops.referredBy || null,
+          contractStartDate:        ops.contractStartDate || null,
+          contractEndDate:          ops.contractEndDate || null,
+          // Services
+          pettyCash:                ops.pettyCash,
+          hasPayroll:               ops.hasPayroll,
+          payrollProvider:          ops.payrollProvider || null,
+          hasContractedLoom:        ops.hasContractedLoom,
+          hasScheduledMeetings:     ops.hasScheduledMeetings,
+          // Pricing
           autoPriceIncreasePercent: ops.autoPriceIncreasePercent ? parseFloat(ops.autoPriceIncreasePercent) : null,
-          priceAdjustmentDate:      ops.priceAdjustmentDate      || null,
+          priceAdjustmentDate:      ops.priceAdjustmentDate || null,
+          guaranteedDeadlineDay:    ops.guaranteedDeadlineDay ? parseInt(ops.guaranteedDeadlineDay) : null,
+          // Accountant
+          accountantName:           ops.accountantName || null,
+          okToContactAccountant:    ops.okToContactAccountant,
+          processingCadence:        ops.processingCadence,
         }),
       });
       const json = await res.json();
@@ -182,11 +266,10 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
 
       {/* ── Operational Settings ── */}
       <section>
-        <h3 className="text-sm font-semibold text-slate-600 uppercase tracking-wider mb-4">Operational Settings</h3>
+        <h3 className="text-sm font-semibold text-slate-600 uppercase tracking-wider mb-4">Client Settings</h3>
         <form onSubmit={saveOps} className="rounded-xl border border-slate-200 bg-white p-5 space-y-5">
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-
-            {/* Rates */}
+            <p className="col-span-2 text-xs font-semibold text-slate-400 uppercase tracking-wider -mb-2">Rates</p>
             <div>
               <label className="block text-xs font-medium text-slate-500 mb-1.5">Bookkeeping Rate</label>
               <div className="relative">
@@ -216,32 +299,170 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
               )}
             </div>
 
-            <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1.5">Auto Price Increase %</label>
-              <div className="relative">
-                <input
-                  type="number" step="0.1" min={0}
-                  value={ops.autoPriceIncreasePercent}
-                  onChange={e => setOps(o => ({ ...o, autoPriceIncreasePercent: e.target.value }))}
-                  placeholder="e.g. 3.5"
-                  className={inp}
-                />
-                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">%</span>
+          </div>{/* end rates grid */}
+
+          {/* ── Identity ── */}
+          <div className="border-t border-slate-100 pt-5">
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">Identity</p>
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+              <div>
+                <label className="block text-xs font-medium text-slate-500 mb-1.5">Client Contact Name</label>
+                <input type="text" value={ops.clientContactName}
+                  onChange={e => setOps(o => ({ ...o, clientContactName: e.target.value }))}
+                  placeholder="e.g. Jane Smith" className={inp} />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-500 mb-1.5">Entity Type</label>
+                <select value={ops.entityType} onChange={e => setOps(o => ({ ...o, entityType: e.target.value }))} className={sel}>
+                  <option value="">— Select —</option>
+                  {[['LLC','LLC'],['S_CORP','S-Corp'],['C_CORP','C-Corp'],['SOLE_PROPRIETOR','Sole Proprietor'],['PARTNERSHIP','Partnership'],['NON_PROFIT','Non-Profit'],['OTHER','Other']].map(([v,l]) => <option key={v} value={v}>{l}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-500 mb-1.5">Project Type</label>
+                <select value={ops.projectType} onChange={e => setOps(o => ({ ...o, projectType: e.target.value }))} className={sel}>
+                  <option value="">— Select —</option>
+                  <option value="RECURRING">Recurring</option>
+                  <option value="MONTHLY_MAINTENANCE">Monthly Maintenance</option>
+                  <option value="CLEANUP">Cleanup</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-500 mb-1.5">Rev Type</label>
+                <input type="text" value={ops.revType}
+                  onChange={e => setOps(o => ({ ...o, revType: e.target.value }))}
+                  placeholder="e.g. Flat Rate" className={inp} />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-500 mb-1.5">Contract Start</label>
+                <input type="date" value={ops.contractStartDate}
+                  onChange={e => setOps(o => ({ ...o, contractStartDate: e.target.value }))}
+                  className={`${inp} [color-scheme:light]`} />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-500 mb-1.5">Contract End</label>
+                <input type="date" value={ops.contractEndDate}
+                  onChange={e => setOps(o => ({ ...o, contractEndDate: e.target.value }))}
+                  className={`${inp} [color-scheme:light]`} />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-500 mb-1.5">Referred By</label>
+                <input type="text" value={ops.referredBy}
+                  onChange={e => setOps(o => ({ ...o, referredBy: e.target.value }))}
+                  placeholder="e.g. Chamber of Commerce" className={inp} />
               </div>
             </div>
+          </div>
 
-            <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1.5">Price Adjustment Date</label>
-              <input
-                type="date"
-                value={ops.priceAdjustmentDate}
-                onChange={e => setOps(o => ({ ...o, priceAdjustmentDate: e.target.value }))}
-                className={inp}
-              />
+          {/* ── Hours Budget ── */}
+          <div className="border-t border-slate-100 pt-5">
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">Hours Budget</p>
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              {([
+                ['totalHrsPerMonth',   'Total Hrs / Mo'],
+                ['bkprHours',          'Bkpr Hours'],
+                ['qaHours',            'QA Hours'],
+                ['custSuccessMgmtHrs', 'Mgmt / CS Hrs'],
+                ['yeOrTaxHours',       'YE / Tax Hrs'],
+                ['auditHours',         'Audit Hrs'],
+                ['apArHrs',            'AP / AR Hrs'],
+                ['bankFeedTime',       'Bank Feed Time'],
+                ['transactionsPerMonth','Transactions / Mo'],
+                ['numBanksAndCCs',     '# Banks & CCs'],
+                ['numLoans',           '# Loans'],
+                ['numPmtPortals',      '# Pmt Portals'],
+              ] as [keyof typeof ops, string][]).map(([field, label]) => (
+                <div key={field}>
+                  <label className="block text-xs font-medium text-slate-500 mb-1.5">{label}</label>
+                  <input type="number" step="0.01" min={0}
+                    value={ops[field] as string}
+                    onChange={e => setOps(o => ({ ...o, [field]: e.target.value }))}
+                    placeholder="0"
+                    className={inp} />
+                </div>
+              ))}
             </div>
+          </div>
 
-            <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1.5">Accountant</label>
+          {/* ── Services ── */}
+          <div className="border-t border-slate-100 pt-5">
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">Services</p>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {([
+                ['pettyCash',         'Petty Cash'],
+                ['hasContractedLoom', 'Contracted Loom'],
+                ['hasScheduledMeetings', 'Scheduled Meetings'],
+                ['hasPayroll',        'Payroll'],
+              ] as [keyof typeof ops, string][]).map(([field, label]) => (
+                <label key={field} className="flex items-center gap-3 cursor-pointer">
+                  <button type="button"
+                    onClick={() => setOps(o => ({ ...o, [field]: !o[field] }))}
+                    className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 ${ops[field] ? 'bg-purple-600' : 'bg-slate-300'}`}>
+                    <span className={`inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${ops[field] ? 'translate-x-5' : 'translate-x-0'}`} />
+                  </button>
+                  <span className="text-sm text-slate-700">{label}</span>
+                </label>
+              ))}
+              {ops.hasPayroll && (
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-medium text-slate-500 mb-1.5">Payroll Provider</label>
+                  <input type="text" value={ops.payrollProvider}
+                    onChange={e => setOps(o => ({ ...o, payrollProvider: e.target.value }))}
+                    placeholder="e.g. Gusto, ADP" className={inp} />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* ── Pricing & Schedule ── */}
+          <div className="border-t border-slate-100 pt-5">
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">Pricing &amp; Schedule</p>
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+
+              <div>
+                <label className="block text-xs font-medium text-slate-500 mb-1.5">Auto Price Increase %</label>
+                <div className="relative">
+                  <input type="number" step="0.1" min={0}
+                    value={ops.autoPriceIncreasePercent}
+                    onChange={e => setOps(o => ({ ...o, autoPriceIncreasePercent: e.target.value }))}
+                    placeholder="e.g. 3.5" className={inp} />
+                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">%</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-500 mb-1.5">Price Adjustment Date</label>
+                <input type="date" value={ops.priceAdjustmentDate}
+                  onChange={e => setOps(o => ({ ...o, priceAdjustmentDate: e.target.value }))}
+                  className={`${inp} [color-scheme:light]`} />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-500 mb-1.5">Close Deadline Day</label>
+                <input type="number" min={1} max={31} value={ops.guaranteedDeadlineDay}
+                  onChange={e => setOps(o => ({ ...o, guaranteedDeadlineDay: e.target.value }))}
+                  placeholder="1–31" className={inp} />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-500 mb-1.5">Processing Cadence</label>
+                <select value={ops.processingCadence}
+                  onChange={e => setOps(o => ({ ...o, processingCadence: e.target.value as ProcessingCadence }))}
+                  className={sel}>
+                  <option value="WEEKLY">Weekly</option>
+                  <option value="BIWEEKLY">Bi-Weekly</option>
+                  <option value="MONTHLY">Monthly</option>
+                  <option value="QUARTERLY">Quarterly</option>
+                </select>
+              </div>
+
+            </div>
+          </div>
+
+          {/* ── Accountant ── */}
+          <div className="border-t border-slate-100 pt-5">
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">Accountant</p>
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
               <select
                 value={ops.accountantName}
                 onChange={e => {
@@ -287,62 +508,26 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
                   <span className="text-sm text-slate-700">Okay to contact accountant directly?</span>
                   <p className="text-[11px] text-slate-400 mt-0.5">Client authorises BBA to contact their accountant</p>
                 </div>
-                <button
-                  type="button"
+                <button type="button"
                   onClick={() => setOps(o => ({ ...o, okToContactAccountant: !o.okToContactAccountant }))}
-                  className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 ${ops.okToContactAccountant ? 'bg-purple-600' : 'bg-slate-300'}`}
-                >
+                  className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 ${ops.okToContactAccountant ? 'bg-purple-600' : 'bg-slate-300'}`}>
                   <span className={`inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${ops.okToContactAccountant ? 'translate-x-5' : 'translate-x-0'}`} />
                 </button>
               </div>
             </div>
-
-            <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1.5">Guaranteed Deadline Day</label>
-              <input
-                type="number" min={1} max={31}
-                value={ops.guaranteedDeadlineDay}
-                onChange={e => setOps(o => ({ ...o, guaranteedDeadlineDay: e.target.value }))}
-                placeholder="Day 1 – 31"
-                className={inp}
-              />
-            </div>
-
-            <div className="sm:col-span-2">
-              <label className="block text-xs font-medium text-slate-500 mb-2">Processing Cadence</label>
-              <div className="grid grid-cols-4 gap-2">
-                {CADENCE_OPTS.map(o => (
-                  <button
-                    key={o.value}
-                    type="button"
-                    onClick={() => setOps(prev => ({ ...prev, processingCadence: o.value }))}
-                    className={`rounded-lg border px-3 py-2 text-xs font-medium transition-all ${
-                      ops.processingCadence === o.value
-                        ? 'bg-purple-50 border-purple-300 text-purple-700'
-                        : 'border-slate-200 text-slate-500 hover:border-slate-300 hover:text-slate-700 bg-white'
-                    }`}
-                  >
-                    {o.label}
-                  </button>
-                ))}
-              </div>
-            </div>
           </div>
 
-          <div className="flex items-center justify-end gap-3 pt-1">
+          <div className="flex items-center justify-end gap-3 pt-1 border-t border-slate-100 mt-2">
             {opsSaved === 'error' && (
               <p className="text-xs text-red-600">{saveError || 'Save failed — try again'}</p>
             )}
-            <button
-              type="submit"
-              disabled={opsSaved === 'saving'}
+            <button type="submit" disabled={opsSaved === 'saving'}
               className={`rounded-lg px-5 py-2 text-sm font-semibold transition-colors disabled:opacity-60 ${
                 opsSaved === 'done'   ? 'bg-green-600 text-white' :
                 opsSaved === 'error'  ? 'bg-red-600 text-white' :
                 opsSaved === 'saving' ? 'bg-bba-primary/70 text-white cursor-wait' :
                 'bg-bba-primary text-white hover:bg-bba-primary/85'
-              }`}
-            >
+              }`}>
               {opsSaved === 'saving' ? 'Saving…' : opsSaved === 'done' ? '✓ Saved' : opsSaved === 'error' ? '✗ Error' : 'Save Settings'}
             </button>
           </div>
