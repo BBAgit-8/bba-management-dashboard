@@ -162,9 +162,10 @@ const STATUS_PILL: Record<StatusKey, { bg: string; text: string; ring: string; l
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function deriveStatus(client: ApiClient): StatusKey {
   if (client.contractEndDate) {
-    const now = new Date(); now.setHours(0,0,0,0)
-    const end = new Date(client.contractEndDate); end.setHours(0,0,0,0)
-    return end <= now ? 'inactive' : 'offboarding'
+    // Compare date strings directly to avoid timezone issues
+    const todayStr = new Date().toISOString().slice(0, 10)
+    const endStr = client.contractEndDate.slice(0, 10)
+    return endStr <= todayStr ? 'inactive' : 'offboarding'
   }
   switch (client.archiveStatus) {
     case 'ACTIVE':          return 'active'
@@ -257,8 +258,9 @@ function exportToCSV(clients: ApiClient[], visibleCols: Set<ColKey>) {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 // ── MultiFilter dropdown ────────────────────────────────────────
-function MultiFilter({ label, filters, setFilters, options }: {
+function MultiFilter({ label, plural, filters, setFilters, options }: {
   label: string
+  plural?: string
   filters: Set<string>
   setFilters: React.Dispatch<React.SetStateAction<Set<string>>>
   options: { v: string; label: string }[]
@@ -276,7 +278,7 @@ function MultiFilter({ label, filters, setFilters, options }: {
 
   const active = filters.size > 0
   const btnLabel = filters.size === 0
-    ? `All ${label}s`
+    ? `All ${plural ?? label + 's'}`
     : filters.size === 1
       ? (options.find(o => filters.has(o.v))?.label ?? label)
       : `${label} (${filters.size})`
@@ -433,7 +435,7 @@ export default function ClientDirectory() {
 
   // Filters — all multi-select Sets
   const [tagFilters,        setTagFilters]        = useState<Set<string>>(new Set())
-  const [statusFilters,     setStatusFilters]     = useState<Set<string>>(new Set())
+  const [statusFilters,     setStatusFilters]     = useState<Set<string>>(new Set(['active', 'offboarding', 'inactive']))
   const [bookkeeperFilters, setBookkeeperFilters] = useState<Set<string>>(new Set())
   const [entityTypeFilters, setEntityTypeFilters] = useState<Set<string>>(new Set())
   const [ptFilters,         setPtFilters]         = useState<Set<string>>(new Set())
@@ -619,7 +621,7 @@ export default function ClientDirectory() {
 
   function clearFilters() {
     setTagFilters(new Set()); setCadenceFilters(new Set()); setPtFilters(new Set())
-    setStatusFilters(new Set()); setBookkeeperFilters(new Set()); setEntityTypeFilters(new Set()); setSearch('')
+    setStatusFilters(new Set(['active', 'offboarding', 'inactive'])); setBookkeeperFilters(new Set()); setEntityTypeFilters(new Set()); setSearch('')
   }
 
   function SortBtn({ k, children }: { k: SortKey; children: React.ReactNode }) {
@@ -842,14 +844,23 @@ export default function ClientDirectory() {
         return (
           <td key={colKey} className="px-3 py-2">
             <select
-              value={merged.archiveStatus ?? 'ACTIVE'}
-              onChange={e => patchCell(client, 'archiveStatus', e.target.value)}
+              value={statusKey}
+              onChange={e => {
+                const val = e.target.value
+                const archiveMap: Record<string, string> = {
+                  active: 'ACTIVE', offboarding: 'OFF_BOARDING',
+                  inactive: 'INACTIVE', archived: 'ARCHIVED',
+                }
+                patchCell(client, 'archiveStatus', archiveMap[val] ?? 'ACTIVE')
+                // If manually setting status, clear contract end date so it doesn't override
+                if (merged.contractEndDate) patchCell(client, 'contractEndDate', '')
+              }}
               className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ring-1 border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-400 ${pill.bg} ${pill.text} ${pill.ring}`}
             >
-              <option value="ACTIVE">Active</option>
-              <option value="OFF_BOARDING">Off-boarding</option>
-              <option value="INACTIVE">Inactive</option>
-              <option value="ARCHIVED">Archived</option>
+              <option value="active">Active</option>
+              <option value="offboarding">Off-boarding</option>
+              <option value="inactive">Inactive</option>
+              <option value="archived">Archived</option>
             </select>
           </td>
         )
@@ -1057,7 +1068,7 @@ export default function ClientDirectory() {
 
         {/* Dropdown filters */}
         <div className="flex items-center gap-2 flex-wrap">
-          <MultiFilter label="Status" filters={statusFilters} setFilters={setStatusFilters} options={[
+          <MultiFilter label="Status" plural="Statuses" filters={statusFilters} setFilters={setStatusFilters} options={[
             { v: 'active',        label: 'Active'       },
             { v: 'offboarding',   label: 'Off-boarding' },
             { v: 'inactive',      label: 'Inactive'     },
