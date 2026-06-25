@@ -998,33 +998,35 @@ export default function ClientDirectory() {
                           <th
                                 ref={provided.innerRef}
                                 {...provided.draggableProps}
-                                {...provided.dragHandleProps}
-                                className={`relative px-4 py-3 ${alignCls} text-[11px] font-semibold uppercase tracking-wider select-none cursor-grab active:cursor-grabbing transition-opacity ${snapshot.isDragging ? 'opacity-50' : ''}`}
+                                className={`relative px-4 py-3 ${alignCls} text-[11px] font-semibold uppercase tracking-wider select-none transition-opacity ${snapshot.isDragging ? 'opacity-50' : ''}`}
                                 style={{
                                   ...provided.draggableProps.style,
                                   width: colWidths[colKey] ?? undefined,
                                   minWidth: colWidths[colKey] ?? undefined,
                                 }}
                               >
-                                <button
-                                  onClick={e => { e.stopPropagation(); toggleSort(colKey as SortKey) }}
-                                  className="flex items-center gap-1 hover:opacity-80 transition-opacity cursor-pointer select-none w-full"
-                                >
-                                  <span className={`uppercase tracking-wider font-bold text-white block w-full leading-tight ${col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left'}`}>
-                                    {col.label}
-                                  </span>
-                                  <span className="text-[9px] opacity-60 shrink-0">
-                                    {sortKey === colKey ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}
-                                  </span>
-                                </button>
-                                {/* Resize handle — must stop propagation so DnD doesn't intercept */}
+                                <div className="flex items-start gap-1 w-full">
+                                  {/* Drag grip — only this activates column reorder */}
+                                  <span
+                                    {...provided.dragHandleProps}
+                                    className="cursor-grab active:cursor-grabbing shrink-0 opacity-30 hover:opacity-70 transition-opacity pt-px"
+                                    title="Drag to reorder"
+                                  >⠿</span>
+                                  <button
+                                    onClick={e => { e.stopPropagation(); toggleSort(colKey as SortKey) }}
+                                    className="flex items-center gap-1 hover:opacity-80 transition-opacity cursor-pointer select-none flex-1 min-w-0"
+                                  >
+                                    <span className={`uppercase tracking-wider font-bold text-white leading-tight ${col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left'}`}>
+                                      {col.label}
+                                    </span>
+                                    <span className="text-[9px] opacity-60 shrink-0">
+                                      {sortKey === colKey ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}
+                                    </span>
+                                  </button>
+                                </div>
+                                {/* Resize handle — completely separate from drag */}
                                 <div
-                                  onMouseDown={e => {
-                                    e.stopPropagation()
-                                    e.preventDefault()
-                                    startResize(e, colKey)
-                                  }}
-                                  onPointerDown={e => e.stopPropagation()}
+                                  onMouseDown={e => startResize(e, colKey)}
                                   className="absolute right-0 top-0 h-full w-3 cursor-col-resize flex items-center justify-center opacity-0 hover:opacity-100 group-hover:opacity-60 transition-opacity z-10"
                                   title="Drag to resize"
                                   onClick={e => e.stopPropagation()}
