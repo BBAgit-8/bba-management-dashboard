@@ -39,6 +39,8 @@ const sel = 'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-s
 
 export default function SettingsTab({ clientId, projectCode, client }: Props) {
   const [ops, setOps] = useState({
+    bookkeepingRate:          String(client?.bookkeepingRate ?? ''),
+    softwareRate:             String(client?.softwareRate ?? ''),
     autoPriceIncreasePercent: String(client?.autoPriceIncreasePercent ?? ''),
     priceAdjustmentDate:      client?.priceAdjustmentDate ?? '',
     accountantName:           client?.accountantName ?? '',
@@ -88,6 +90,8 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
   useEffect(() => {
     if (!client) return;
     setOps({
+      bookkeepingRate:          String(client.bookkeepingRate ?? ''),
+      softwareRate:             String(client.softwareRate ?? ''),
       autoPriceIncreasePercent: String(client.autoPriceIncreasePercent ?? ''),
       priceAdjustmentDate:      client.priceAdjustmentDate ?? '',
       accountantName:           client.accountantName ?? '',
@@ -129,6 +133,8 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          bookkeepingRate:          ops.bookkeepingRate ? parseFloat(ops.bookkeepingRate) : null,
+          softwareRate:             ops.softwareRate ? parseFloat(ops.softwareRate) : null,
           accountantName:           ops.accountantName           || null,
           processingCadence:        ops.processingCadence,
           okToContactAccountant:    ops.okToContactAccountant,
@@ -179,6 +185,36 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
         <h3 className="text-sm font-semibold text-slate-600 uppercase tracking-wider mb-4">Operational Settings</h3>
         <form onSubmit={saveOps} className="rounded-xl border border-slate-200 bg-white p-5 space-y-5">
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+
+            {/* Rates */}
+            <div>
+              <label className="block text-xs font-medium text-slate-500 mb-1.5">Bookkeeping Rate</label>
+              <div className="relative">
+                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">$</span>
+                <input type="number" step="0.01" min={0}
+                  value={ops.bookkeepingRate}
+                  onChange={e => setOps(o => ({ ...o, bookkeepingRate: e.target.value }))}
+                  placeholder="0.00"
+                  className={`${inp} pl-7`} />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-slate-500 mb-1.5">Software Rate</label>
+              <div className="relative">
+                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">$</span>
+                <input type="number" step="0.01" min={0}
+                  value={ops.softwareRate}
+                  onChange={e => setOps(o => ({ ...o, softwareRate: e.target.value }))}
+                  placeholder="0.00"
+                  className={`${inp} pl-7`} />
+              </div>
+              {ops.bookkeepingRate && (
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Total monthly: ${(parseFloat(ops.bookkeepingRate || '0') + parseFloat(ops.softwareRate || '0')).toFixed(2)}
+                </p>
+              )}
+            </div>
 
             <div>
               <label className="block text-xs font-medium text-slate-500 mb-1.5">Auto Price Increase %</label>
