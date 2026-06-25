@@ -156,8 +156,8 @@ export default function ClientWorkspace({ projectCode }: Props) {
 
       {/* Tab content */}
       <div className="pt-6">
-        {activeTab === 'dashboard'     && <DashboardTab     clientId={client.id} />}
-        {activeTab === 'profitability' && <ProfitabilityTab clientId={client.id} />}
+        {activeTab === 'dashboard'     && <DashboardTab     clientId={client.id} client={client} projectCode={client.harvestProjectCode} />}
+        {activeTab === 'profitability' && <ProfitabilityTab clientId={client.id} client={client} projectCode={client.harvestProjectCode} />}
         {activeTab === 'settings'      && <SettingsTab      clientId={client.id} projectCode={client.harvestProjectCode} client={client} />}
       </div>
     </div>

@@ -1,226 +1,229 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { SOWS, TIME_LOGS, CALL_LOGS, CLIENTS } from "@/lib/mock-data";
-import type { CallLog } from "@/lib/mock-data";
+import { useState, useEffect, useCallback } from "react";
 
-function poolHrsPerCategory(targetHours: number): number {
+function poolHrs(targetHours: number): number {
   if (targetHours <= 10) return 0.25;
   if (targetHours <= 20) return 0.50;
   return 0.75;
 }
 
-interface Props { clientId: string }
+function fmtHrs(n: number) {
+  return n % 1 === 0 ? `${n}` : n.toFixed(2)
+}
 
-export default function DashboardTab({ clientId }: Props) {
+interface HarvestHours {
+  bkpr: number; qa: number; ye: number; mgmt: number; other: number; total: number
+}
+
+interface Props {
+  clientId: string
+  client: any
+  projectCode: string
+}
+
+export default function DashboardTab({ client, projectCode }: Props) {
   const [rawNotes,    setRawNotes]   = useState('');
   const [submitState, setSubmit]     = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
-  const [logs, setLogs]              = useState<CallLog[]>(() =>
-    CALL_LOGS.filter(l => l.clientId === clientId).sort((a, b) => b.callDate.localeCompare(a.callDate))
-  );
+  const [harvest,     setHarvest]    = useState<HarvestHours | null>(null)
+  const [harvestConnected, setHarvestConnected] = useState(false)
+  const [harvestLoading,   setHarvestLoading]   = useState(true)
+  const [harvestError,     setHarvestError]      = useState<string | null>(null)
 
-  const client = CLIENTS.find(c => c.id === clientId);
-  const sow    = SOWS.find(s => s.clientId === clientId);
+  // Date range — current month
+  const now   = new Date()
+  const from  = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
+  const today = now.toISOString().split('T')[0]
 
-  const allLogs          = TIME_LOGS.filter(l => l.clientId === clientId);
-  const bookkeeperLogged = allLogs
-    .filter(l => !l.logType || l.logType === 'BOOKKEEPER')
-    .reduce((s, l) => s + l.hoursLogged, 0);
-  const totalLogged      = allLogs.reduce((s, l) => s + l.hoursLogged, 0);
+  // Fetch Harvest hours for this client
+  const loadHarvest = useCallback(() => {
+    if (!projectCode) return
+    setHarvestLoading(true)
+    fetch(`/api/harvest/hours?code=${projectCode}&from=${from}&to=${today}`)
+      .then(r => r.json())
+      .then(d => {
+        setHarvestConnected(d.connected ?? false)
+        setHarvestError(d.error ?? null)
+        if (d.hours) setHarvest(d.hours)
+      })
+      .catch(e => setHarvestError(e.message))
+      .finally(() => setHarvestLoading(false))
+  }, [projectCode, from, today])
 
-  const target         = sow?.targetHours ?? 0;
-  const PER_CAT_HRS    = poolHrsPerCategory(target);
-  const QA_HRS         = PER_CAT_HRS;
-  const MGMT_HRS       = PER_CAT_HRS;
-  const YE_HRS         = PER_CAT_HRS;
-  const TOTAL_POOL_HRS = QA_HRS + MGMT_HRS + YE_HRS;
-  const netBkHours     = Math.max(target - TOTAL_POOL_HRS, 0);
-  const pct            = netBkHours > 0 ? Math.min((bookkeeperLogged / netBkHours) * 100, 150) : 0;
-  const remaining      = Math.max(netBkHours - bookkeeperLogged, 0);
-  const isOverBudget   = bookkeeperLogged > netBkHours && netBkHours > 0;
+  useEffect(() => { loadHarvest() }, [loadHarvest])
 
-  const billingRateDisplay = sow?.billingType === 'FLAT'
-    ? (target > 0 ? `$${((sow.fixedMonthlyRate ?? 0) / target).toFixed(2)}/hr equiv.` : `$${sow.fixedMonthlyRate}/mo`)
-    : `$${sow?.billingRate ?? 0}/hr`;
+  // Hours budget from client record
+  const target      = Number(client?.totalHrsPerMonth ?? 0)
+  const PER_CAT     = poolHrs(target)
+  const QA_BUDGET   = Number(client?.qaHours         ?? PER_CAT)
+  const MGMT_BUDGET = Number(client?.custSuccessMgmtHrs ?? PER_CAT)
+  const YE_BUDGET   = Number(client?.yeOrTaxHours    ?? PER_CAT)
+  const POOL_TOTAL  = QA_BUDGET + MGMT_BUDGET + YE_BUDGET
+  const NET_BK      = Math.max(target - POOL_TOTAL, 0)
 
-  const barColor = isOverBudget ? 'bg-red-500' : pct >= 80 ? 'bg-amber-500' : 'bg-bba-primary';
-  const pctColor = isOverBudget ? 'text-red-600 font-semibold' : pct >= 80 ? 'text-amber-600' : 'text-purple-700';
+  // Actual hours — from Harvest if connected, else from DB bkprHours
+  const bkUsed   = harvestConnected && harvest ? harvest.bkpr  : Number(client?.bkprHours ?? 0)
+  const qaUsed   = harvestConnected && harvest ? harvest.qa    : 0
+  const yeUsed   = harvestConnected && harvest ? harvest.ye    : 0
+  const mgmtUsed = harvestConnected && harvest ? harvest.mgmt  : 0
+  const totalUsed = harvestConnected && harvest ? harvest.total : bkUsed
 
-  function refreshLogs(newLog: CallLog) {
-    setLogs(prev => [newLog, ...prev]);
+  const pct       = NET_BK > 0 ? Math.min((bkUsed / NET_BK) * 100, 150) : 0
+  const remaining = Math.max(NET_BK - bkUsed, 0)
+  const isOver    = bkUsed > NET_BK && NET_BK > 0
+
+  // Cost rate
+  const rate = Number(client?.costRate ?? 0)
+
+  // Pool progress helpers
+  function PoolCard({ label, used, budget, color }: { label: string; used: number; budget: number; color: string }) {
+    const poolPct = budget > 0 ? Math.min((used / budget) * 100, 100) : 0
+    const over    = used > budget && budget > 0
+    return (
+      <div className={`rounded-xl border p-4 space-y-2 ${over ? 'border-red-200 bg-red-50' : 'bg-white border-slate-100'}`}>
+        <div className="flex items-baseline justify-between">
+          <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{label}</span>
+          <span className={`text-xs font-medium ${over ? 'text-red-600' : 'text-slate-400'}`}>
+            {budget > 0 ? `${fmtHrs(budget)} h/mo` : '—'}
+          </span>
+        </div>
+        <p className={`text-2xl font-bold ${over ? 'text-red-600' : `text-[${color}]`}`} style={{ color: over ? undefined : color }}>
+          {fmtHrs(used)} <span className="text-sm font-normal text-slate-400">hrs</span>
+        </p>
+        {budget > 0 && (
+          <div className="h-1.5 rounded-full bg-slate-100">
+            <div className="h-1.5 rounded-full transition-all" style={{ width: `${poolPct}%`, backgroundColor: over ? '#ef4444' : color }} />
+          </div>
+        )}
+      </div>
+    )
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!rawNotes.trim() || !client) return;
-    setSubmit('loading');
+  async function handleSubmitNotes(e: React.FormEvent) {
+    e.preventDefault()
+    if (!rawNotes.trim()) return
+    setSubmit('loading')
     try {
       const res = await fetch('/api/clients/logs', {
-        method:  'POST',
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ projectCode: client.harvestProjectCode, rawNotes }),
-      });
-      if (!res.ok) throw new Error(await res.text());
-      const { log } = await res.json() as { log: CallLog };
-      refreshLogs(log);
-      setRawNotes('');
-      setSubmit('done');
-      setTimeout(() => setSubmit('idle'), 2500);
-    } catch {
-      setSubmit('error');
-      setTimeout(() => setSubmit('idle'), 3000);
-    }
+        body: JSON.stringify({ projectCode, rawNotes }),
+      })
+      if (!res.ok) throw new Error('Failed')
+      setSubmit('done'); setRawNotes('')
+    } catch { setSubmit('error') }
   }
 
   return (
     <div className="space-y-6">
 
-      {/* ── Monthly Bookkeeper Budget ── */}
-      <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
-        <div className="px-5 py-3.5 flex flex-wrap items-center justify-between gap-3 border-b border-slate-100"
-          style={{ backgroundColor: 'var(--bba-primary)' }}>
-          <h3 className="text-sm font-semibold text-white">Monthly Bookkeeper Budget</h3>
-          <div className="flex items-center gap-2">
-            {sow && (
-              <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs text-white/90">
-                {sow.billingType === 'FLAT' ? `Flat — $${sow.fixedMonthlyRate?.toLocaleString()}/mo` : `Hourly — $${sow.billingRate}/hr`}
-              </span>
-            )}
-            <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs text-white/80">{billingRateDisplay}</span>
-          </div>
+      {/* Monthly Bookkeeper Budget */}
+      <div className="rounded-2xl bg-bba-primary text-white overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-4">
+          <h2 className="text-base font-semibold">Monthly Bookkeeper Budget</h2>
+          <span className="text-sm font-medium opacity-70">
+            {rate > 0 ? `$${rate}/hr` : 'Rate not set'}
+          </span>
         </div>
-
-        <div className="p-5 space-y-4">
-          {/* Stats row */}
-          <div className="grid grid-cols-3 gap-3 text-center">
-            {[
-              { label: 'Total Hrs / Mo',   value: target.toFixed(1),         color: 'text-slate-800' },
-              { label: 'Pool Deductions',  value: TOTAL_POOL_HRS.toFixed(2), color: 'text-slate-800' },
-              { label: 'Net Bkkeeper Hrs', value: netBkHours.toFixed(1),     color: isOverBudget ? 'text-red-600' : 'text-green-700' },
-            ].map(s => (
-              <div key={s.label} className="rounded-lg bg-slate-50 border border-slate-100 p-3">
-                <p className={`text-xl font-bold tabular-nums ${s.color}`}>{s.value}</p>
-                <p className="text-[10px] text-slate-400 mt-0.5">{s.label}</p>
-              </div>
-            ))}
-          </div>
-
-          {/* Progress bar */}
-          <div>
-            <div className="mb-1.5 flex justify-between text-xs text-slate-500">
-              <span>{bookkeeperLogged.toFixed(1)} bookkeeper hrs used</span>
-              <span>{netBkHours.toFixed(1)} hrs available</span>
-            </div>
-            <div className="h-3 w-full overflow-hidden rounded-full bg-slate-100">
-              <div className={`h-full rounded-full transition-all duration-700 ${barColor}`} style={{ width: `${Math.min(pct, 100)}%` }} />
-            </div>
-            <div className="flex justify-between text-xs mt-1.5">
-              <span className={pctColor}>{pct.toFixed(1)}% of net budget{isOverBudget ? ' — OVER BUDGET' : ''}</span>
-              <span className="text-slate-400">{remaining.toFixed(1)} hrs remaining</span>
-            </div>
-          </div>
-
-          {totalLogged > bookkeeperLogged && (
-            <p className="text-[11px] text-slate-400">
-              {(totalLogged - bookkeeperLogged).toFixed(2)} pool hrs (QA / Mgmt / Year-End) logged separately
-            </p>
-          )}
-        </div>
-
-        {/* Pool chips */}
-        <div className="border-t border-slate-100 px-5 py-4 grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-3 divide-x divide-white/10 bg-white/5">
           {[
-            { label: 'QA',        hrs: QA_HRS,   bg: 'bg-sky-50',    text: 'text-sky-700',    ring: 'ring-sky-200'    },
-            { label: 'Mgmt + CS', hrs: MGMT_HRS, bg: 'bg-purple-50', text: 'text-purple-700', ring: 'ring-purple-200' },
-            { label: 'Year-End',  hrs: YE_HRS,   bg: 'bg-amber-50',  text: 'text-amber-700',  ring: 'ring-amber-200'  },
-          ].map(p => (
-            <div key={p.label} className={`rounded-lg ${p.bg} ring-1 ${p.ring} p-3 text-center`}>
-              <p className={`text-lg font-bold tabular-nums ${p.text}`}>{p.hrs.toFixed(2)}</p>
-              <p className="text-[10px] font-medium text-slate-500 mt-0.5">{p.label}</p>
-              <p className="text-[10px] text-slate-400">{p.hrs.toFixed(2)} h/mo</p>
+            { label: 'Total Hrs / Mo',   value: fmtHrs(target)  },
+            { label: 'Pool Deductions',  value: fmtHrs(POOL_TOTAL) },
+            { label: 'Net Bkkeeper Hrs', value: fmtHrs(NET_BK), highlight: true },
+          ].map(({ label, value, highlight }) => (
+            <div key={label} className="px-6 py-4 text-center">
+              <p className={`text-2xl font-bold ${highlight ? 'text-green-300' : 'text-white'}`}>{value}</p>
+              <p className="text-xs text-white/60 mt-1">{label}</p>
             </div>
           ))}
         </div>
-      </div>
-
-      {/* ── Rolling pool cards ── */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="rounded-xl border border-sky-200 bg-sky-50 p-5">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="h-2 w-2 rounded-full bg-sky-500 ring-2 ring-sky-200" />
-            <h3 className="text-sm font-semibold text-sky-700">Rolling Quarterly QA Pool</h3>
-          </div>
-          <p className="text-3xl font-bold text-slate-800 tabular-nums">
-            {(QA_HRS * 3).toFixed(2)} <span className="text-sm font-normal text-slate-400">hrs</span>
-          </p>
-          <p className="mt-0.5 text-xs text-slate-500">Accumulated this quarter · {QA_HRS.toFixed(2)}h/mo</p>
-          <div className="mt-3 overflow-hidden rounded-full bg-sky-100 h-1.5">
-            <div className="h-full w-2/3 rounded-full bg-sky-500" />
-          </div>
-          <p className="mt-1 text-[10px] text-slate-400">2 of 3 months elapsed</p>
+        <div className="px-6 py-3 bg-white/5 flex items-center justify-between text-sm">
+          <span className="text-white/70">
+            {fmtHrs(bkUsed)} bookkeeper hrs used
+            {harvestConnected
+              ? <span className="ml-2 inline-flex items-center gap-1 text-green-300 text-xs"><span className="h-1.5 w-1.5 rounded-full bg-green-400" />Live from Harvest</span>
+              : harvestLoading
+                ? <span className="ml-2 text-white/40 text-xs">Loading Harvest…</span>
+                : <span className="ml-2 text-amber-300 text-xs">⚠ {harvestError ?? 'Not connected'}</span>
+            }
+          </span>
+          <span className="text-white/70">{fmtHrs(remaining)} hrs remaining</span>
         </div>
-        <div className="rounded-xl border border-amber-200 bg-amber-50 p-5">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="h-2 w-2 rounded-full bg-amber-500 ring-2 ring-amber-200" />
-            <h3 className="text-sm font-semibold text-amber-700">Annual Year-End Pool</h3>
+        {/* Progress bar */}
+        <div className="px-6 pb-4">
+          <div className="h-2 rounded-full bg-white/10">
+            <div className={`h-2 rounded-full transition-all ${isOver ? 'bg-red-400' : 'bg-green-400'}`}
+              style={{ width: `${Math.min(pct, 100)}%` }} />
           </div>
-          <p className="text-3xl font-bold text-slate-800 tabular-nums">
-            {(YE_HRS * 12).toFixed(2)} <span className="text-sm font-normal text-slate-400">hrs</span>
-          </p>
-          <p className="mt-0.5 text-xs text-slate-500">Projected annual reserve (12 months)</p>
-          <div className="mt-3 overflow-hidden rounded-full bg-amber-100 h-1.5">
-            <div className="h-full w-5/12 rounded-full bg-amber-500" />
+          <div className="flex justify-between mt-1 text-xs text-white/40">
+            <span className={isOver ? 'text-red-300 font-medium' : ''}>
+              {pct.toFixed(1)}% of net budget {isOver ? '— OVER' : ''}
+            </span>
+            <span>{fmtHrs(NET_BK)} hrs available</span>
           </div>
-          <p className="mt-1 text-[10px] text-slate-400">5 of 12 months elapsed</p>
         </div>
       </div>
 
-      {/* ── AI Call Log ── */}
-      <div className="rounded-xl border border-slate-200 bg-white p-5">
-        <h3 className="text-sm font-semibold text-slate-800 mb-0.5">AI Call Log</h3>
-        <p className="text-xs text-slate-400 mb-3">
-          Paste raw call notes — Claude will extract a structured summary and save it to the client record.
-        </p>
-        <form onSubmit={handleSubmit} className="space-y-3">
+      {/* Pool cards */}
+      <div className="grid grid-cols-3 gap-4">
+        <PoolCard label="QA"       used={qaUsed}   budget={QA_BUDGET}   color="#8b5cf6" />
+        <PoolCard label="Mgmt + CS" used={mgmtUsed} budget={MGMT_BUDGET} color="#ec4899" />
+        <PoolCard label="Year-End" used={yeUsed}   budget={YE_BUDGET}   color="#f59e0b" />
+      </div>
+
+      {/* Harvest breakdown (if connected) */}
+      {harvestConnected && harvest && harvest.total > 0 && (
+        <div className="rounded-xl border border-slate-100 bg-white p-5">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold text-slate-700">Harvest Hours This Month</h3>
+            <span className="text-xs text-slate-400">{from} – {today}</span>
+          </div>
+          <div className="grid grid-cols-5 gap-3">
+            {[
+              { label: 'Bookkeeping', value: harvest.bkpr,  color: 'text-purple-700' },
+              { label: 'QA',          value: harvest.qa,    color: 'text-violet-600' },
+              { label: 'Year-End',    value: harvest.ye,    color: 'text-amber-600'  },
+              { label: 'Mgmt/CS',     value: harvest.mgmt,  color: 'text-pink-600'   },
+              { label: 'Other',       value: harvest.other, color: 'text-slate-500'  },
+            ].map(({ label, value, color }) => (
+              <div key={label} className="text-center">
+                <p className={`text-lg font-bold ${color}`}>{fmtHrs(value)}</p>
+                <p className="text-[10px] text-slate-400 mt-0.5">{label}</p>
+              </div>
+            ))}
+          </div>
+          <div className="mt-3 pt-3 border-t border-slate-100 flex justify-between text-xs text-slate-500">
+            <span>Total logged: <strong>{fmtHrs(harvest.total)} hrs</strong></span>
+            {rate > 0 && <span>Cost: <strong>${(harvest.total * rate).toFixed(2)}</strong></span>}
+          </div>
+        </div>
+      )}
+
+      {/* AI Call Log */}
+      <div className="rounded-xl border border-slate-100 bg-white p-5 space-y-4">
+        <div>
+          <h3 className="text-sm font-semibold text-slate-700">AI Call Log</h3>
+          <p className="text-xs text-slate-400 mt-0.5">Paste raw call notes — Claude will extract a structured summary and save it to the client record.</p>
+        </div>
+        <form onSubmit={handleSubmitNotes} className="space-y-3">
           <textarea
-            value={rawNotes} onChange={e => setRawNotes(e.target.value)} rows={5}
+            value={rawNotes}
+            onChange={e => setRawNotes(e.target.value)}
             placeholder="Paste raw meeting notes here…"
-            className="w-full resize-none rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 placeholder-slate-400 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-purple-500"
+            rows={4}
+            className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
           />
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-slate-400 tabular-nums">{rawNotes.length} chars</span>
-            <button type="submit" disabled={!rawNotes.trim() || submitState === 'loading'}
-              className={`rounded-lg px-5 py-2 text-sm font-semibold transition-colors ${
-                submitState === 'done'    ? 'bg-green-600 text-white' :
-                submitState === 'error'   ? 'bg-red-600 text-white' :
-                submitState === 'loading' ? 'bg-bba-primary/80 text-white cursor-wait' :
-                'bg-bba-primary text-white hover:bg-bba-primary/85 disabled:cursor-not-allowed disabled:opacity-40'
-              }`}>
-              {submitState === 'loading' ? 'Processing…' : submitState === 'done' ? '✓ Saved' : submitState === 'error' ? '✗ Error — retry' : 'Submit Log'}
+          <div className="flex items-center gap-3">
+            <button type="submit" disabled={submitState === 'loading' || !rawNotes.trim()}
+              className="rounded-lg bg-bba-primary px-4 py-2 text-sm font-semibold text-white hover:bg-bba-primary/85 disabled:opacity-50 transition-colors">
+              {submitState === 'loading' ? 'Processing…' : 'Process Notes'}
             </button>
+            {submitState === 'done'  && <span className="text-xs text-green-600">✓ Saved</span>}
+            {submitState === 'error' && <span className="text-xs text-red-500">Failed — try again</span>}
           </div>
         </form>
       </div>
 
-      {/* ── Past Log History ── */}
-      {logs.length > 0 && (
-        <div className="space-y-3">
-          <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400">Past Log History</h3>
-          {logs.map((log, i) => (
-            <div key={log.id ?? i} className="rounded-xl border border-slate-200 bg-white p-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-semibold text-slate-600">
-                  {new Date(log.callDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
-                </span>
-                <span className="text-[10px] text-slate-400 bg-slate-100 rounded-full px-2 py-0.5">AI Summary</span>
-              </div>
-              <div className="text-xs text-slate-600 whitespace-pre-wrap leading-relaxed">
-                {log.summary}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
