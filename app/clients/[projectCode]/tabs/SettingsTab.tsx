@@ -519,7 +519,7 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
             {opsSaved === 'error' && (
               <p className="text-xs text-red-600">{saveError || 'Save failed — try again'}</p>
             )}
-            <button type="submit" disabled={opsSaved === 'saving'}
+            <button type="button" onClick={(e) => saveOps(e as any)} disabled={opsSaved === 'saving'}
               className={`rounded-lg px-5 py-2 text-sm font-semibold transition-colors disabled:opacity-60 ${
                 opsSaved === 'done'   ? 'bg-green-600 text-white' :
                 opsSaved === 'error'  ? 'bg-red-600 text-white' :
@@ -606,15 +606,49 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
                     </tr>
                   ))}
               </tbody>
-              {subs.length > 0 && (
-                <tfoot>
+              <tfoot>
+                {subs.length > 0 && (
                   <tr className="border-t border-slate-200 bg-slate-50">
                     <td colSpan={2} className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Monthly Total</td>
                     <td className="px-4 py-3 text-sm font-semibold tabular-nums text-slate-700">${totalClPrice.toFixed(2)}</td>
                     <td colSpan={2} />
                   </tr>
-                </tfoot>
-              )}
+                )}
+                <tr className="border-t border-slate-100">
+                  <td colSpan={5} className="px-4 py-3">
+                    <div className="flex items-center justify-end">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          setOpsSaved('saving');
+                          try {
+                            const r = await fetch('/api/clients/subscriptions', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ clientId, subscriptions: subs }),
+                            });
+                            if (!r.ok) throw new Error('Save failed');
+                            setOpsSaved('done');
+                            setTimeout(() => setOpsSaved('idle'), 2500);
+                          } catch {
+                            setOpsSaved('error');
+                            setTimeout(() => setOpsSaved('idle'), 4000);
+                          }
+                        }}
+                        disabled={opsSaved === 'saving'}
+                        className={`rounded-lg px-5 py-2 text-sm font-semibold transition-colors disabled:opacity-60 ${
+                          opsSaved === 'done'   ? 'bg-green-600 text-white' :
+                          opsSaved === 'error'  ? 'bg-red-600 text-white' :
+                          opsSaved === 'saving' ? 'bg-bba-primary/70 text-white cursor-wait' :
+                          'bg-bba-primary text-white hover:bg-bba-primary/85'
+                        }`}
+                      >
+                        {opsSaved === 'saving' ? 'Saving…' : opsSaved === 'done' ? '✓ Saved' : opsSaved === 'error' ? '✗ Error' : 'Save Subscriptions'}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </tfoot>
             </table>
           </div>
         </div>
