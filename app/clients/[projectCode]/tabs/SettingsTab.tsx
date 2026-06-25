@@ -616,7 +616,10 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
                 )}
                 <tr className="border-t border-slate-100">
                   <td colSpan={5} className="px-4 py-3">
-                    <div className="flex items-center justify-end">
+                    <div className="flex items-center justify-end gap-3">
+                      {opsSaved === 'error' && (
+                        <p className="text-xs text-red-600">{saveError || 'Save failed — try again'}</p>
+                      )}
                       <button
                         type="button"
                         onClick={async () => {
@@ -627,10 +630,12 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
                               headers: { 'Content-Type': 'application/json' },
                               body: JSON.stringify({ clientId, subscriptions: subs }),
                             });
-                            if (!r.ok) throw new Error('Save failed');
+                            const json = await r.json();
+                            if (!r.ok) throw new Error(json.error ?? 'Save failed');
                             setOpsSaved('done');
                             setTimeout(() => setOpsSaved('idle'), 2500);
-                          } catch {
+                          } catch (err: any) {
+                            setSaveError(err.message);
                             setOpsSaved('error');
                             setTimeout(() => setOpsSaved('idle'), 4000);
                           }

@@ -44,6 +44,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const rows = subscriptions
       .filter(s => s.softwareName?.trim())
       .map(s => ({
+        id:             crypto.randomUUID(),
         clientId,
         softwareName:   s.softwareName,
         tier:           s.tier || null,
@@ -56,7 +57,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     if (rows.length > 0) {
       const { error } = await supabase.from('client_subscriptions').insert(rows)
-      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      if (error) return NextResponse.json({ error: error.message, detail: JSON.stringify(rows[0]) }, { status: 500 })
     }
   }
 
