@@ -1017,19 +1017,20 @@ export default function ClientDirectory() {
                       <th
                         key={colKey}
                         data-col-key={colKey}
-                        className={`relative px-3 py-3 text-center text-[11px] font-semibold uppercase tracking-wider select-none transition-colors ${isDragOver ? 'bg-white/20' : ''}`}
+                        onMouseDown={e => {
+                          // Don't start col drag if clicking the resize handle (rightmost 12px)
+                          const th = e.currentTarget
+                          const rect = th.getBoundingClientRect()
+                          if (e.clientX > rect.right - 12) return
+                          startColDrag(e, colKey, index)
+                        }}
+                        className={`relative px-3 py-3 text-center text-[11px] font-semibold uppercase tracking-wider select-none transition-colors cursor-grab active:cursor-grabbing ${isDragOver ? 'bg-white/20' : ''}`}
                         style={{
                           width: colWidths[colKey] ?? undefined,
                           minWidth: colWidths[colKey] ?? undefined,
                         }}
                       >
-                        <div className="flex flex-col items-center gap-0.5 w-full">
-                          {/* Drag grip */}
-                          <span
-                            onMouseDown={e => startColDrag(e, colKey, index)}
-                            className="cursor-grab active:cursor-grabbing opacity-30 hover:opacity-70 transition-opacity text-white text-xs leading-none"
-                            title="Drag to reorder"
-                          >⠿</span>
+                        <div className="flex items-center justify-center gap-1 w-full">
                           <button
                             onClick={e => { e.stopPropagation(); toggleSort(colKey as SortKey) }}
                             className="flex items-center justify-center gap-1 hover:opacity-80 transition-opacity cursor-pointer select-none w-full"
@@ -1044,7 +1045,7 @@ export default function ClientDirectory() {
                         </div>
                         {/* Resize handle */}
                         <div
-                          onMouseDown={e => startResize(e, colKey)}
+                          onMouseDown={e => { e.stopPropagation(); startResize(e, colKey) }}
                           className="absolute right-0 top-0 h-full w-3 cursor-col-resize flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity z-10"
                           title="Resize column"
                           onClick={e => e.stopPropagation()}
