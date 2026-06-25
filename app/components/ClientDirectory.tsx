@@ -344,7 +344,7 @@ export default function ClientDirectory() {
 
   // Filters
   const [tagFilters,       setTagFilters]       = useState<Set<string>>(new Set())
-  const [statusFilter,     setStatusFilter]     = useState<StatusFilter>('all')
+  const [statusFilter,     setStatusFilter]     = useState<StatusFilter>('active')
   const [bookeeperFilter,  setBookkeeperFilter] = useState<string>('all')
   const [entityTypeFilter, setEntityTypeFilter] = useState<string>('all')
   const [ptFilter,         setPtFilter]         = useState<ProjectType | 'all'>('all')
