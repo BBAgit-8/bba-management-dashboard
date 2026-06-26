@@ -61,6 +61,29 @@ type ApiClient = {
 
 import AddClientPanel from './AddClientPanel'
 
+// ── Saved View type ───────────────────────────────────────────────────────────
+type ClientView = {
+  id:             string
+  name:           string
+  visibleCols:    string[]
+  colOrder:       string[]
+  colWidths:      Record<string, number>
+  filters:        {
+    statusFilters:     string[]
+    bookkeeperFilters: string[]
+    entityTypeFilters: string[]
+    ptFilters:         string[]
+    cadenceFilters:    string[]
+    tagFilters:        string[]
+    search:            string
+  }
+  sortKey:        string
+  sortDir:        string
+  sharedWithTeam: boolean
+  createdAt:      string
+}
+
+
 // ── Column definitions ────────────────────────────────────────────────────────
 type ColKey =
   | 'name' | 'code' | 'projectType' | 'revenueType' | 'bookkeepingRate' | 'status'
@@ -340,12 +363,255 @@ function MultiFilter({ label, plural, filters, setFilters, options }: {
   )
 }
 
+// ── Views Dropdown ────────────────────────────────────────────────────────────
+function ViewsDropdown({
+  views, activeViewId, saving,
+  onApply, onSaveNew, onUpdate, onDelete, onRename, onToggleShare, onClearView,
+}: {
+  views: ClientView[]
+  activeViewId: string | null
+  saving: boolean
+  onApply:       (v: ClientView) => void
+  onSaveNew:     (name: string, shared: boolean) => void
+  onUpdate:      (id: string) => void
+  onDelete:      (id: string) => void
+  onRename:      (id: string, name: string) => void
+  onToggleShare: (id: string, shared: boolean) => void
+  onClearView:   () => void
+}) {
+  const [open,        setOpen]        = useState(false)
+  const [mode,        setMode]        = useState<'list' | 'new' | 'edit'>('list')
+  const [newName,     setNewName]     = useState('')
+  const [newShared,   setNewShared]   = useState(false)
+  const [editingId,   setEditingId]   = useState<string | null>(null)
+  const [editName,    setEditName]    = useState('')
+  const [editShared,  setEditShared]  = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function onDown(e: MouseEvent) { if (ref.current && !ref.current.contains(e.target as Node)) { setOpen(false); setMode('list') } }
+    document.addEventListener('mousedown', onDown)
+    return () => document.removeEventListener('mousedown', onDown)
+  }, [])
+
+  const activeView = views.find(v => v.id === activeViewId)
+
+  return (
+    <div ref={ref} className="relative">
+      <button onClick={() => { setOpen(o => !o); setMode('list') }}
+        className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold border transition-all ${
+          activeViewId ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-slate-600 border-slate-200 hover:border-purple-300 hover:text-purple-700'
+        }`}>
+        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h8" />
+        </svg>
+        {activeView ? activeView.name : 'Views'}
+        <svg className={`h-3 w-3 transition-transform ${open ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="absolute top-full left-0 mt-1 z-50 w-72 rounded-xl border border-slate-200 bg-white shadow-xl overflow-hidden">
+
+          {/* New view form */}
+          {mode === 'new' && (
+            <div className="p-4 space-y-3">
+              <p className="text-sm font-semibold text-slate-700">Save current view as…</p>
+              <input autoFocus type="text" value={newName} onChange={e => setNewName(e.target.value)}
+                placeholder="View name" onKeyDown={e => { if (e.key === 'Enter' && newName.trim()) { onSaveNew(newName.trim(), newShared); setNewName(''); setNewShared(false); setOpen(false); setMode('list') } }}
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={newShared} onChange={e => setNewShared(e.target.checked)}
+                  className="rounded border-slate-300 text-purple-600 focus:ring-purple-500" />
+                <span className="text-xs text-slate-600">Share with team (visible in Hub)</span>
+              </label>
+              <div className="flex gap-2">
+                <button onClick={() => { setMode('list'); setNewName('') }}
+                  className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50">Cancel</button>
+                <button disabled={!newName.trim() || saving}
+                  onClick={() => { onSaveNew(newName.trim(), newShared); setNewName(''); setNewShared(false); setOpen(false); setMode('list') }}
+                  className="flex-1 rounded-lg bg-purple-600 px-3 py-2 text-xs font-semibold text-white hover:bg-purple-700 disabled:opacity-50">
+                  {saving ? 'Saving…' : 'Save View'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Edit view form */}
+          {mode === 'edit' && editingId && (
+            <div className="p-4 space-y-3">
+              <p className="text-sm font-semibold text-slate-700">Edit view</p>
+              <input autoFocus type="text" value={editName} onChange={e => setEditName(e.target.value)}
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={editShared} onChange={e => setEditShared(e.target.checked)}
+                  className="rounded border-slate-300 text-purple-600 focus:ring-purple-500" />
+                <span className="text-xs text-slate-600">Share with team (visible in Hub)</span>
+              </label>
+              <div className="flex gap-2">
+                <button onClick={() => { setMode('list'); setEditingId(null) }}
+                  className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50">Cancel</button>
+                <button onClick={() => { onRename(editingId, editName); onToggleShare(editingId, editShared); setMode('list'); setEditingId(null) }}
+                  className="flex-1 rounded-lg bg-purple-600 px-3 py-2 text-xs font-semibold text-white hover:bg-purple-700">
+                  Save
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* View list */}
+          {mode === 'list' && (
+            <>
+              {/* Default view */}
+              <button onClick={() => { onClearView(); setOpen(false) }}
+                className={`w-full flex items-center justify-between px-4 py-3 text-sm hover:bg-slate-50 transition-colors ${!activeViewId ? 'text-purple-700 font-semibold bg-purple-50' : 'text-slate-700'}`}>
+                <span>Default</span>
+                {!activeViewId && <svg className="h-4 w-4 text-purple-600" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>}
+              </button>
+
+              {views.length > 0 && <div className="border-t border-slate-100" />}
+
+              {views.map(v => (
+                <div key={v.id} className={`flex items-center gap-2 px-3 py-2.5 hover:bg-slate-50 transition-colors ${activeViewId === v.id ? 'bg-purple-50' : ''}`}>
+                  <button onClick={() => { onApply(v); setOpen(false) }} className="flex-1 text-left">
+                    <p className={`text-sm ${activeViewId === v.id ? 'text-purple-700 font-semibold' : 'text-slate-700'}`}>{v.name}</p>
+                    <p className="text-[10px] text-slate-400">{v.sharedWithTeam ? '🔗 Shared with team' : 'Private'}</p>
+                  </button>
+                  <button onClick={() => { onUpdate(v.id) }} title="Update with current settings"
+                    className="p-1.5 rounded text-slate-400 hover:text-purple-600 hover:bg-purple-50 transition-colors" >
+                    <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                  </button>
+                  <button onClick={() => { setEditingId(v.id); setEditName(v.name); setEditShared(v.sharedWithTeam); setMode('edit') }} title="Rename / settings"
+                    className="p-1.5 rounded text-slate-400 hover:text-purple-600 hover:bg-purple-50 transition-colors">
+                    <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                  </button>
+                  <button onClick={() => { if (confirm(`Delete "${v.name}"?`)) onDelete(v.id) }} title="Delete view"
+                    className="p-1.5 rounded text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors">
+                    <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                  </button>
+                </div>
+              ))}
+
+              <div className="border-t border-slate-100 p-2">
+                <button onClick={() => setMode('new')}
+                  className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-purple-600 hover:bg-purple-50 transition-colors">
+                  <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                  Save current view…
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function ClientDirectory() {
   const [search,        setSearch]       = useState('')
   const [panelOpen,     setPanelOpen]    = useState(false)
   const [showColPanel,  setShowColPanel] = useState(false)
   const [sortKey,       setSortKey]      = useState<SortKey>('name')
   const [sortDir,       setSortDir]      = useState<'asc' | 'desc'>('asc')
+
+  // ── Saved Views ────────────────────────────────────────────────────────────
+  const [savedViews,     setSavedViews]     = useState<ClientView[]>([])
+  const [activeViewId,   setActiveViewId]   = useState<string | null>(null)
+  const [viewSaving,     setViewSaving]     = useState(false)
+
+  useEffect(() => {
+    fetch('/api/views')
+      .then(r => r.json())
+      .then(d => { if (Array.isArray(d.views)) setSavedViews(d.views) })
+      .catch(() => {})
+  }, [])
+
+  async function persistViews(views: ClientView[]) {
+    setSavedViews(views)
+    await fetch('/api/views', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ views }),
+    })
+  }
+
+  function captureCurrentView(): Omit<ClientView, 'id' | 'name' | 'createdAt' | 'sharedWithTeam'> {
+    return {
+      visibleCols:    [...visibleCols],
+      colOrder,
+      colWidths,
+      filters: {
+        statusFilters:     [...statusFilters],
+        bookkeeperFilters: [...bookkeeperFilters],
+        entityTypeFilters: [...entityTypeFilters],
+        ptFilters:         [...ptFilters],
+        cadenceFilters:    [...cadenceFilters],
+        tagFilters:        [...tagFilters],
+        search,
+      },
+      sortKey,
+      sortDir,
+    }
+  }
+
+  async function saveNewView(name: string, sharedWithTeam: boolean) {
+    setViewSaving(true)
+    const view: ClientView = {
+      id:   crypto.randomUUID(),
+      name,
+      sharedWithTeam,
+      createdAt: new Date().toISOString(),
+      ...captureCurrentView(),
+    }
+    const next = [...savedViews, view]
+    await persistViews(next)
+    setActiveViewId(view.id)
+    setViewSaving(false)
+  }
+
+  async function updateView(id: string, sharedWithTeam?: boolean) {
+    setViewSaving(true)
+    const next = savedViews.map(v => v.id === id
+      ? { ...v, ...captureCurrentView(), ...(sharedWithTeam !== undefined ? { sharedWithTeam } : {}), updatedAt: new Date().toISOString() }
+      : v)
+    await persistViews(next)
+    setViewSaving(false)
+  }
+
+  async function deleteView(id: string) {
+    const next = savedViews.filter(v => v.id !== id)
+    await persistViews(next)
+    if (activeViewId === id) setActiveViewId(null)
+  }
+
+  async function renameView(id: string, name: string) {
+    const next = savedViews.map(v => v.id === id ? { ...v, name } : v)
+    await persistViews(next)
+  }
+
+  async function toggleShareView(id: string, sharedWithTeam: boolean) {
+    const next = savedViews.map(v => v.id === id ? { ...v, sharedWithTeam } : v)
+    await persistViews(next)
+  }
+
+  function clearActiveView() { setActiveViewId(null) }
+
+  function applyView(view: ClientView) {
+    setVisibleCols(new Set(view.visibleCols as ColKey[]))
+    setColOrder(view.colOrder as ColKey[])
+    setColWidths(view.colWidths)
+    setStatusFilters(new Set(view.filters.statusFilters))
+    setBookkeeperFilters(new Set(view.filters.bookkeeperFilters))
+    setEntityTypeFilters(new Set(view.filters.entityTypeFilters))
+    setPtFilters(new Set(view.filters.ptFilters))
+    setCadenceFilters(new Set(view.filters.cadenceFilters))
+    setTagFilters(new Set(view.filters.tagFilters))
+    setSearch(view.filters.search ?? '')
+    setSortKey(view.sortKey as SortKey)
+    setSortDir(view.sortDir as 'asc' | 'desc')
+    setActiveViewId(view.id)
+  }
 
   // Inline edits — optimistic local state
   const [inlineEdits, setInlineEdits] = useState<Record<string, Record<string, string>>>({})
@@ -981,6 +1247,18 @@ export default function ClientDirectory() {
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
+          <ViewsDropdown
+            views={savedViews}
+            activeViewId={activeViewId}
+            saving={viewSaving}
+            onApply={applyView}
+            onSaveNew={saveNewView}
+            onUpdate={updateView}
+            onDelete={deleteView}
+            onRename={renameView}
+            onToggleShare={toggleShareView}
+            onClearView={clearActiveView}
+          />
           <button
             onClick={() => setPanelOpen(true)}
             className="inline-flex items-center gap-2 rounded-lg bg-bba-primary px-4 py-2 text-sm font-semibold text-white hover:bg-bba-primary/85 active:scale-95 transition-all"

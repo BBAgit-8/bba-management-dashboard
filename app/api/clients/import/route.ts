@@ -67,7 +67,40 @@ const ENTITY_TYPE_MAP: Record<string, string> = {
   'nonprofit':        'NON_PROFIT',
   'non_profit':       'NON_PROFIT',
   'other':            'OTHER',
-}'okToContactAccountant','hasPayroll','pettyCash','hasContractedLoom','hasScheduledMeetings'])
+}
+
+const BOOLEAN_FIELDS = new Set(['okToContactAccountant','hasPayroll','pettyCash','hasContractedLoom','hasScheduledMeetings'])
+
+const CADENCE_MAP: Record<string, string> = {
+  'weekly':     'WEEKLY',
+  'bi-weekly':  'BIWEEKLY',
+  'biweekly':   'BIWEEKLY',
+  'bi weekly':  'BIWEEKLY',
+  'monthly':    'MONTHLY',
+  'quarterly':  'QUARTERLY',
+}
+
+const PROJECT_TYPE_MAP: Record<string, string> = {
+  'recurring':           'RECURRING',
+  'annual':              'ANNUAL',
+  'cleanup':             'CLEAN_UP',
+  'clean up':            'CLEAN_UP',
+  'clean-up':            'CLEAN_UP',
+  'qbo only':            'QBO_ONLY',
+  'qbo-only':            'QBO_ONLY',
+  'monthly maintenance': 'MONTHLY_MAINTENANCE',
+}
+
+const REV_TYPE_MAP: Record<string, string> = {
+  'recurring monthly ach':      'RECURRING_MONTHLY_ACH',
+  'recurring monthly invoiced': 'RECURRING_MONTHLY_INVOICED',
+  'recurring monthly hourly':   'RECURRING_MONTHLY_HOURLY',
+  'cleanup':                    'CLEANUP',
+  'hourly cleanup':             'HOURLY_CLEANUP',
+  'free':                       'FREE',
+  'qbo only anchor':            'QBO_ONLY_ANCHOR',
+  'qbo only qb':                'QBO_ONLY_QB',
+}
 const NUMERIC_FIELDS = new Set(['bookkeepingRate','softwareRate','totalHrsPerMonth','bkprHours','qaHours','custSuccessMgmtHrs','yeOrTaxHours','auditHours','apArHrs','bankFeedTime','transactionsPerMonth','numBanksAndCCs','numLoans','numPmtPortals','autoPriceIncreasePercent','guaranteedDeadlineDay'])
 const DATE_FIELDS    = new Set(['contractStartDate','contractEndDate','priceAdjustmentDate'])
 
