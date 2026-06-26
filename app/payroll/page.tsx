@@ -52,7 +52,6 @@ function fmtN(n: number | null | undefined, dec = 1) {
 
 const COLS = [
   { key: 'dept',           label: 'Dept',          w: 64,  ro: false },
-  { key: 'hourlyRate2023', label: '2023 Rate',      w: 88,  ro: false },
   { key: 'hourlyRate2024', label: '2024-25 Rate',   w: 88,  ro: false },
   { key: 'hourlyRate2025', label: '2025-26 Rate',   w: 88,  ro: false },
   { key: 'hoursPerWeek',   label: 'Hrs/Wk',         w: 70,  ro: false },
