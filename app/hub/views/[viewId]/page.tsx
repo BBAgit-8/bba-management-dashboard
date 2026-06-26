@@ -57,7 +57,10 @@ function fmtVal(key: string, val: any): string {
 function colLabel(key: string): string {
   if (key === 'name') return 'Client Name'
   if (key === 'code') return 'Code'
-  return key.replace(/([A-Z])/g, ' $1').trim()
+  return key
+    .replace(/([A-Z])/g, ' $1')
+    .trim()
+    .replace(/\b\w/g, c => c.toUpperCase())
 }
 
 const EDITABLE_TEXT = new Set(['clientContactName', 'clientContactEmail', 'clientContactPhone', 'notes', 'bookkeeper'])
