@@ -947,16 +947,9 @@ export default function ClientDirectory() {
       case 'name':
         return (
           <td key={colKey} className="px-4 py-3 bg-white sticky left-0 z-10" style={{ boxShadow: '2px 0 4px -1px rgba(0,0,0,0.06)' }}>
-            <div className="flex items-center gap-3">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white" style={{ backgroundColor: 'rgba(78,0,142,0.12)' }}>
-                {initials(client.name)}
-              </div>
-              <div className="flex items-center min-w-0">
-                <Link href={`/clients/${client.harvestProjectCode}`} className="font-medium text-slate-800 hover:text-bba-action transition-colors whitespace-nowrap">
-                  {client.name}
-                </Link>
-              </div>
-            </div>
+            <Link href={`/clients/${client.harvestProjectCode}`} className="font-medium text-slate-800 hover:text-bba-action transition-colors whitespace-nowrap">
+              {client.name}
+            </Link>
           </td>
         )
       case 'code':
