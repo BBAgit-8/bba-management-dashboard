@@ -129,15 +129,52 @@ export default function PayrollPage() {
   async function patchRow(id: string, field: string, raw: string) {
     setSaving(id)
     const value = raw === '' ? null : isNaN(Number(raw)) ? raw : Number(raw)
-    await fetch('/api/payroll', {
+    const res  = await fetch('/api/payroll', {
       method:  'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({ id, [field]: value }),
     })
+    // Recalculate derived fields client-side so we don't need a full reload
+    setRows(prev => prev.map(r => {
+      if (r.id !== id) return r
+      const updated = { ...r, [field]: value }
+      const hoursPerWeek  = Number(updated.hoursPerWeek ?? 40)
+      const adminPct      = Number(updated.adminPercent ?? 0) / 100
+      const annualSalary  = updated.isHourly
+        ? Number(updated.hourlyRate2025 ?? 0) * hoursPerWeek * 52
+        : Number(updated.annualSalary ?? 0)
+      const perPeriodRate = annualSalary / 26
+      const bonusCalc     = (annualSalary * (Number(updated.monthsExpected ?? 12) / 12)) * 0.03
+      const booksCapWk    = hoursPerWeek * (1 - adminPct)
+      const booksCapMo    = booksCapWk * 4.333
+      return { ...updated, annualSalary, perPeriodRate, bonusCalc, booksCapWk, booksCapMo }
+    }))
     setSaved(id)
     setTimeout(() => setSaved(null), 1500)
-    await load()
     setSaving(null)
+    // Recalculate totals from updated rows
+    setRows(prev => {
+      const updated = prev
+      function sumSection(subset: PayrollRow[]) {
+        return {
+          annualSalary:   subset.reduce((s, r) => s + r.annualSalary, 0),
+          perPeriodRate:  subset.reduce((s, r) => s + r.perPeriodRate, 0),
+          perPeriodTax:   subset.reduce((s, r) => s + Number(r.perPeriodTax ?? 0), 0),
+          bonusCalc:      subset.reduce((s, r) => s + r.bonusCalc, 0),
+          bonusManual:    subset.reduce((s, r) => s + Number(r.bonusManual ?? 0), 0),
+          retirement401k: subset.reduce((s, r) => s + Number(r.retirement401k ?? 0), 0),
+          techReimb:      subset.reduce((s, r) => s + Number(r.techReimb ?? 0), 0),
+          booksCapWk:     subset.reduce((s, r) => s + r.booksCapWk, 0),
+          booksCapMo:     subset.reduce((s, r) => s + r.booksCapMo, 0),
+        }
+      }
+      setTotals({
+        ee:   sumSection(updated.filter(r => !r.isContractor)),
+        cntr: sumSection(updated.filter(r => r.isContractor)),
+        all:  sumSection(updated),
+      })
+      return prev
+    })
   }
 
   async function doOffboard(employeeId: string) {
