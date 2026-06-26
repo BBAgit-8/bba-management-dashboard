@@ -19,7 +19,7 @@ export async function GET(): Promise<NextResponse> {
 
   const rows = (payroll ?? []).map(p => {
     const emp            = empMap[p.employeeId] ?? {}
-    const hoursPerWeek   = Number(p.hoursPerWeek ?? emp.contractedHours ?? 40)
+    const hoursPerWeek   = Number(emp.contractedHours ?? 40)
     const adminPct       = Number(p.adminPercent ?? emp.adminTimePercent ?? 15) / 100
     const isHourly       = p.isHourly ?? emp.rateType === 'hourly'
 

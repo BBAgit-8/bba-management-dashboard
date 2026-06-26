@@ -54,7 +54,7 @@ function fmtN(n: number | null | undefined, dec = 1) {
   { key: 'dept',           label: 'Dept',          w: 64,  ro: false },
   { key: 'hourlyRate2024', label: '2024-25 Rate',   w: 88,  ro: false },
   { key: 'hourlyRate2025', label: '2025-26 Rate',   w: 88,  ro: false },
-  { key: 'hoursPerWeek',   label: 'Hrs/Wk',         w: 70,  ro: false },
+  { key: 'hoursPerWeek',   label: 'Hrs/Wk',         w: 70,  ro: true  },
   { key: 'annualSalary',   label: 'Annual Salary',  w: 118, ro: false },
   { key: 'perPeriodRate',  label: 'Per Pd Rate',    w: 100, ro: true  },
   { key: 'perPeriodTax',   label: 'Per Pd Tax',     w: 88,  ro: true  },
