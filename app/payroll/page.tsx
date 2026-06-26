@@ -226,7 +226,10 @@ export default function PayrollPage() {
               ? <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] font-bold text-amber-700">Hourly</span>
               : null}
             {!row.isActive && <span className="rounded-full bg-slate-200 px-1.5 py-0.5 text-[9px] font-bold text-slate-500">Inactive</span>}
-            {row.name.split(' ')[0]}
+            <a href={`/employees?open=${row.employeeId}`}
+              className="hover:text-bba-action hover:underline underline-offset-2 transition-colors">
+              {row.name.split(' ')[0]}
+            </a>
           </div>
         </td>
 
