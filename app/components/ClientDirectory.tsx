@@ -595,7 +595,25 @@ export default function ClientDirectory() {
     await persistViews(next)
   }
 
-  function clearActiveView() { setActiveViewId(null) }
+  function clearActiveView() {
+    setActiveViewId(null)
+    setVisibleCols(new Set(DEFAULT_VISIBLE))
+    setColOrder(ALL_COL_KEYS)
+    setColWidths({})
+    setStatusFilters(new Set(['active', 'offboarding', 'inactive']))
+    setBookkeeperFilters(new Set())
+    setEntityTypeFilters(new Set())
+    setPtFilters(new Set())
+    setCadenceFilters(new Set())
+    setTagFilters(new Set())
+    setSearch('')
+    setSortKey('name')
+    setSortDir('asc')
+    try {
+      localStorage.setItem(STORAGE_VISIBLE, JSON.stringify([...DEFAULT_VISIBLE]))
+      localStorage.setItem(STORAGE_ORDER, JSON.stringify(ALL_COL_KEYS))
+    } catch {}
+  }
 
   function applyView(view: ClientView) {
     setVisibleCols(new Set(view.visibleCols as ColKey[]))
