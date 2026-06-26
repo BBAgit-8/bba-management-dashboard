@@ -34,8 +34,7 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
   for (const { key, value } of updates) {
     const { error } = await supabase
       .from('settings')
-      .update({ value, updatedAt: new Date().toISOString() })
-      .eq('key', key)
+      .upsert({ key, value, updatedAt: new Date().toISOString() }, { onConflict: 'key' })
     if (error) errors.push(`${key}: ${error.message}`)
   }
 
