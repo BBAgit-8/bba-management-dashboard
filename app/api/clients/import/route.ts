@@ -141,11 +141,33 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       }
       delete row.bookkeeper
 
-      const { error } = await supabase.from('clients').insert(row)
-      if (error) {
-        results.push({ name, code, status: 'skipped', error: error.code === '23505' ? 'Duplicate project code' : error.message })
-      } else {
-        results.push({ name, code, status: 'created' })
+      // Try inserting — if duplicate code, auto-suffix (-2, -3, etc.)
+      let finalCode = code
+      let insertError: any = null
+      for (let attempt = 0; attempt < 5; attempt++) {
+        const tryRow = { ...row, harvestProjectCode: finalCode }
+        const { error } = await supabase.from('clients').insert(tryRow)
+        if (!error) {
+          const renamed = finalCode !== code
+          results.push({ name, code: finalCode, status: 'created', ...(renamed ? { error: `Note: code changed from ${code} to ${finalCode} (duplicate)` } : {}) })
+          insertError = null
+          break
+        }
+        if (error.code === '23505') {
+          insertError = error
+          const parts = finalCode.split('-')
+          const last = parts[parts.length - 1]
+          const num = parseInt(last)
+          if (!isNaN(num)) { parts[parts.length - 1] = String(num + 1) }
+          else { parts.push('2') }
+          finalCode = parts.join('-')
+        } else {
+          insertError = error
+          break
+        }
+      }
+      if (insertError) {
+        results.push({ name, code, status: 'skipped', error: insertError.message })
       }
     }
 

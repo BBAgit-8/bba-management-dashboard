@@ -162,6 +162,9 @@ export default function ImportClientsPage() {
                 <span className="text-green-500">✓</span>
                 <span>{r.name}</span>
                 <span className="text-slate-400 font-mono text-xs">{r.code}</span>
+                {r.error?.startsWith('Note:') && (
+                  <span className="text-xs text-amber-600 italic">{r.error}</span>
+                )}
               </div>
             ))}
           </div>
