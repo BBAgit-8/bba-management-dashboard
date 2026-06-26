@@ -71,7 +71,19 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           const n = parseFloat(val)
           if (!isNaN(n)) mapped[field] = n
         } else if (DATE_FIELDS.has(field)) {
-          mapped[field] = new Date(val + 'T12:00:00Z').toISOString()
+          // Handle Excel serial numbers, YYYY-MM-DD, MM/DD/YYYY, and other formats
+          let iso: string | null = null
+          const num = Number(val)
+          if (!isNaN(num) && num > 1000) {
+            // Excel serial date — days since 1899-12-30
+            const d = new Date((num - 25569) * 86400 * 1000)
+            if (!isNaN(d.getTime())) iso = d.toISOString().slice(0, 10)
+          } else {
+            const d = new Date(val)
+            if (!isNaN(d.getTime())) iso = d.toISOString().slice(0, 10)
+          }
+          if (iso) mapped[field] = new Date(iso + 'T12:00:00Z').toISOString()
+          // Skip unparseable dates rather than crashing
         } else {
           mapped[field] = val
         }

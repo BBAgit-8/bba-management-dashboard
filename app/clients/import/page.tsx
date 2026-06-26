@@ -25,7 +25,7 @@ export default function ImportClientsPage() {
         // Find the "Clients" sheet, fallback to first sheet
         const sheetName = wb.SheetNames.includes('Clients') ? 'Clients' : wb.SheetNames[0]
         const ws   = wb.Sheets[sheetName]
-        const rows = XLSX.utils.sheet_to_json<string[]>(ws, { header: 1, defval: '' }) as string[][]
+        const rows = XLSX.utils.sheet_to_json<string[]>(ws, { header: 1, defval: '', raw: false, dateNF: 'yyyy-mm-dd' }) as string[][]
 
         // Find header row (first row with "Client Name" or "Project Code")
         let headerRowIdx = -1
