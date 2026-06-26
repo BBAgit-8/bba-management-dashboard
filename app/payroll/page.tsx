@@ -21,6 +21,7 @@ type PayrollRow = {
   retirement401k: number | null
   techReimb:      number | null
   adminPercent:   number | null
+  isContractor:   boolean
   booksCapWk:     number
   booksCapMo:     number
 }
@@ -85,8 +86,9 @@ export default function PayrollPage() {
     setSaving(null)
   }
 
-  const cogsRows = rows.filter(r => r.dept === 'COGS')
-  const gaRows   = rows.filter(r => r.dept === 'GA')
+  const cogsRows = rows.filter(r => r.dept === 'COGS' && !r.isContractor)
+  const gaRows   = rows.filter(r => r.dept === 'GA'   && !r.isContractor)
+  const cntrRows = rows.filter(r => r.isContractor)
 
   const totalAnnual = rows.reduce((s, r) => s + r.annualSalary, 0)
 
@@ -194,7 +196,10 @@ export default function PayrollPage() {
             <td className="sticky left-0 z-10 px-4 py-2 font-semibold text-slate-800 whitespace-nowrap text-sm"
               style={{ backgroundColor: idx % 2 === 0 ? '#ffffff' : '#faf5ff', boxShadow: '2px 0 4px -1px rgba(0,0,0,0.06)' }}>
               <div className="flex items-center gap-2">
-                {row.isHourly && (
+                {row.isContractor && (
+                  <span className="rounded-full bg-blue-100 px-1.5 py-0.5 text-[9px] font-bold text-blue-700">CNTR</span>
+                )}
+                {row.isHourly && !row.isContractor && (
                   <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] font-bold text-amber-700">Hourly</span>
                 )}
                 {row.name.split(' ')[0]}
@@ -276,6 +281,7 @@ export default function PayrollPage() {
               <tbody>
                 <SectionRows sectionRows={cogsRows} label="COGS — Cost of Goods Sold" />
                 <SectionRows sectionRows={gaRows}   label="GA — General & Administrative" />
+                <SectionRows sectionRows={cntrRows} label="CNTR — Contractors" />
 
                 {/* Totals row */}
                 <tr className="border-t-2 border-slate-300" style={{ backgroundColor: '#f5f0ff' }}>

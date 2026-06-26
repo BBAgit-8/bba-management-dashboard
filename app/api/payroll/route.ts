@@ -49,6 +49,7 @@ export async function GET(): Promise<NextResponse> {
       retirement401k:  p.retirement401k,
       techReimb:       p.techReimb,
       adminPercent:    p.adminPercent,
+      isContractor:    p.isContractor ?? false,
       booksCapWk,
       booksCapMo,
       createdAt:       p.createdAt,
