@@ -50,18 +50,18 @@ function fmtN(n: number | null | undefined, dec = 1) {
   return Number(n).toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec })
 }
 
-const COLS = [
+  const COLS = [
   { key: 'dept',           label: 'Dept',          w: 64,  ro: false },
   { key: 'hourlyRate2024', label: '2024-25 Rate',   w: 88,  ro: false },
   { key: 'hourlyRate2025', label: '2025-26 Rate',   w: 88,  ro: false },
   { key: 'hoursPerWeek',   label: 'Hrs/Wk',         w: 70,  ro: false },
-  { key: 'annualSalary',   label: 'Annual Salary',  w: 118, ro: false }, // editable for salaried; calc for hourly
+  { key: 'annualSalary',   label: 'Annual Salary',  w: 118, ro: false },
   { key: 'perPeriodRate',  label: 'Per Pd Rate',    w: 100, ro: true  },
-  { key: 'perPeriodTax',   label: 'Per Pd Tax',     w: 88,  ro: false },
+  { key: 'perPeriodTax',   label: 'Per Pd Tax',     w: 88,  ro: true  },
   { key: 'monthsExpected', label: 'Months Exp.',    w: 78,  ro: false },
   { key: 'bonusCalc',      label: 'Bonus (3%)',     w: 96,  ro: true  },
   { key: 'bonusManual',    label: 'Bonus Manual',   w: 96,  ro: false },
-  { key: 'retirement401k', label: '401(k)',          w: 88,  ro: false },
+  { key: 'retirement401k', label: '401(k)',          w: 88,  ro: true  },
   { key: 'techReimb',      label: 'Tech Reimb',     w: 88,  ro: false },
   { key: 'adminPercent',   label: 'Admin %',        w: 78,  ro: false },
   { key: 'booksCapWk',     label: 'Cap Hrs/Wk',    w: 88,  ro: true  },
@@ -119,7 +119,7 @@ export default function PayrollPage() {
     setLoading(true)
     const res  = await fetch('/api/payroll')
     const json = await res.json()
-    if (json.payroll) setRows(json.payroll)
+    if (json.payroll) setRows([...json.payroll].sort((a: PayrollRow, b: PayrollRow) => a.name.localeCompare(b.name)))
     if (json.totals)  setTotals(json.totals)
     setLoading(false)
   }
@@ -144,11 +144,13 @@ export default function PayrollPage() {
         ? Number(updated.hourlyRate2025 ?? 0) * hoursPerWeek * 52
         : Number(updated.annualSalary ?? 0)
       const perPeriodRate = annualSalary / 26
+      const perPeriodTax  = perPeriodRate * 0.091
+      const retirement401k = perPeriodRate * 0.04
       const bonusCalc     = (annualSalary * (Number(updated.monthsExpected ?? 12) / 12)) * 0.03
       const booksCapWk    = hoursPerWeek * (1 - adminPct)
       const booksCapMo    = booksCapWk * 4.333
-      return { ...updated, annualSalary, perPeriodRate, bonusCalc, booksCapWk, booksCapMo }
-    }))
+      return { ...updated, annualSalary, perPeriodRate, perPeriodTax, retirement401k, bonusCalc, booksCapWk, booksCapMo }
+    }).sort((a, b) => a.name.localeCompare(b.name)))
     setSaved(id)
     setTimeout(() => setSaved(null), 1500)
     setSaving(null)

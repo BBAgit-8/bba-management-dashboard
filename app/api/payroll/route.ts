@@ -29,6 +29,8 @@ export async function GET(): Promise<NextResponse> {
       : Number(p.annualSalary ?? emp.salary ?? 0)
 
     const perPeriodRate  = annualSalary / 26
+    const perPeriodTax   = perPeriodRate * 0.091
+    const retirement401k = perPeriodRate * 0.04
     const bonusCalc      = (annualSalary * (Number(p.monthsExpected ?? 12) / 12)) * 0.03
     const booksCapWk     = hoursPerWeek * (1 - adminPct)
     const booksCapMo     = booksCapWk * 4.333
@@ -47,11 +49,11 @@ export async function GET(): Promise<NextResponse> {
       isHourly,
       annualSalary,
       perPeriodRate,
-      perPeriodTax:    p.perPeriodTax,
+      perPeriodTax,
+      retirement401k,
       monthsExpected:  p.monthsExpected,
       bonusCalc,
       bonusManual:     p.bonusManual,
-      retirement401k:  p.retirement401k,
       techReimb:       p.techReimb,
       adminPercent:    p.adminPercent,
       booksCapWk,
