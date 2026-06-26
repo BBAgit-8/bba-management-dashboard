@@ -55,7 +55,7 @@ const COLS = [
   { key: 'hourlyRate2024', label: '2024-25 Rate',   w: 88,  ro: false },
   { key: 'hourlyRate2025', label: '2025-26 Rate',   w: 88,  ro: false },
   { key: 'hoursPerWeek',   label: 'Hrs/Wk',         w: 70,  ro: false },
-  { key: 'annualSalary',   label: 'Annual Salary',  w: 118, ro: true  },
+  { key: 'annualSalary',   label: 'Annual Salary',  w: 118, ro: false }, // editable for salaried; calc for hourly
   { key: 'perPeriodRate',  label: 'Per Pd Rate',    w: 100, ro: true  },
   { key: 'perPeriodTax',   label: 'Per Pd Tax',     w: 88,  ro: false },
   { key: 'monthsExpected', label: 'Months Exp.',    w: 78,  ro: false },
@@ -231,7 +231,8 @@ export default function PayrollPage() {
         {/* Data cells */}
         {COLS.map(col => {
           const isEditing = editCell?.rowId === row.id && editCell?.field === col.key
-          const isRO      = col.ro || col.key === 'dept'
+          const isRO = (col.ro || col.key === 'dept') ||
+            (col.key === 'annualSalary' && row.isHourly) // hourly: calculated; salaried: editable
 
           if (isRO) return (
             <td key={col.key} className="px-3 py-2 text-right text-xs text-slate-400 bg-slate-50/60 whitespace-nowrap">
@@ -377,7 +378,7 @@ export default function PayrollPage() {
                       className="px-3 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-white whitespace-nowrap"
                       style={{ minWidth: col.w }}>
                       {col.label}
-                      {col.ro && <span className="ml-1 text-white/40 text-[9px]">calc</span>}
+                      {(col.ro || col.key === 'annualSalary') && <span className="ml-1 text-white/40 text-[9px]">{col.key === 'annualSalary' ? 'hrly=calc' : 'calc'}</span>}
                     </th>
                   ))}
                   <th className="px-3 py-3 text-[11px] font-semibold uppercase tracking-wider text-white whitespace-nowrap" style={{ minWidth: 80 }}>
