@@ -89,7 +89,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         if (BOOLEAN_FIELDS.has(field)) {
           mapped[field] = val.toLowerCase() === 'true'
         } else if (NUMERIC_FIELDS.has(field)) {
-          const n = parseFloat(val)
+          // Strip $, commas, spaces before parsing
+          const cleaned = val.replace(/[$,\s]/g, '')
+          const n = parseFloat(cleaned)
           if (!isNaN(n)) mapped[field] = n
         } else if (DATE_FIELDS.has(field)) {
           // Handle Excel serial numbers, YYYY-MM-DD, MM/DD/YYYY, and other formats

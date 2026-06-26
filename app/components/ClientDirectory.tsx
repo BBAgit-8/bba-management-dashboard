@@ -662,7 +662,7 @@ export default function ClientDirectory() {
     switch (colKey) {
       case 'name':
         return (
-          <td key={colKey} className="px-4 py-3">
+          <td key={colKey} className="px-4 py-3 bg-white sticky left-0 z-10" style={{ boxShadow: '2px 0 4px -1px rgba(0,0,0,0.06)' }}>
             <div className="flex items-center gap-3">
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white" style={{ backgroundColor: 'rgba(78,0,142,0.12)' }}>
                 {initials(client.name)}
@@ -1179,10 +1179,11 @@ export default function ClientDirectory() {
                           if (e.clientX > rect.right - 16) return
                           startColDrag(e, colKey, index)
                         }}
-                        className={`relative px-3 py-3 text-center text-[11px] font-semibold uppercase tracking-wider select-none transition-colors cursor-grab active:cursor-grabbing ${isDragOver ? 'bg-white/20' : ''}`}
+                        className={`relative px-3 py-3 text-center text-[11px] font-semibold uppercase tracking-wider select-none transition-colors cursor-grab active:cursor-grabbing ${isDragOver ? 'bg-white/20' : ''} ${colKey === 'name' ? 'sticky left-0 z-20' : ''}`}
                         style={{
                           width: colWidths[colKey] ?? undefined,
                           minWidth: colWidths[colKey] ?? undefined,
+                          ...(colKey === 'name' ? { backgroundColor: 'var(--bba-primary)', boxShadow: '2px 0 4px -1px rgba(0,0,0,0.15)' } : {}),
                         }}
                       >
                         <div className="flex items-center justify-center gap-1 w-full">
