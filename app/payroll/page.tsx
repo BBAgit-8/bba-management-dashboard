@@ -243,7 +243,7 @@ export default function PayrollPage() {
           if (isEditing) return (
             <td key={col.key} className="px-1 py-1">
               <input autoFocus
-                defaultValue={String((row as any)[col.key] ?? '')}
+                defaultValue={String((row as any)[col.key] ?? '') === '0' ? '' : String((row as any)[col.key] ?? '')}
                 onBlur={e => { setEditCell(null); patchRow(row.id, col.key, e.target.value) }}
                 onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); if (e.key === 'Escape') setEditCell(null) }}
                 className="w-full rounded border border-bba-action px-2 py-1 text-xs text-right focus:outline-none focus:ring-1 focus:ring-bba-action"
