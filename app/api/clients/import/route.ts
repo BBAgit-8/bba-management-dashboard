@@ -46,7 +46,27 @@ const FIELD_MAP: Record<string, string> = {
   'guaranteed deadline day': 'guaranteedDeadlineDay',
 }
 
-const BOOLEAN_FIELDS = new Set(['okToContactAccountant','hasPayroll','pettyCash','hasContractedLoom','hasScheduledMeetings'])
+const ENTITY_TYPE_MAP: Record<string, string> = {
+  'llc':              'LLC',
+  's-corp':           'S_CORP',
+  's corp':           'S_CORP',
+  'scorp':            'S_CORP',
+  's_corp':           'S_CORP',
+  'c-corp':           'C_CORP',
+  'c corp':           'C_CORP',
+  'ccorp':            'C_CORP',
+  'c_corp':           'C_CORP',
+  'sole-prop':        'SOLE_PROPRIETOR',
+  'sole prop':        'SOLE_PROPRIETOR',
+  'sole proprietor':  'SOLE_PROPRIETOR',
+  'sole_proprietor':  'SOLE_PROPRIETOR',
+  'partnership':      'PARTNERSHIP',
+  'non-profit':       'NON_PROFIT',
+  'non profit':       'NON_PROFIT',
+  'nonprofit':        'NON_PROFIT',
+  'non_profit':       'NON_PROFIT',
+  'other':            'OTHER',
+}'okToContactAccountant','hasPayroll','pettyCash','hasContractedLoom','hasScheduledMeetings'])
 const NUMERIC_FIELDS = new Set(['bookkeepingRate','softwareRate','totalHrsPerMonth','bkprHours','qaHours','custSuccessMgmtHrs','yeOrTaxHours','auditHours','apArHrs','bankFeedTime','transactionsPerMonth','numBanksAndCCs','numLoans','numPmtPortals','autoPriceIncreasePercent','guaranteedDeadlineDay'])
 const DATE_FIELDS    = new Set(['contractStartDate','contractEndDate','priceAdjustmentDate'])
 
@@ -85,7 +105,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           if (iso) mapped[field] = new Date(iso + 'T12:00:00Z').toISOString()
           // Skip unparseable dates rather than crashing
         } else {
-          mapped[field] = val
+          // Normalize entity type labels to enum values
+          if (field === 'entityType') {
+            mapped[field] = ENTITY_TYPE_MAP[val.toLowerCase()] ?? val
+          } else {
+            mapped[field] = val
+          }
         }
       }
 
