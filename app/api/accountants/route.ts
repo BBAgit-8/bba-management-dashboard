@@ -2,17 +2,38 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 
 export async function GET(): Promise<NextResponse> {
+  // Get all accountants (not filtered by status)
   const { data, error } = await supabase
     .from('accountants')
     .select('*')
-    .eq('status', 'ACTIVE')
     .order('name')
 
   if (error) {
     console.error('[GET /api/accountants]', error)
     return NextResponse.json({ accountants: [] })
   }
-  return NextResponse.json({ accountants: data ?? [] })
+
+  // Get active client counts per accountant
+  const { data: clients } = await supabase
+    .from('clients')
+    .select('accountantName, archiveStatus')
+    .not('accountantName', 'is', null)
+
+  const activeCounts: Record<string, number> = {}
+  for (const c of (clients ?? [])) {
+    if (c.archiveStatus === 'ACTIVE' && c.accountantName) {
+      activeCounts[c.accountantName] = (activeCounts[c.accountantName] ?? 0) + 1
+    }
+  }
+
+  // Derive status: active only if they have active clients
+  const shaped = (data ?? []).map(a => ({
+    ...a,
+    activeClientCount: activeCounts[a.name] ?? 0,
+    derivedStatus: (activeCounts[a.name] ?? 0) > 0 ? 'ACTIVE' : 'INACTIVE',
+  }))
+
+  return NextResponse.json({ accountants: shaped })
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {

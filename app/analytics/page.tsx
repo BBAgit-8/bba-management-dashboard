@@ -34,9 +34,8 @@ export default async function AnalyticsPage() {
           Database error: {error}
         </div>
       )}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
         {[
-          { label: 'Total Clients',    value: totalClients  },
           { label: 'Active Clients',   value: activeClients },
           { label: 'QBO Only Clients', value: qboOnly       },
         ].map(stat => (
