@@ -294,12 +294,16 @@ export default function ProfitabilityPage() {
       {filtered.length > 0 && !loading && (
         <div className="space-y-3">
           <h2 className="text-sm font-semibold text-slate-600 uppercase tracking-wider">Rankings</h2>
+        <div className="space-y-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <CollapsibleCard title="Top 15 by Profit"     rows={byProfit.slice(0, 15)}               keyFn="profit"  />
             <CollapsibleCard title="Bottom 15 by Profit"  rows={[...byProfit].reverse().slice(0, 15)} keyFn="profit"  />
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <CollapsibleCard title="Top 15 by Revenue"    rows={byRevenue.slice(0, 15)}               keyFn="revenue" />
             <CollapsibleCard title="Bottom 15 by Revenue" rows={[...byRevenue].reverse().slice(0, 15)} keyFn="revenue" />
           </div>
+        </div>
         </div>
       )}
 
