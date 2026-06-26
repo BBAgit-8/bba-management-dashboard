@@ -82,7 +82,10 @@ export default function ImportClientsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ rows: preview }),
       })
-      const json = await res.json()
+      const text = await res.text()
+      if (!text) throw new Error('Server returned an empty response — the import may have timed out. Try importing in smaller batches.')
+      let json: any
+      try { json = JSON.parse(text) } catch { throw new Error(`Server error: ${text.slice(0, 200)}`) }
       if (!res.ok) throw new Error(json.error ?? 'Import failed')
       setResults(json)
       setPreview([])
@@ -198,7 +201,12 @@ export default function ImportClientsPage() {
       {preview.length > 0 && (
         <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
           <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-100" style={{ backgroundColor: 'var(--bba-primary)' }}>
-            <h3 className="text-sm font-semibold text-white">{preview.length} clients ready to import</h3>
+            <div>
+              <h3 className="text-sm font-semibold text-white">{preview.length} clients ready to import</h3>
+              {preview.length > 50 && (
+                <p className="text-xs text-white/70 mt-0.5">Large import — this may take up to 30 seconds</p>
+              )}
+            </div>
             <div className="flex items-center gap-2">
               <button onClick={() => { setPreview([]); setFile(null) }}
                 className="rounded-lg bg-white/10 px-3 py-1.5 text-xs font-medium text-white hover:bg-white/20 transition-colors">

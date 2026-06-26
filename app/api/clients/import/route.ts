@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 
+export const maxDuration = 60 // Vercel max for hobby plan
+
 const FIELD_MAP: Record<string, string> = {
   'client name':             'name',
   'project code':            'harvestProjectCode',
