@@ -312,7 +312,7 @@ export default function ProfitabilityPage() {
         <div className="rounded-xl overflow-hidden border border-slate-200">
           <table className="w-full text-sm">
             <thead>
-              <tr style={{ backgroundColor: '#b20476' }}>
+              <tr style={{ backgroundColor: '#4e008e' }}>
                 {colOrder.map((key) => {
                   const col = ALL_COLS.find(c => c.key === key)!
                   const isDragOver = dragOver === key && colDrag.current?.key !== key
