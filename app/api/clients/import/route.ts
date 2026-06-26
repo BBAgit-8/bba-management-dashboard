@@ -111,6 +111,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
             mapped[field] = ENTITY_TYPE_MAP[val.toLowerCase()] ?? val
           } else if (field === 'processingCadence') {
             mapped[field] = CADENCE_MAP[val.toLowerCase()] ?? val.toUpperCase()
+          } else if (field === 'projectType') {
+            mapped[field] = PROJECT_TYPE_MAP[val.toLowerCase()] ?? val.toUpperCase()
+          } else if (field === 'revType') {
+            mapped[field] = REV_TYPE_MAP[val.toLowerCase()] ?? val.toUpperCase()
           } else {
             mapped[field] = val
           }
