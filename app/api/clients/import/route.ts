@@ -60,6 +60,7 @@ const ENTITY_TYPE_MAP: Record<string, string> = {
   'sole prop':        'SOLE_PROPRIETOR',
   'sole proprietor':  'SOLE_PROPRIETOR',
   'sole_proprietor':  'SOLE_PROPRIETOR',
+  'sole-proprietor':  'SOLE_PROPRIETOR',
   'partnership':      'PARTNERSHIP',
   'non-profit':       'NON_PROFIT',
   'non profit':       'NON_PROFIT',
@@ -108,6 +109,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           // Normalize entity type labels to enum values
           if (field === 'entityType') {
             mapped[field] = ENTITY_TYPE_MAP[val.toLowerCase()] ?? val
+          } else if (field === 'processingCadence') {
+            mapped[field] = CADENCE_MAP[val.toLowerCase()] ?? val.toUpperCase()
           } else {
             mapped[field] = val
           }
