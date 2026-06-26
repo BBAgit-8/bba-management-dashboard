@@ -62,7 +62,7 @@ function textColor(pct: number) {
   if (pct > 100) return "text-red-600";
   if (pct >= 90)  return "text-orange-600";
   if (pct >= 70)  return "text-amber-600";
-  return "text-bba-action";
+  return "text-bba-primary";
 }
 function cardBorder(pct: number) {
   if (pct > 100) return "border-red-300";
@@ -89,11 +89,11 @@ function CapacityCard({ emp, assignedHrs, assignedCount, capacityHrs }: {
     >
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold ${overloaded ? 'bg-red-100 text-red-700' : 'bg-pink-100 text-pink-700'}`}>
+          <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold ${overloaded ? 'bg-red-100 text-red-700' : 'bg-purple-100 text-bba-primary'}`}>
             {initials(emp.name)}
           </div>
           <div>
-            <a href={`/employees?open=${emp.id}`} className={`text-sm font-semibold leading-tight hover:underline underline-offset-2 ${overloaded ? 'text-red-700' : 'text-pink-600'}`}>{emp.name}</a>
+            <a href={`/employees?open=${emp.id}`} className={`text-sm font-semibold leading-tight hover:underline underline-offset-2 ${overloaded ? 'text-red-700' : 'text-bba-primary'}`}>{emp.name}</a>
             <p className={`text-[11px] mt-0.5 ${'text-slate-400'}`}>
               {emp.contractedHours}h/wk · 80% billable
             </p>
@@ -385,7 +385,7 @@ export default function CapacityPlanningPage() {
                 : syncStatus === "saving"
                   ? "bg-bba-action/70 text-white cursor-wait"
                   : Object.keys(assignments).length > 0
-                    ? "bg-bba-primary text-white hover:bg-bba-action/85 shadow-lg shadow-bba-action/20"
+                    ? "bg-bba-action text-white hover:bg-bba-action/85 shadow-lg shadow-bba-action/20"
                     : "bg-slate-800 text-slate-500 border border-slate-700/60 cursor-not-allowed"
               }
             `}
@@ -571,28 +571,23 @@ export default function CapacityPlanningPage() {
                       </td>
 
                       <td className="px-4 py-3">
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-purple-100 text-[10px] font-bold text-bba-action">
-                            {initials(client.name)}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="font-medium text-slate-800 truncate">{client.name}</p>
-                            {client.tags.length > 0 && (
-                              <div className="flex gap-1 mt-0.5">
-                                {client.tags.slice(0, 2).map(tag => (
-                                  <span key={tag.id} className="rounded-full px-1.5 py-px text-[9px] font-semibold"
-                                    style={{ backgroundColor: `${tag.color}20`, color: tag.color }}>
-                                    {tag.name}
-                                  </span>
-                                ))}
-                              </div>
-                            )}
-                          </div>
+                        <div className="min-w-0">
+                          <p className="font-medium text-slate-800 truncate">{client.name}</p>
+                          {client.tags.length > 0 && (
+                            <div className="flex gap-1 mt-0.5">
+                              {client.tags.slice(0, 2).map(tag => (
+                                <span key={tag.id} className="rounded-full px-1.5 py-px text-[9px] font-semibold"
+                                  style={{ backgroundColor: `${tag.color}20`, color: tag.color }}>
+                                  {tag.name}
+                                </span>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       </td>
 
                       <td className="px-4 py-3">
-                        <span className="font-mono text-xs text-bba-action bg-purple-50 border border-purple-200 rounded px-1.5 py-0.5">
+                        <span className="font-mono text-xs text-slate-700 bg-slate-100 border border-slate-200 rounded px-1.5 py-0.5">
                           {client.harvestProjectCode}
                         </span>
                       </td>
