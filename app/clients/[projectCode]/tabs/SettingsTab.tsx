@@ -34,8 +34,8 @@ interface SubRow {
   billingCadence: BillingCadence
 }
 
-const inp = 'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent';
-const sel = 'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent';
+const inp = 'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-bba-action focus:border-transparent';
+const sel = 'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-bba-action focus:border-transparent';
 
 export default function SettingsTab({ clientId, projectCode, client }: Props) {
   const [ops, setOps] = useState({
@@ -395,7 +395,7 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
                 <label key={field} className="flex items-center gap-3 cursor-pointer">
                   <button type="button"
                     onClick={() => setOps(o => ({ ...o, [field]: !o[field] }))}
-                    className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 ${ops[field] ? 'bg-purple-600' : 'bg-slate-300'}`}>
+                    className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-bba-action focus:ring-offset-2 ${ops[field] ? 'bg-bba-action' : 'bg-slate-300'}`}>
                     <span className={`inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${ops[field] ? 'translate-x-5' : 'translate-x-0'}`} />
                   </button>
                   <span className="text-sm text-slate-700">{label}</span>
@@ -479,19 +479,19 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
               {/* Inline add accountant form */}
               {showAddAcct && (
                 <div className="mt-2 rounded-lg border border-purple-200 bg-purple-50 p-3 space-y-2">
-                  <p className="text-xs font-semibold text-purple-700">New Accountant</p>
+                  <p className="text-xs font-semibold text-bba-action">New Accountant</p>
                   <input type="text" placeholder="Full name *" value={newAcct.name}
                     onChange={e => setNewAcct(n => ({ ...n, name: e.target.value }))}
-                    className="w-full rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                    className="w-full rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-bba-action" />
                   <input type="text" placeholder="Business / firm name" value={newAcct.businessName}
                     onChange={e => setNewAcct(n => ({ ...n, businessName: e.target.value }))}
-                    className="w-full rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                    className="w-full rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-bba-action" />
                   <input type="email" placeholder="Email" value={newAcct.email}
                     onChange={e => setNewAcct(n => ({ ...n, email: e.target.value }))}
-                    className="w-full rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                    className="w-full rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-bba-action" />
                   <div className="flex gap-2 pt-1">
                     <button type="button" onClick={handleAddAccountant} disabled={addingAcct || !newAcct.name.trim()}
-                      className="rounded-md bg-purple-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-purple-700 disabled:opacity-50">
+                      className="rounded-md bg-bba-action px-3 py-1.5 text-xs font-semibold text-white hover:bg-bba-action disabled:opacity-50">
                       {addingAcct ? 'Adding…' : 'Add Accountant'}
                     </button>
                     <button type="button" onClick={() => { setShowAddAcct(false); setNewAcct({ name: '', businessName: '', email: '' }); }}
@@ -508,7 +508,7 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
                 </div>
                 <button type="button"
                   onClick={() => setOps(o => ({ ...o, okToContactAccountant: !o.okToContactAccountant }))}
-                  className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 ${ops.okToContactAccountant ? 'bg-purple-600' : 'bg-slate-300'}`}>
+                  className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-bba-action focus:ring-offset-2 ${ops.okToContactAccountant ? 'bg-bba-action' : 'bg-slate-300'}`}>
                   <span className={`inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${ops.okToContactAccountant ? 'translate-x-5' : 'translate-x-0'}`} />
                 </button>
               </div>
@@ -524,7 +524,7 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
                 opsSaved === 'done'   ? 'bg-green-600 text-white' :
                 opsSaved === 'error'  ? 'bg-red-600 text-white' :
                 opsSaved === 'saving' ? 'bg-bba-primary/70 text-white cursor-wait' :
-                'bg-bba-primary text-white hover:bg-bba-primary/85'
+                'bg-bba-primary text-white hover:bg-bba-action/85'
               }`}>
               {opsSaved === 'saving' ? 'Saving…' : opsSaved === 'done' ? '✓ Saved' : opsSaved === 'error' ? '✗ Error' : 'Save Settings'}
             </button>
@@ -591,7 +591,7 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
                       <td className="px-3 py-2">
                         <select value={sub.billingCadence}
                           onChange={e => updateSub(sub.id, 'billingCadence', e.target.value)}
-                          className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs text-slate-600 focus:outline-none focus:ring-1 focus:ring-purple-500">
+                          className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs text-slate-600 focus:outline-none focus:ring-1 focus:ring-bba-action">
                           {BILLING_OPTS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                         </select>
                       </td>
@@ -645,7 +645,7 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
                           opsSaved === 'done'   ? 'bg-green-600 text-white' :
                           opsSaved === 'error'  ? 'bg-red-600 text-white' :
                           opsSaved === 'saving' ? 'bg-bba-primary/70 text-white cursor-wait' :
-                          'bg-bba-primary text-white hover:bg-bba-primary/85'
+                          'bg-bba-primary text-white hover:bg-bba-action/85'
                         }`}
                       >
                         {opsSaved === 'saving' ? 'Saving…' : opsSaved === 'done' ? '✓ Saved' : opsSaved === 'error' ? '✗ Error' : 'Save Subscriptions'}

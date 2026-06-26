@@ -60,7 +60,7 @@ export default function ClientWorkspace({ projectCode }: Props) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-32">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-bba-primary border-t-transparent" />
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-bba-action border-t-transparent" />
       </div>
     );
   }
@@ -75,7 +75,7 @@ export default function ClientWorkspace({ projectCode }: Props) {
         </div>
         <p className="text-slate-700 font-medium">Client not found</p>
         <p className="text-sm text-slate-500">No client with project code <span className="font-mono text-bba-primary">{projectCode}</span></p>
-        <Link href="/" className="mt-2 text-sm text-purple-600 hover:text-purple-800 underline underline-offset-2 transition-colors">
+        <Link href="/" className="mt-2 text-sm text-bba-action hover:text-purple-800 underline underline-offset-2 transition-colors">
           ← Back to directory
         </Link>
       </div>
@@ -142,12 +142,12 @@ export default function ClientWorkspace({ projectCode }: Props) {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`relative flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors ${
-                  active ? 'text-purple-700' : 'text-slate-500 hover:text-slate-700'
+                  active ? 'text-bba-action' : 'text-slate-500 hover:text-slate-700'
                 }`}
               >
-                <span className={active ? 'text-purple-600' : 'text-slate-400'}>{tab.icon}</span>
+                <span className={active ? 'text-bba-action' : 'text-slate-400'}>{tab.icon}</span>
                 {tab.label}
-                {active && <span className="absolute inset-x-0 bottom-0 h-0.5 rounded-t-full bg-purple-600" />}
+                {active && <span className="absolute inset-x-0 bottom-0 h-0.5 rounded-t-full bg-bba-action" />}
               </button>
             );
           })}

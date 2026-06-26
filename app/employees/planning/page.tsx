@@ -56,13 +56,13 @@ function barColor(pct: number) {
   if (pct > 100) return "bg-red-500";
   if (pct >= 90)  return "bg-orange-500";
   if (pct >= 70)  return "bg-amber-500";
-  return "bg-bba-primary";
+  return "bg-bba-action";
 }
 function textColor(pct: number) {
   if (pct > 100) return "text-red-600";
   if (pct >= 90)  return "text-orange-600";
   if (pct >= 70)  return "text-amber-600";
-  return "text-purple-700";
+  return "text-bba-action";
 }
 function cardBorder(pct: number) {
   if (pct > 100) return "border-red-300";
@@ -342,7 +342,7 @@ export default function CapacityPlanningPage() {
   // ── Loading / error ─────────────────────────────────────────────────────────
   if (loading) return (
     <div className="flex items-center justify-center h-64">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-bba-primary" />
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-bba-action" />
     </div>
   )
 
@@ -383,9 +383,9 @@ export default function CapacityPlanningPage() {
               ${syncStatus === "saved"
                 ? "bg-emerald-600 text-white"
                 : syncStatus === "saving"
-                  ? "bg-bba-primary/70 text-white cursor-wait"
+                  ? "bg-bba-action/70 text-white cursor-wait"
                   : Object.keys(assignments).length > 0
-                    ? "bg-bba-primary text-white hover:bg-bba-primary/85 shadow-lg shadow-bba-primary/20"
+                    ? "bg-bba-primary text-white hover:bg-bba-action/85 shadow-lg shadow-bba-action/20"
                     : "bg-slate-800 text-slate-500 border border-slate-700/60 cursor-not-allowed"
               }
             `}
@@ -489,7 +489,7 @@ export default function CapacityPlanningPage() {
 
             <div className="flex items-center gap-1.5 flex-wrap">
               <button onClick={() => setTagFilter("all")}
-                className={`rounded-full px-2.5 py-1 text-xs font-medium ring-1 transition-all ${tagFilter === "all" ? "bg-purple-100 ring-purple-300 text-purple-700" : "ring-slate-200 text-slate-500 hover:text-slate-700"}`}>
+                className={`rounded-full px-2.5 py-1 text-xs font-medium ring-1 transition-all ${tagFilter === "all" ? "bg-purple-100 ring-purple-300 text-bba-action" : "ring-slate-200 text-slate-500 hover:text-slate-700"}`}>
                 All Tags
               </button>
               {allTags.map(tag => (
@@ -572,7 +572,7 @@ export default function CapacityPlanningPage() {
 
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-purple-100 text-[10px] font-bold text-purple-700">
+                          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-purple-100 text-[10px] font-bold text-bba-action">
                             {initials(client.name)}
                           </div>
                           <div className="min-w-0">
@@ -592,7 +592,7 @@ export default function CapacityPlanningPage() {
                       </td>
 
                       <td className="px-4 py-3">
-                        <span className="font-mono text-xs text-purple-700 bg-purple-50 border border-purple-200 rounded px-1.5 py-0.5">
+                        <span className="font-mono text-xs text-bba-action bg-purple-50 border border-purple-200 rounded px-1.5 py-0.5">
                           {client.harvestProjectCode}
                         </span>
                       </td>
@@ -610,7 +610,7 @@ export default function CapacityPlanningPage() {
                             onChange={e => handleAssign(client.id, client.harvestProjectCode, e.target.value)}
                             disabled={savingClients.has(client.id)}
                             className={`w-full max-w-[200px] rounded-lg border py-1.5 pl-3 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-bba-primary focus:border-transparent transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-wait ${
-                              savingClients.has(client.id) ? "bg-purple-50 border-purple-200 text-purple-700"
+                              savingClients.has(client.id) ? "bg-purple-50 border-purple-200 text-bba-action"
                               : isModified ? "bg-amber-50 border-amber-300 text-amber-700"
                               : "bg-white border-surface-border text-slate-700"
                             }`}

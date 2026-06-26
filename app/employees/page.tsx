@@ -132,7 +132,7 @@ function EmployeesPageInner() {
       case 'rate':
         return (
           <td key={key} className="px-5 py-3">
-            <span className="text-sm font-semibold text-purple-700 tabular-nums">
+            <span className="text-sm font-semibold text-bba-action tabular-nums">
               ${Number(emp.effectiveHourlyRate).toFixed(2)}/hr
             </span>
             {emp.rateType === 'salary' && <span className="ml-1 text-[10px] text-slate-400">salary</span>}
@@ -154,7 +154,7 @@ function EmployeesPageInner() {
 
   if (loading) return (
     <div className="flex items-center justify-center h-64">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-bba-primary" />
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-bba-action" />
     </div>
   )
 
@@ -183,7 +183,7 @@ function EmployeesPageInner() {
             Capacity Planning
           </Link>
           <button onClick={() => setAddOpen(true)}
-            className="inline-flex items-center gap-2 rounded-lg bg-bba-primary px-4 py-2 text-sm font-semibold text-white hover:bg-bba-primary/85 transition-colors">
+            className="inline-flex items-center gap-2 rounded-lg bg-bba-action px-4 py-2 text-sm font-semibold text-white hover:bg-bba-action/85 transition-colors">
             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
@@ -201,12 +201,12 @@ function EmployeesPageInner() {
               <button key={emp.id} onClick={() => setSelectedEmp(emp)}
                 className="rounded-xl border border-slate-200 bg-white p-5 text-left hover:shadow-md hover:border-purple-200 transition-all space-y-3 group">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-bold text-purple-700"
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-bold text-bba-action"
                     style={{ backgroundColor: 'rgba(109,40,217,0.1)' }}>
                     {initials(emp.name)}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-slate-800 group-hover:text-purple-700 transition-colors">{emp.name}</p>
+                    <p className="font-semibold text-slate-800 group-hover:text-bba-action transition-colors">{emp.name}</p>
                     <p className="text-xs text-slate-400 truncate">{emp.title ?? 'No title'}</p>
                   </div>
                   {emp.hubAccess && (
@@ -215,7 +215,7 @@ function EmployeesPageInner() {
                 </div>
                 <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-100 text-center">
                   <div>
-                    <p className="text-sm font-bold text-purple-700">${Number(emp.effectiveHourlyRate).toFixed(0)}/hr</p>
+                    <p className="text-sm font-bold text-bba-action">${Number(emp.effectiveHourlyRate).toFixed(0)}/hr</p>
                     <p className="text-[10px] text-slate-400">Cost Rate</p>
                   </div>
                   <div>
@@ -302,7 +302,7 @@ function EmployeesPageInner() {
       {employees.length === 0 && !loading && (
         <div className="rounded-xl border border-dashed border-slate-200 p-12 text-center">
           <p className="text-slate-400 text-sm">No employees yet.</p>
-          <button onClick={() => setAddOpen(true)} className="mt-3 text-sm text-purple-600 underline underline-offset-2">
+          <button onClick={() => setAddOpen(true)} className="mt-3 text-sm text-bba-action underline underline-offset-2">
             Add your first employee
           </button>
         </div>

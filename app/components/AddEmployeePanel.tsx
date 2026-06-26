@@ -16,7 +16,7 @@ interface Props {
   onCreated: () => void
 }
 
-const inp = 'w-full rounded-lg bg-white border border-slate-200 px-3 py-2 text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent'
+const inp = 'w-full rounded-lg bg-white border border-slate-200 px-3 py-2 text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-bba-action focus:border-transparent'
 
 function Field({ label, required, hint, children }: { label: string; required?: boolean; hint?: string; children: React.ReactNode }) {
   return (
@@ -118,7 +118,7 @@ export default function AddEmployeePanel({ open, onClose, onCreated }: Props) {
                 <div className="flex rounded-lg border border-slate-200 overflow-hidden">
                   {(['hourly', 'salary'] as const).map(v => (
                     <button key={v} type="button" onClick={() => set('rateType', v)}
-                      className={`flex-1 py-2 text-xs font-medium transition-colors capitalize ${form.rateType === v ? 'bg-bba-primary text-white' : 'text-slate-500 hover:bg-slate-50'}`}>
+                      className={`flex-1 py-2 text-xs font-medium transition-colors capitalize ${form.rateType === v ? 'bg-bba-action text-white' : 'text-slate-500 hover:bg-slate-50'}`}>
                       {v === 'hourly' ? '⏱ Hourly' : '📅 Salary'}
                     </button>
                   ))}
@@ -164,8 +164,8 @@ export default function AddEmployeePanel({ open, onClose, onCreated }: Props) {
               {/* Effective rate preview */}
               {previewRate != null && (
                 <div className="rounded-lg bg-purple-50 border border-purple-100 px-4 py-3 flex items-center justify-between">
-                  <span className="text-xs text-purple-600">Effective hourly cost rate</span>
-                  <span className="text-sm font-bold text-purple-700">${previewRate.toFixed(2)}/hr</span>
+                  <span className="text-xs text-bba-action">Effective hourly cost rate</span>
+                  <span className="text-sm font-bold text-bba-action">${previewRate.toFixed(2)}/hr</span>
                 </div>
               )}
             </div>
@@ -185,7 +185,7 @@ export default function AddEmployeePanel({ open, onClose, onCreated }: Props) {
             Cancel
           </button>
           <button type="submit" form="add-employee-form" disabled={saving}
-            className="rounded-lg bg-bba-primary px-5 py-2 text-sm font-semibold text-white hover:bg-bba-primary/85 transition-colors disabled:opacity-60 flex items-center gap-2">
+            className="rounded-lg bg-bba-action px-5 py-2 text-sm font-semibold text-white hover:bg-bba-action/85 transition-colors disabled:opacity-60 flex items-center gap-2">
             {saving && <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>}
             {saving ? 'Saving…' : 'Add Employee'}
           </button>

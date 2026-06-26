@@ -197,7 +197,7 @@ export default function AccountantsPage() {
           <p className="mt-1 text-sm text-slate-500">{activeCount} active · {inactiveCount} inactive</p>
         </div>
         <button onClick={() => { resetForm(); setModalOpen(true) }}
-          className="inline-flex items-center gap-2 rounded-lg bg-bba-primary px-4 py-2 text-sm font-semibold text-white hover:bg-bba-primary/85 active:scale-95 transition-all">
+          className="inline-flex items-center gap-2 rounded-lg bg-bba-action px-4 py-2 text-sm font-semibold text-white hover:bg-bba-action/85 active:scale-95 transition-all">
           <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
           Add New Accountant
         </button>
@@ -207,7 +207,7 @@ export default function AccountantsPage() {
       <div className="flex items-center gap-2">
         {(['ACTIVE','INACTIVE','ALL'] as const).map(s => (
           <button key={s} onClick={() => setStatusFilter(s)}
-            className={`rounded-full px-3 py-1 text-xs font-medium ring-1 transition-all ${statusFilter === s ? 'bg-purple-600 text-white ring-purple-600' : 'bg-white text-slate-600 ring-slate-200 hover:ring-purple-300 hover:text-purple-700'}`}>
+            className={`rounded-full px-3 py-1 text-xs font-medium ring-1 transition-all ${statusFilter === s ? 'bg-bba-action text-white ring-purple-600' : 'bg-white text-slate-600 ring-slate-200 hover:ring-purple-300 hover:text-bba-action'}`}>
             {s === 'ALL' ? 'All' : s === 'ACTIVE' ? `Active (${activeCount})` : `Inactive (${inactiveCount})`}
           </button>
         ))}
@@ -266,7 +266,7 @@ export default function AccountantsPage() {
                       {colOrder.map(key => renderCell(acc, key))}
                       <td className="px-5 py-3 text-right">
                         <button onClick={() => openEdit(acc)}
-                          className="text-xs text-purple-600 underline underline-offset-2 hover:text-purple-800 transition-colors">
+                          className="text-xs text-bba-action underline underline-offset-2 hover:text-purple-800 transition-colors">
                           Edit
                         </button>
                       </td>
@@ -313,7 +313,7 @@ export default function AccountantsPage() {
                 {error && <p className="text-xs text-red-500">{error}</p>}
                 <div className="flex items-center justify-end gap-3 pt-1">
                   <button type="button" onClick={() => { setModalOpen(false); resetForm() }} className="rounded-lg px-4 py-2 text-sm text-slate-500 hover:text-slate-700 transition-colors">Cancel</button>
-                  <button type="submit" disabled={saving || !form.name.trim()} className="rounded-lg bg-bba-primary px-5 py-2 text-sm font-semibold text-white hover:bg-bba-primary/85 disabled:opacity-50 transition-colors">
+                  <button type="submit" disabled={saving || !form.name.trim()} className="rounded-lg bg-bba-action px-5 py-2 text-sm font-semibold text-white hover:bg-bba-action/85 disabled:opacity-50 transition-colors">
                     {saving ? 'Saving…' : editingId ? 'Save Changes' : '+ Create Accountant'}
                   </button>
                 </div>

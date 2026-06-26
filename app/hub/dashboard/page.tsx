@@ -25,7 +25,7 @@ const CADENCE_LABEL: Record<string, string> = {
 const PTYPE_STYLE: Record<string, { bg: string; text: string; label: string }> = {
   ANNUAL:              { bg: 'bg-blue-100',   text: 'text-blue-700',   label: 'Annual'     },
   CLEAN_UP:            { bg: 'bg-orange-100', text: 'text-orange-700', label: 'Cleanup'    },
-  MONTHLY_MAINTENANCE: { bg: 'bg-purple-100', text: 'text-purple-700', label: 'Recurring'  },
+  MONTHLY_MAINTENANCE: { bg: 'bg-purple-100', text: 'text-bba-action', label: 'Recurring'  },
   QBO_ONLY:            { bg: 'bg-sky-100',    text: 'text-sky-700',    label: 'QBO Only'   },
   RECURRING:           { bg: 'bg-teal-100',   text: 'text-teal-700',   label: 'Recurring'  },
 }
@@ -84,7 +84,7 @@ export default function HubDashboard() {
         </svg>
         <input type="text" value={search} onChange={e => setSearch(e.target.value)}
           placeholder="Search clients…"
-          className="w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 py-2 text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500" />
+          className="w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 py-2 text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-bba-action" />
       </div>
 
       {/* Client grid */}
@@ -120,7 +120,7 @@ export default function HubDashboard() {
                     {initials(client.name)}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-slate-800 group-hover:text-purple-700 transition-colors truncate">{client.name}</p>
+                    <p className="font-semibold text-slate-800 group-hover:text-bba-action transition-colors truncate">{client.name}</p>
                     <p className="text-xs font-mono text-slate-400">{client.harvestProjectCode}</p>
                   </div>
                   <svg className="h-4 w-4 text-slate-300 group-hover:text-purple-400 transition-colors shrink-0 mt-0.5"

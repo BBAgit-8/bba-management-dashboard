@@ -20,7 +20,7 @@ interface Props {
   onUpdated: () => void
 }
 
-const inp = 'w-full rounded-lg bg-white border border-slate-200 px-3 py-2 text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent'
+const inp = 'w-full rounded-lg bg-white border border-slate-200 px-3 py-2 text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-bba-action focus:border-transparent'
 
 function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   if (!value && value !== 0) return null
@@ -253,7 +253,7 @@ export default function EmployeeDrawer({ employee, onClose, onUpdated }: Props) 
               {(['profile', 'edit', 'rate-history'] as const).map(t => (
                 <button key={t} onClick={() => setTab(t)}
                   className={`flex-1 py-3 text-xs font-semibold transition-colors ${
-                    tab === t ? 'border-b-2 border-purple-600 text-purple-700' : 'text-slate-400 hover:text-slate-600'
+                    tab === t ? 'border-b-2 border-bba-action text-bba-action' : 'text-slate-400 hover:text-slate-600'
                   }`}>
                   {t === 'rate-history' ? 'Rate History' : t.charAt(0).toUpperCase() + t.slice(1)}
                 </button>
@@ -268,7 +268,7 @@ export default function EmployeeDrawer({ employee, onClose, onUpdated }: Props) 
                 <div className="space-y-5">
                   <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
                     <div className="px-4 py-2.5 border-b border-slate-100" style={{ backgroundColor: 'rgba(109,40,217,0.05)' }}>
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-purple-700">Details</p>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-bba-action">Details</p>
                     </div>
                     <div className="px-4 py-1">
                       <InfoRow label="Email"          value={employee.email} />
@@ -281,7 +281,7 @@ export default function EmployeeDrawer({ employee, onClose, onUpdated }: Props) 
 
                   <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
                     <div className="px-4 py-2.5 border-b border-slate-100" style={{ backgroundColor: 'rgba(109,40,217,0.05)' }}>
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-purple-700">Compensation</p>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-bba-action">Compensation</p>
                     </div>
                     <div className="px-4 py-1">
                       <InfoRow label="Rate Type"  value={employee.rateType === 'salary' ? 'Salary' : 'Hourly'} />
@@ -289,7 +289,7 @@ export default function EmployeeDrawer({ employee, onClose, onUpdated }: Props) 
                         <InfoRow label="Annual Salary" value={`$${Number(employee.salary).toLocaleString()}`} />
                       )}
                       <InfoRow label="Effective Hourly Rate" value={
-                        <span className="font-bold text-purple-700">${Number(employee.effectiveHourlyRate).toFixed(2)}/hr</span>
+                        <span className="font-bold text-bba-action">${Number(employee.effectiveHourlyRate).toFixed(2)}/hr</span>
                       } />
                       {lastChange && (
                         <InfoRow label="Last Rate Change" value={
@@ -308,7 +308,7 @@ export default function EmployeeDrawer({ employee, onClose, onUpdated }: Props) 
 
                   <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
                     <div className="px-4 py-2.5 border-b border-slate-100" style={{ backgroundColor: 'rgba(109,40,217,0.05)' }}>
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-purple-700">Client Hub Access</p>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-bba-action">Client Hub Access</p>
                     </div>
                     <div className="px-4 py-4 space-y-3">
                       <div className="flex items-center justify-between">
@@ -332,7 +332,7 @@ export default function EmployeeDrawer({ employee, onClose, onUpdated }: Props) 
                           </button>
                         ) : (
                           <button onClick={handleInvite} disabled={inviting || !employee.email}
-                            className="inline-flex items-center gap-1.5 rounded-lg bg-bba-primary px-3 py-1.5 text-xs font-semibold text-white hover:bg-bba-primary/85 disabled:opacity-50">
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-bba-action px-3 py-1.5 text-xs font-semibold text-white hover:bg-bba-action/85 disabled:opacity-50">
                             {inviting
                               ? <><svg className="h-3 w-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>Sending…</>
                               : <><svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>Send Invite</>}
@@ -373,7 +373,7 @@ export default function EmployeeDrawer({ employee, onClose, onUpdated }: Props) 
                       <div className="flex rounded-lg border border-slate-200 overflow-hidden">
                         {(['hourly', 'salary'] as const).map(v => (
                           <button key={v} type="button" onClick={() => setEdit('rateType', v)}
-                            className={`flex-1 py-2 text-xs font-medium transition-colors ${editForm.rateType === v ? 'bg-bba-primary text-white' : 'text-slate-500 hover:bg-slate-50'}`}>
+                            className={`flex-1 py-2 text-xs font-medium transition-colors ${editForm.rateType === v ? 'bg-bba-action text-white' : 'text-slate-500 hover:bg-slate-50'}`}>
                             {v === 'hourly' ? '⏱ Hourly' : '📅 Salary'}
                           </button>
                         ))}
@@ -411,8 +411,8 @@ export default function EmployeeDrawer({ employee, onClose, onUpdated }: Props) 
                     </div>
                     {previewRate != null && (
                       <div className="rounded-lg bg-purple-50 border border-purple-100 px-4 py-3 flex items-center justify-between">
-                        <span className="text-xs text-purple-600">Effective hourly cost rate</span>
-                        <span className="text-sm font-bold text-purple-700">${previewRate.toFixed(2)}/hr</span>
+                        <span className="text-xs text-bba-action">Effective hourly cost rate</span>
+                        <span className="text-sm font-bold text-bba-action">${previewRate.toFixed(2)}/hr</span>
                       </div>
                     )}
                     <Field label="Rate Change Note" hint="Optional — appears in rate history log">
@@ -433,7 +433,7 @@ export default function EmployeeDrawer({ employee, onClose, onUpdated }: Props) 
                     </div>
                   )}
                   <button onClick={handleSave} disabled={saving}
-                    className="w-full rounded-lg bg-bba-primary py-2.5 text-sm font-semibold text-white hover:bg-bba-primary/85 transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
+                    className="w-full rounded-lg bg-bba-action py-2.5 text-sm font-semibold text-white hover:bg-bba-action/85 transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
                     {saving && <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>}
                     {saving ? 'Saving…' : 'Save Changes'}
                   </button>
@@ -475,7 +475,7 @@ export default function EmployeeDrawer({ employee, onClose, onUpdated }: Props) 
                               {entry.notes && <p className="text-xs text-slate-500 mt-1 italic">"{entry.notes}"</p>}
                             </div>
                             <div className="flex items-center gap-2 shrink-0">
-                              {i === 0 && <span className="text-[10px] font-semibold bg-purple-200 text-purple-700 rounded-full px-2 py-0.5">Current</span>}
+                              {i === 0 && <span className="text-[10px] font-semibold bg-purple-200 text-bba-action rounded-full px-2 py-0.5">Current</span>}
                               <button
                                 onClick={() => handleDeleteEntry(entry.id)}
                                 disabled={deletingId === entry.id}

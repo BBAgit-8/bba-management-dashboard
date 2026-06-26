@@ -148,7 +148,7 @@ export default function InvitePage() {
                       <p className="text-xs text-slate-400">{emp.email ?? <span className="text-amber-500">⚠ No email on file</span>}</p>
                     </div>
                     <button onClick={() => handleInvite(emp)} disabled={inviting === emp.id || !emp.email}
-                      className="inline-flex items-center gap-1.5 rounded-lg bg-bba-primary px-3 py-1.5 text-xs font-semibold text-white hover:bg-bba-primary/85 transition-colors disabled:opacity-50">
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-bba-action px-3 py-1.5 text-xs font-semibold text-white hover:bg-bba-action/85 transition-colors disabled:opacity-50">
                       {inviting === emp.id ? (
                         <><svg className="h-3 w-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>Sending…</>
                       ) : (

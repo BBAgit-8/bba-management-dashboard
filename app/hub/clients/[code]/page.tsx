@@ -39,7 +39,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   return (
     <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
       <div className="px-5 py-3" style={{ backgroundColor: 'rgba(109,40,217,0.07)' }}>
-        <p className="text-xs font-bold uppercase tracking-widest text-purple-700">{title}</p>
+        <p className="text-xs font-bold uppercase tracking-widest text-bba-action">{title}</p>
       </div>
       <div className="px-5 py-1">{children}</div>
     </div>
@@ -79,21 +79,21 @@ export default function HubClientDetail() {
 
   if (loading) return (
     <div className="flex items-center justify-center py-24">
-      <div className="h-7 w-7 animate-spin rounded-full border-2 border-purple-600 border-t-transparent" />
+      <div className="h-7 w-7 animate-spin rounded-full border-2 border-bba-action border-t-transparent" />
     </div>
   )
 
   if (!client) return (
     <div className="text-center py-24">
       <p className="text-slate-400">Client not found.</p>
-      <Link href="/hub/dashboard" className="mt-3 inline-block text-sm text-purple-600 underline">← Back</Link>
+      <Link href="/hub/dashboard" className="mt-3 inline-block text-sm text-bba-action underline">← Back</Link>
     </div>
   )
 
   return (
     <div className="space-y-6 max-w-3xl">
       {/* Back */}
-      <Link href="/hub/dashboard" className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-purple-700 transition-colors">
+      <Link href="/hub/dashboard" className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-bba-action transition-colors">
         <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
         </svg>
@@ -112,7 +112,7 @@ export default function HubClientDetail() {
             <span className="font-mono text-xs text-slate-400">{client.harvestProjectCode}</span>
             {client.entityType && <span className="text-xs text-slate-400">· {ENTITY_LABEL[client.entityType] ?? client.entityType}</span>}
             {client.projectType && (
-              <span className="rounded-full px-2 py-0.5 text-[10px] font-semibold bg-purple-100 text-purple-700">
+              <span className="rounded-full px-2 py-0.5 text-[10px] font-semibold bg-purple-100 text-bba-action">
                 {PTYPE_LABEL[client.projectType] ?? client.projectType}
               </span>
             )}

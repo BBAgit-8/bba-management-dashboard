@@ -85,7 +85,7 @@ function CollapsibleCard({ title, rows, keyFn }: { title: string; rows: ProfitRo
               {rows.map((r, i) => (
                 <tr key={r.id} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}>
                   <td className="px-4 py-2">
-                    <Link href={`/clients/${r.code}`} className="font-medium text-slate-800 hover:text-purple-700 transition-colors">{r.name}</Link>
+                    <Link href={`/clients/${r.code}`} className="font-medium text-slate-800 hover:text-bba-action transition-colors">{r.name}</Link>
                   </td>
                   <td className="px-4 py-2 text-slate-600">{r.bookkeeper ?? '—'}</td>
                   <td className="px-4 py-2 text-right tabular-nums text-slate-700">{r.hoursUsed.toFixed(1)}</td>
@@ -247,10 +247,10 @@ export default function ProfitabilityPage() {
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <input type="date" value={from} onChange={e => setFrom(e.target.value)}
-            className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500 [color-scheme:light]" />
+            className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-bba-action [color-scheme:light]" />
           <span className="text-slate-400 text-sm">—</span>
           <input type="date" value={to} onChange={e => setTo(e.target.value)}
-            className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500 [color-scheme:light]" />
+            className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-bba-action [color-scheme:light]" />
           <button onClick={load} disabled={loading}
             className="rounded-lg px-4 py-2 text-sm font-semibold text-white transition-colors disabled:opacity-60"
             style={{ backgroundColor: '#b20476' }}>
@@ -278,10 +278,10 @@ export default function ProfitabilityPage() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
           <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search clients…"
-            className="rounded-lg border border-slate-200 pl-9 pr-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500 w-52" />
+            className="rounded-lg border border-slate-200 pl-9 pr-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-bba-action w-52" />
         </div>
         <select value={bkFilter} onChange={e => setBkFilter(e.target.value)}
-          className="rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500">
+          className="rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-bba-action">
           <option value="all">All Bookkeepers</option>
           {bookkeepers.map(b => <option key={b} value={b}>{b}</option>)}
         </select>
@@ -310,7 +310,7 @@ export default function ProfitabilityPage() {
       {/* Table */}
       {loading ? (
         <div className="flex items-center justify-center py-20">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-purple-600 border-t-transparent" />
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-bba-action border-t-transparent" />
         </div>
       ) : (
         <div className="rounded-xl overflow-hidden border border-slate-200">
@@ -359,7 +359,7 @@ export default function ProfitabilityPage() {
                       const col = ALL_COLS.find(c => c.key === key)!
                       const cls = `px-4 py-3 ${col.align === 'right' ? 'text-right tabular-nums' : ''}`
                       switch (key) {
-                        case 'name':       return <td key={key} className={cls}><Link href={`/clients/${row.code}`} className="group"><p className="font-medium text-slate-800 group-hover:text-purple-700 transition-colors">{row.name}</p><p className="text-[10px] font-mono text-slate-400">{row.code}</p></Link></td>
+                        case 'name':       return <td key={key} className={cls}><Link href={`/clients/${row.code}`} className="group"><p className="font-medium text-slate-800 group-hover:text-bba-action transition-colors">{row.name}</p><p className="text-[10px] font-mono text-slate-400">{row.code}</p></Link></td>
                         case 'bookkeeper': return <td key={key} className={cls + ' text-slate-600'}>{row.bookkeeper ?? <span className="text-slate-300">—</span>}{row.costRate > 0 && <span className="ml-1 text-[10px] text-slate-400">(${row.costRate}/hr)</span>}</td>
                         case 'hoursUsed':  return <td key={key} className={cls + ' text-slate-700'}>{row.hoursUsed.toFixed(1)}{row.harvestHrs === null && row.budgetedHrs > 0 && <span className="ml-1 text-[10px] text-slate-400">est</span>}</td>
                         case 'revenue':    return <td key={key} className={cls + ' text-slate-700'}>{fmtFull(row.revenue)}</td>

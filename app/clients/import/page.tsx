@@ -104,7 +104,7 @@ export default function ImportClientsPage() {
           <h1 className="text-2xl font-bold text-slate-800">Import Clients</h1>
           <p className="text-sm text-slate-500 mt-1">Upload your filled template to add multiple clients at once</p>
         </div>
-        <Link href="/clients" className="text-sm text-purple-600 hover:text-purple-800 font-medium">
+        <Link href="/clients" className="text-sm text-bba-action hover:text-purple-800 font-medium">
           ← Back to Clients
         </Link>
       </div>
@@ -188,7 +188,7 @@ export default function ImportClientsPage() {
               <p className="text-sm font-medium text-slate-700">Drag & drop your Excel file here</p>
               <p className="text-xs text-slate-400 mt-1">or click to browse · .xlsx files only</p>
             </div>
-            <label className="cursor-pointer rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:border-purple-300 hover:text-purple-700 transition-colors">
+            <label className="cursor-pointer rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:border-purple-300 hover:text-bba-action transition-colors">
               Browse file
               <input type="file" accept=".xlsx,.xls,.csv" onChange={onFileChange} className="hidden" />
             </label>

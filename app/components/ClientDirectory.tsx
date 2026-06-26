@@ -158,7 +158,7 @@ const dropSel = 'rounded-lg bg-white border border-surface-border px-3 py-2 text
 const PTYPE_STYLE: Record<string, { bg: string; text: string; label: string }> = {
   ANNUAL:              { bg: 'bg-blue-500/15',    text: 'text-blue-600',      label: 'Annual'      },
   CLEAN_UP:            { bg: 'bg-orange-500/15',  text: 'text-orange-600',    label: 'Cleanup'     },
-  MONTHLY_MAINTENANCE: { bg: 'bg-purple-500/15',  text: 'text-purple-700',    label: 'Recurring'   },
+  MONTHLY_MAINTENANCE: { bg: 'bg-bba-action/15',  text: 'text-bba-action',    label: 'Recurring'   },
   QBO_ONLY:            { bg: 'bg-sky-500/15',     text: 'text-sky-600',       label: 'QBO Only'    },
   RECURRING:           { bg: 'bg-teal-500/15',    text: 'text-teal-600',      label: 'Recurring'   },
 }
@@ -325,7 +325,7 @@ function MultiFilter({ label, plural, filters, setFilters, options }: {
       <button
         onClick={() => setOpen(o => !o)}
         className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium border transition-all ${
-          active ? 'bg-purple-50 border-purple-300 text-purple-700' : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+          active ? 'bg-purple-50 border-purple-300 text-bba-action' : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
         }`}
       >
         {btnLabel}
@@ -338,7 +338,7 @@ function MultiFilter({ label, plural, filters, setFilters, options }: {
           <div className="flex items-center gap-1 px-3 py-1.5 border-b border-slate-100">
             <button
               onClick={() => setFilters(new Set(options.map(o => o.v)))}
-              className="text-xs text-purple-600 hover:text-purple-800 font-medium"
+              className="text-xs text-bba-action hover:text-purple-800 font-medium"
             >Select All</button>
             <span className="text-slate-300 text-xs">·</span>
             <button
@@ -352,7 +352,7 @@ function MultiFilter({ label, plural, filters, setFilters, options }: {
                 type="checkbox"
                 checked={filters.has(o.v)}
                 onChange={() => toggle(o.v)}
-                className="rounded border-slate-300 text-purple-600 focus:ring-purple-500"
+                className="rounded border-slate-300 text-bba-action focus:ring-bba-action"
               />
               <span className="text-xs text-slate-700">{o.label}</span>
             </label>
@@ -400,7 +400,7 @@ function ViewsDropdown({
     <div ref={ref} className="relative">
       <button onClick={() => { setOpen(o => !o); setMode('list') }}
         className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold border transition-all ${
-          activeViewId ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-slate-600 border-slate-200 hover:border-purple-300 hover:text-purple-700'
+          activeViewId ? 'bg-bba-action text-white border-bba-action' : 'bg-white text-slate-600 border-slate-200 hover:border-purple-300 hover:text-bba-action'
         }`}>
         <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h8" />
@@ -420,10 +420,10 @@ function ViewsDropdown({
               <p className="text-sm font-semibold text-slate-700">Save current view as…</p>
               <input autoFocus type="text" value={newName} onChange={e => setNewName(e.target.value)}
                 placeholder="View name" onKeyDown={e => { if (e.key === 'Enter' && newName.trim()) { onSaveNew(newName.trim(), newShared); setNewName(''); setNewShared(false); setOpen(false); setMode('list') } }}
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-bba-action" />
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" checked={newShared} onChange={e => setNewShared(e.target.checked)}
-                  className="rounded border-slate-300 text-purple-600 focus:ring-purple-500" />
+                  className="rounded border-slate-300 text-bba-action focus:ring-bba-action" />
                 <span className="text-xs text-slate-600">Share with team (visible in Hub)</span>
               </label>
               <div className="flex gap-2">
@@ -431,7 +431,7 @@ function ViewsDropdown({
                   className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50">Cancel</button>
                 <button disabled={!newName.trim() || saving}
                   onClick={() => { onSaveNew(newName.trim(), newShared); setNewName(''); setNewShared(false); setOpen(false); setMode('list') }}
-                  className="flex-1 rounded-lg bg-purple-600 px-3 py-2 text-xs font-semibold text-white hover:bg-purple-700 disabled:opacity-50">
+                  className="flex-1 rounded-lg bg-bba-action px-3 py-2 text-xs font-semibold text-white hover:bg-bba-action disabled:opacity-50">
                   {saving ? 'Saving…' : 'Save View'}
                 </button>
               </div>
@@ -443,17 +443,17 @@ function ViewsDropdown({
             <div className="p-4 space-y-3">
               <p className="text-sm font-semibold text-slate-700">Edit view</p>
               <input autoFocus type="text" value={editName} onChange={e => setEditName(e.target.value)}
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-bba-action" />
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" checked={editShared} onChange={e => setEditShared(e.target.checked)}
-                  className="rounded border-slate-300 text-purple-600 focus:ring-purple-500" />
+                  className="rounded border-slate-300 text-bba-action focus:ring-bba-action" />
                 <span className="text-xs text-slate-600">Share with team (visible in Hub)</span>
               </label>
               <div className="flex gap-2">
                 <button onClick={() => { setMode('list'); setEditingId(null) }}
                   className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50">Cancel</button>
                 <button onClick={() => { onRename(editingId, editName); onToggleShare(editingId, editShared); setMode('list'); setEditingId(null) }}
-                  className="flex-1 rounded-lg bg-purple-600 px-3 py-2 text-xs font-semibold text-white hover:bg-purple-700">
+                  className="flex-1 rounded-lg bg-bba-action px-3 py-2 text-xs font-semibold text-white hover:bg-bba-action">
                   Save
                 </button>
               </div>
@@ -465,9 +465,9 @@ function ViewsDropdown({
             <>
               {/* Default view */}
               <button onClick={() => { onClearView(); setOpen(false) }}
-                className={`w-full flex items-center justify-between px-4 py-3 text-sm hover:bg-slate-50 transition-colors ${!activeViewId ? 'text-purple-700 font-semibold bg-purple-50' : 'text-slate-700'}`}>
+                className={`w-full flex items-center justify-between px-4 py-3 text-sm hover:bg-slate-50 transition-colors ${!activeViewId ? 'text-bba-action font-semibold bg-purple-50' : 'text-slate-700'}`}>
                 <span>Default</span>
-                {!activeViewId && <svg className="h-4 w-4 text-purple-600" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>}
+                {!activeViewId && <svg className="h-4 w-4 text-bba-action" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>}
               </button>
 
               {views.length > 0 && <div className="border-t border-slate-100" />}
@@ -475,15 +475,15 @@ function ViewsDropdown({
               {views.map(v => (
                 <div key={v.id} className={`flex items-center gap-2 px-3 py-2.5 hover:bg-slate-50 transition-colors ${activeViewId === v.id ? 'bg-purple-50' : ''}`}>
                   <button onClick={() => { onApply(v); setOpen(false) }} className="flex-1 text-left">
-                    <p className={`text-sm ${activeViewId === v.id ? 'text-purple-700 font-semibold' : 'text-slate-700'}`}>{v.name}</p>
+                    <p className={`text-sm ${activeViewId === v.id ? 'text-bba-action font-semibold' : 'text-slate-700'}`}>{v.name}</p>
                     <p className="text-[10px] text-slate-400">{v.sharedWithTeam ? '🔗 Shared with team' : 'Private'}</p>
                   </button>
                   <button onClick={() => { onUpdate(v.id) }} title="Update with current settings"
-                    className="p-1.5 rounded text-slate-400 hover:text-purple-600 hover:bg-purple-50 transition-colors" >
+                    className="p-1.5 rounded text-slate-400 hover:text-bba-action hover:bg-purple-50 transition-colors" >
                     <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                   </button>
                   <button onClick={() => { setEditingId(v.id); setEditName(v.name); setEditShared(v.sharedWithTeam); setMode('edit') }} title="Rename / settings"
-                    className="p-1.5 rounded text-slate-400 hover:text-purple-600 hover:bg-purple-50 transition-colors">
+                    className="p-1.5 rounded text-slate-400 hover:text-bba-action hover:bg-purple-50 transition-colors">
                     <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                   </button>
                   <button onClick={() => { if (confirm(`Delete "${v.name}"?`)) onDelete(v.id) }} title="Delete view"
@@ -495,7 +495,7 @@ function ViewsDropdown({
 
               <div className="border-t border-slate-100 p-2">
                 <button onClick={() => setMode('new')}
-                  className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-purple-600 hover:bg-purple-50 transition-colors">
+                  className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-bba-action hover:bg-purple-50 transition-colors">
                   <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
                   Save current view…
                 </button>
@@ -952,7 +952,7 @@ export default function ClientDirectory() {
                 {initials(client.name)}
               </div>
               <div className="flex items-center min-w-0">
-                <Link href={`/clients/${client.harvestProjectCode}`} className="font-medium text-slate-800 hover:text-purple-700 transition-colors whitespace-nowrap">
+                <Link href={`/clients/${client.harvestProjectCode}`} className="font-medium text-slate-800 hover:text-bba-action transition-colors whitespace-nowrap">
                   {client.name}
                 </Link>
               </div>
@@ -1096,7 +1096,7 @@ export default function ClientDirectory() {
             <input type="checkbox"
               checked={!!( inlineEdits[client.id]?.hasContractedLoom !== undefined ? inlineEdits[client.id].hasContractedLoom === 'true' : client.hasContractedLoom)}
               onChange={e => patchCell(client, 'hasContractedLoom', String(e.target.checked))}
-              className="h-4 w-4 rounded border-slate-300 text-purple-600 focus:ring-purple-500 cursor-pointer" />
+              className="h-4 w-4 rounded border-slate-300 text-bba-action focus:ring-bba-action cursor-pointer" />
           </td>
         )
       case 'hasScheduledMeetings':
@@ -1105,7 +1105,7 @@ export default function ClientDirectory() {
             <input type="checkbox"
               checked={!!( inlineEdits[client.id]?.hasScheduledMeetings !== undefined ? inlineEdits[client.id].hasScheduledMeetings === 'true' : client.hasScheduledMeetings)}
               onChange={e => patchCell(client, 'hasScheduledMeetings', String(e.target.checked))}
-              className="h-4 w-4 rounded border-slate-300 text-purple-600 focus:ring-purple-500 cursor-pointer" />
+              className="h-4 w-4 rounded border-slate-300 text-bba-action focus:ring-bba-action cursor-pointer" />
           </td>
         )
       case 'hasSignedAutoIncrease':
@@ -1114,7 +1114,7 @@ export default function ClientDirectory() {
             <input type="checkbox"
               checked={!!( inlineEdits[client.id]?.hasSignedAutoIncrease !== undefined ? inlineEdits[client.id].hasSignedAutoIncrease === 'true' : client.hasSignedAutoIncrease)}
               onChange={e => patchCell(client, 'hasSignedAutoIncrease', String(e.target.checked))}
-              className="h-4 w-4 rounded border-slate-300 text-purple-600 focus:ring-purple-500 cursor-pointer" />
+              className="h-4 w-4 rounded border-slate-300 text-bba-action focus:ring-bba-action cursor-pointer" />
           </td>
         )
       case 'autoPriceIncreasePercent':
@@ -1203,7 +1203,7 @@ export default function ClientDirectory() {
         return (
           <td key={colKey} className="px-4 py-3 text-center">
             {client.pettyCash
-              ? <span className="inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold bg-purple-100 text-purple-700">Yes</span>
+              ? <span className="inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold bg-purple-100 text-bba-action">Yes</span>
               : <span className="text-slate-400 text-xs">—</span>}
           </td>
         )
@@ -1279,7 +1279,7 @@ export default function ClientDirectory() {
           />
           <button
             onClick={() => setPanelOpen(true)}
-            className="inline-flex items-center gap-2 rounded-lg bg-bba-primary px-4 py-2 text-sm font-semibold text-white hover:bg-bba-primary/85 active:scale-95 transition-all"
+            className="inline-flex items-center gap-2 rounded-lg bg-bba-action px-4 py-2 text-sm font-semibold text-white hover:bg-bba-action/85 active:scale-95 transition-all"
           >
             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -1288,7 +1288,7 @@ export default function ClientDirectory() {
           </button>
           <Link
             href="/clients/import"
-            className="inline-flex items-center gap-2 rounded-lg border border-purple-300 bg-purple-50 px-4 py-2 text-sm font-semibold text-purple-700 hover:bg-purple-100 active:scale-95 transition-all"
+            className="inline-flex items-center gap-2 rounded-lg border border-purple-300 bg-purple-50 px-4 py-2 text-sm font-semibold text-bba-action hover:bg-purple-100 active:scale-95 transition-all"
           >
             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l4-4m0 0l4 4m-4-4v12" />
@@ -1321,7 +1321,7 @@ export default function ClientDirectory() {
             <span className="text-xs text-slate-400">({visibleCols.size} of {ALL_COLUMNS.length} visible)</span>
           </div>
           <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
-            <button onClick={showAllCols} className="text-xs text-purple-600 hover:text-purple-800 font-medium underline underline-offset-2">Show all</button>
+            <button onClick={showAllCols} className="text-xs text-bba-action hover:text-purple-800 font-medium underline underline-offset-2">Show all</button>
             <span className="text-slate-300">·</span>
             <button onClick={resetColsToDefault} className="text-xs text-slate-500 hover:text-slate-700 font-medium underline underline-offset-2">Reset to default</button>
             <span className="text-slate-300">·</span>
@@ -1337,7 +1337,7 @@ export default function ClientDirectory() {
                     type="checkbox"
                     checked={visibleCols.has(col.key)}
                     onChange={() => toggleCol(col.key)}
-                    className="rounded border-slate-300 text-purple-600 focus:ring-purple-500"
+                    className="rounded border-slate-300 text-bba-action focus:ring-bba-action"
                   />
                   <span className="text-xs text-slate-600 group-hover:text-slate-900 transition-colors select-none">{col.label}</span>
                 </label>
@@ -1353,7 +1353,7 @@ export default function ClientDirectory() {
         <div className="flex items-center gap-2 overflow-x-auto pb-0.5">
           <button
             onClick={() => setTagFilters(new Set())}
-            className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium ring-1 transition-all ${tagFilters.size === 0 ? 'bg-purple-100 ring-purple-300 text-purple-700' : 'ring-slate-300 text-slate-500 hover:text-slate-700 hover:ring-slate-400'}`}
+            className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium ring-1 transition-all ${tagFilters.size === 0 ? 'bg-purple-100 ring-purple-300 text-bba-action' : 'ring-slate-300 text-slate-500 hover:text-slate-700 hover:ring-slate-400'}`}
           >
             All Tags
           </button>
@@ -1414,7 +1414,7 @@ export default function ClientDirectory() {
             onClick={clearFilters}
             disabled={!anyFilter}
             className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium border transition-all ${
-              anyFilter ? 'bg-purple-50 border-purple-300 text-purple-700 hover:bg-purple-100' : 'bg-white border-slate-200 text-slate-400 cursor-default'
+              anyFilter ? 'bg-purple-50 border-purple-300 text-bba-action hover:bg-purple-100' : 'bg-white border-slate-200 text-slate-400 cursor-default'
             }`}
           >
             <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1432,7 +1432,7 @@ export default function ClientDirectory() {
           <input
             type="text" value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Search by client name or project code…"
-            className="w-full rounded-lg bg-white border border-slate-200 pl-9 pr-9 py-2.5 text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            className="w-full rounded-lg bg-white border border-slate-200 pl-9 pr-9 py-2.5 text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-bba-action focus:border-transparent"
           />
           {search && (
             <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors">
@@ -1520,7 +1520,7 @@ export default function ClientDirectory() {
                   <tr>
                     <td colSpan={activeColOrder.length} className="px-4 py-12 text-center text-sm text-slate-400">
                       {anyFilter
-                        ? <><span>No clients match your filters. </span><button onClick={clearFilters} className="underline text-purple-600">Clear filters</button></>
+                        ? <><span>No clients match your filters. </span><button onClick={clearFilters} className="underline text-bba-action">Clear filters</button></>
                         : 'No clients found.'}
                     </td>
                   </tr>

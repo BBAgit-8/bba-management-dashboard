@@ -395,13 +395,13 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
                       {accountants.map(a => <option key={a.id} value={a.name}>{a.name}</option>)}
                     </select>
                     <button type="button" onClick={() => setShowNewAcct(true)}
-                      className="text-[11px] text-purple-600 hover:text-purple-800 hover:underline font-medium transition-colors">
+                      className="text-[11px] text-bba-action hover:text-purple-800 hover:underline font-medium transition-colors">
                       + Add new accountant
                     </button>
                   </div>
                 ) : (
                   <div className="space-y-2 rounded-lg border border-purple-100 bg-purple-50/50 p-3">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-purple-600">New Accountant</p>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-bba-action">New Accountant</p>
                     <input type="text" value={newAcct.name} onChange={e => setNewAcct(a => ({ ...a, name: e.target.value }))}
                       placeholder="Full name *" className={inp} autoFocus
                       onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddAccountant(); } }} />
@@ -415,7 +415,7 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
                     </div>
                     <div className="flex gap-2">
                       <button type="button" onClick={handleAddAccountant} disabled={addingAcct || !newAcct.name.trim()}
-                        className="flex-1 rounded-lg bg-bba-primary px-3 py-2 text-xs font-semibold text-white hover:bg-bba-primary/85 disabled:opacity-50">
+                        className="flex-1 rounded-lg bg-bba-action px-3 py-2 text-xs font-semibold text-white hover:bg-bba-action/85 disabled:opacity-50">
                         {addingAcct ? 'Saving…' : 'Add Accountant'}
                       </button>
                       <button type="button" onClick={() => { setShowNewAcct(false); setNewAcct({ name: '', businessName: '', email: '', phoneNumber: '' }); }}
@@ -453,7 +453,7 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
                 <div className="flex rounded-lg border border-slate-200 overflow-hidden">
                   {(['HOME_OFFICE', 'PHYSICAL'] as OfficeType[]).map(v => (
                     <button key={v} type="button" onClick={() => set('officeType', v)}
-                      className={`flex-1 py-2 text-xs font-medium transition-colors ${form.officeType === v ? 'bg-bba-primary text-white' : 'text-slate-500 hover:bg-slate-50'}`}>
+                      className={`flex-1 py-2 text-xs font-medium transition-colors ${form.officeType === v ? 'bg-bba-action text-white' : 'text-slate-500 hover:bg-slate-50'}`}>
                       {v === 'HOME_OFFICE' ? '🏠 Home' : '🏢 Physical'}
                     </button>
                   ))}
@@ -498,7 +498,7 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
                     ].map(tier => (
                       <button key={tier.key} type="button"
                         onClick={() => set('qboTier', form.qboTier === tier.key ? '' : tier.key as typeof form.qboTier)}
-                        className={`rounded-lg px-3 py-1.5 text-xs font-semibold border transition-all ${form.qboTier === tier.key ? 'bg-bba-primary text-white border-bba-primary' : 'bg-white text-slate-600 border-slate-200 hover:border-purple-300 hover:text-purple-700'}`}>
+                        className={`rounded-lg px-3 py-1.5 text-xs font-semibold border transition-all ${form.qboTier === tier.key ? 'bg-bba-primary text-white border-bba-action' : 'bg-white text-slate-600 border-slate-200 hover:border-purple-300 hover:text-bba-action'}`}>
                         {tier.label}
                         {prices[tier.key] ? <span className="ml-1 opacity-70">${prices[tier.key]}</span> : null}
                       </button>
@@ -516,7 +516,7 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
                     {prices['dext'] ? <span className="ml-2 text-xs text-slate-400">${prices['dext']}/mo</span> : null}
                   </div>
                   <button type="button" onClick={() => set('hasDouble', !form.hasDouble)}
-                    className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors ${form.hasDouble ? 'bg-bba-primary' : 'bg-slate-300'}`}>
+                    className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors ${form.hasDouble ? 'bg-bba-action' : 'bg-slate-300'}`}>
                     <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${form.hasDouble ? 'translate-x-5' : 'translate-x-0'}`} />
                   </button>
                 </div>
@@ -526,7 +526,7 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
                     <p className="text-xs font-medium text-slate-500">Other</p>
                     <button type="button"
                       onClick={() => set('otherSoftware', [...form.otherSoftware, { name: '', amount: '' }])}
-                      className="inline-flex items-center gap-1 text-xs text-purple-600 hover:text-purple-800 font-medium transition-colors">
+                      className="inline-flex items-center gap-1 text-xs text-bba-action hover:text-purple-800 font-medium transition-colors">
                       <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
                       Add
                     </button>
@@ -557,8 +557,8 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
               {/* Software rate summary */}
               {(form.qboTier || form.hasDouble || form.otherSoftware.some(o => parseFloat(o.amount) > 0)) && (
                 <div className="px-4 py-2.5 bg-purple-50 border-t border-purple-100 flex justify-between items-center">
-                  <span className="text-xs text-purple-600 font-medium">Software Rate</span>
-                  <span className="text-sm font-semibold text-purple-700">
+                  <span className="text-xs text-bba-action font-medium">Software Rate</span>
+                  <span className="text-sm font-semibold text-bba-action">
                     ${(
                       (form.qboTier ? (prices[form.qboTier] ?? 0) : 0) +
                       (form.hasDouble ? (prices['dext'] ?? 0) : 0) +
@@ -614,7 +614,7 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
                       {showAuto && <span className="text-[10px] text-purple-500 font-medium">auto</span>}
                       {calcQa !== null && (
                         <button type="button" onClick={() => set('qaHoursOverride', !form.qaHoursOverride as any)}
-                          className="ml-auto text-[10px] text-slate-400 hover:text-purple-600 underline underline-offset-2 transition-colors">
+                          className="ml-auto text-[10px] text-slate-400 hover:text-bba-action underline underline-offset-2 transition-colors">
                           {form.qaHoursOverride ? 'use formula' : 'override'}
                         </button>
                       )}
@@ -623,7 +623,7 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
                       <input type="number" step="0.25" min={0} value={form.qaHours} onChange={e => set('qaHours', e.target.value)} placeholder="0" className={inp} />
                     ) : (
                       <div className="flex items-center rounded-lg bg-slate-50 border border-slate-200 px-3 py-2">
-                        <span className="text-sm font-semibold text-purple-700 tabular-nums">{calcQa}</span>
+                        <span className="text-sm font-semibold text-bba-action tabular-nums">{calcQa}</span>
                         <span className="ml-1 text-xs text-slate-400">hrs</span>
                       </div>
                     )}
@@ -652,7 +652,7 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
                       {showAuto && <span className="text-[10px] text-purple-500 font-medium">auto</span>}
                       {calcCs !== null && (
                         <button type="button" onClick={() => set('custSuccessOverride', !form.custSuccessOverride as any)}
-                          className="ml-auto text-[10px] text-slate-400 hover:text-purple-600 underline underline-offset-2 transition-colors">
+                          className="ml-auto text-[10px] text-slate-400 hover:text-bba-action underline underline-offset-2 transition-colors">
                           {form.custSuccessOverride ? 'use formula' : 'override'}
                         </button>
                       )}
@@ -661,7 +661,7 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
                       <input type="number" step="0.25" min={0} value={form.custSuccessMgmtHrs} onChange={e => set('custSuccessMgmtHrs', e.target.value)} placeholder="0" className={inp} />
                     ) : (
                       <div className="flex items-center rounded-lg bg-slate-50 border border-slate-200 px-3 py-2">
-                        <span className="text-sm font-semibold text-purple-700 tabular-nums">{calcCs}</span>
+                        <span className="text-sm font-semibold text-bba-action tabular-nums">{calcCs}</span>
                         <span className="ml-1 text-xs text-slate-400">hrs</span>
                       </div>
                     )}
@@ -690,7 +690,7 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
                       {showAuto && <span className="text-[10px] text-purple-500 font-medium">auto</span>}
                       {calcYe !== null && (
                         <button type="button" onClick={() => set('yeOverride', !form.yeOverride as any)}
-                          className="ml-auto text-[10px] text-slate-400 hover:text-purple-600 underline underline-offset-2 transition-colors">
+                          className="ml-auto text-[10px] text-slate-400 hover:text-bba-action underline underline-offset-2 transition-colors">
                           {form.yeOverride ? 'use formula' : 'override'}
                         </button>
                       )}
@@ -699,7 +699,7 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
                       <input type="number" step="0.25" min={0} value={form.yeOrTaxHours} onChange={e => set('yeOrTaxHours', e.target.value)} placeholder="0" className={inp} />
                     ) : (
                       <div className="flex items-center rounded-lg bg-slate-50 border border-slate-200 px-3 py-2">
-                        <span className="text-sm font-semibold text-purple-700 tabular-nums">{calcYe}</span>
+                        <span className="text-sm font-semibold text-bba-action tabular-nums">{calcYe}</span>
                         <span className="ml-1 text-xs text-slate-400">hrs</span>
                       </div>
                     )}
@@ -745,7 +745,7 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
                         <span className="text-sm text-slate-400">—</span>
                       ) : (
                         <>
-                          <span className={`text-sm font-semibold tabular-nums ${bkpr < 0 ? 'text-red-600' : 'text-purple-700'}`}>{bkpr}</span>
+                          <span className={`text-sm font-semibold tabular-nums ${bkpr < 0 ? 'text-red-600' : 'text-bba-action'}`}>{bkpr}</span>
                           <span className="ml-1 text-xs text-slate-400">hrs</span>
                           {pool > total && total > 0 && (
                             <span className="ml-2 text-[10px] text-red-500 font-medium">pool exceeds total</span>
@@ -805,7 +805,7 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
                   {calcBankFeedTime && (
                     <button type="button"
                       onClick={() => set('bankFeedTimeOverride', !form.bankFeedTimeOverride as any)}
-                      className="ml-auto text-[10px] text-slate-400 hover:text-purple-600 underline underline-offset-2 transition-colors">
+                      className="ml-auto text-[10px] text-slate-400 hover:text-bba-action underline underline-offset-2 transition-colors">
                       {form.bankFeedTimeOverride ? 'use formula' : 'override'}
                     </button>
                   )}
@@ -817,7 +817,7 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
                     placeholder="0" className={inp} />
                 ) : (
                   <div className="flex items-center rounded-lg bg-slate-50 border border-slate-200 px-3 py-2">
-                    <span className="text-sm font-semibold text-purple-700 tabular-nums">{calcBankFeedTime}</span>
+                    <span className="text-sm font-semibold text-bba-action tabular-nums">{calcBankFeedTime}</span>
                     <span className="ml-1 text-xs text-slate-400">hrs</span>
                   </div>
                 )}
@@ -845,7 +845,7 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
                   {calcRecTime && (
                     <button type="button"
                       onClick={() => set('recTimeOverride', !form.recTimeOverride as any)}
-                      className="ml-auto text-[10px] text-slate-400 hover:text-purple-600 underline underline-offset-2 transition-colors">
+                      className="ml-auto text-[10px] text-slate-400 hover:text-bba-action underline underline-offset-2 transition-colors">
                       {form.recTimeOverride ? 'use formula' : 'override'}
                     </button>
                   )}
@@ -857,7 +857,7 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
                     placeholder="0" className={inp} />
                 ) : (
                   <div className="flex items-center rounded-lg bg-slate-50 border border-slate-200 px-3 py-2">
-                    <span className="text-sm font-semibold text-purple-700 tabular-nums">{calcRecTime}</span>
+                    <span className="text-sm font-semibold text-bba-action tabular-nums">{calcRecTime}</span>
                     <span className="ml-1 text-xs text-slate-400">hrs</span>
                   </div>
                 )}
@@ -886,7 +886,7 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
                 {[15, 30, 40].map(min => (
                   <button key={min} type="button"
                     onClick={() => set('meetingDuration', form.meetingDuration === min ? 0 : min)}
-                    className={`rounded-lg px-4 py-1.5 text-xs font-semibold border transition-all ${form.meetingDuration === min ? 'bg-bba-primary text-white border-bba-primary' : 'bg-white text-slate-600 border-slate-200 hover:border-purple-300 hover:text-purple-700'}`}>
+                    className={`rounded-lg px-4 py-1.5 text-xs font-semibold border transition-all ${form.meetingDuration === min ? 'bg-bba-primary text-white border-bba-action' : 'bg-white text-slate-600 border-slate-200 hover:border-purple-300 hover:text-bba-action'}`}>
                     {min} min
                   </button>
                 ))}
@@ -938,7 +938,7 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
             Cancel
           </button>
           <button type="submit" form="add-client-form" disabled={saving}
-            className="rounded-lg bg-bba-primary px-5 py-2 text-sm font-semibold text-white hover:bg-bba-primary/85 transition-colors disabled:opacity-60 flex items-center gap-2">
+            className="rounded-lg bg-bba-action px-5 py-2 text-sm font-semibold text-white hover:bg-bba-action/85 transition-colors disabled:opacity-60 flex items-center gap-2">
             {saving && <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>}
             {saving ? 'Saving…' : 'Save'}
           </button>
@@ -949,8 +949,8 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
 }
 
 // ── Style constants ───────────────────────────────────────────────────────────
-const inp = 'w-full rounded-lg bg-white border border-slate-200 px-3 py-2 text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent';
-const sel = 'w-full rounded-lg bg-white border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent';
+const inp = 'w-full rounded-lg bg-white border border-slate-200 px-3 py-2 text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-bba-action focus:border-transparent';
+const sel = 'w-full rounded-lg bg-white border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-bba-action focus:border-transparent';
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 function Section({ label, children }: { label: string; children: React.ReactNode }) {
@@ -990,7 +990,7 @@ function Toggle({ label, sub, value, onChange }: { label: string; sub?: string; 
         {sub && <p className="text-[11px] text-slate-400 mt-0.5">{sub}</p>}
       </div>
       <button type="button" onClick={() => onChange(!value)}
-        className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors ${value ? 'bg-bba-primary' : 'bg-slate-300'}`}>
+        className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors ${value ? 'bg-bba-action' : 'bg-slate-300'}`}>
         <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${value ? 'translate-x-5' : 'translate-x-0'}`} />
       </button>
     </div>

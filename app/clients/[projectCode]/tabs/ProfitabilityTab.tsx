@@ -33,7 +33,7 @@ export default function ProfitabilityTab({ clientId }: Props) {
 
   if (loading) return (
     <div className="flex items-center justify-center py-20">
-      <div className="h-6 w-6 animate-spin rounded-full border-2 border-purple-600 border-t-transparent" />
+      <div className="h-6 w-6 animate-spin rounded-full border-2 border-bba-action border-t-transparent" />
     </div>
   )
 
@@ -90,7 +90,7 @@ export default function ProfitabilityTab({ clientId }: Props) {
       <div className="rounded-xl border border-slate-200 bg-white p-5 space-y-3">
         <h3 className="text-sm font-semibold text-slate-700">Revenue vs Cost</h3>
         {[
-          { label: 'BK Revenue',   value: revenue,   color: 'bg-purple-500' },
+          { label: 'BK Revenue',   value: revenue,   color: 'bg-bba-action' },
           { label: 'Cost of Delivery', value: totalCost, color: isPositive ? 'bg-rose-400' : 'bg-red-600' },
         ].map(row => (
           <div key={row.label}>

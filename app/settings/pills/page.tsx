@@ -249,7 +249,7 @@ export default function PillManagerPage() {
         <div className="flex shrink-0 items-center gap-3">
           <button
             onClick={handleReset}
-            className="rounded-lg border border-surface-border bg-white px-4 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:border-bba-primary hover:text-bba-primary"
+            className="rounded-lg border border-surface-border bg-white px-4 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:border-bba-action hover:text-bba-primary"
           >
             Reset Defaults
           </button>
@@ -327,7 +327,7 @@ export default function PillManagerPage() {
         </p>
         <button
           onClick={handleReset}
-          className="rounded-lg border border-surface-border bg-white px-4 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:border-bba-primary hover:text-bba-primary"
+          className="rounded-lg border border-surface-border bg-white px-4 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:border-bba-action hover:text-bba-primary"
         >
           Reset Defaults
         </button>

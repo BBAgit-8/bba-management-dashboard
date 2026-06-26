@@ -166,7 +166,7 @@ export default function DashboardTab({ client, projectCode }: Props) {
             { label: 'Net Bkkeeper Hrs', value: fmtHrs(NET_BK), highlight: true },
           ].map(({ label, value, highlight }) => (
             <div key={label} className="px-6 py-4 text-center">
-              <p className={`text-2xl font-bold ${highlight ? 'text-purple-700' : 'text-slate-700'}`}>{value}</p>
+              <p className={`text-2xl font-bold ${highlight ? 'text-bba-action' : 'text-slate-700'}`}>{value}</p>
               <p className="text-xs text-slate-400 mt-1">{label}</p>
             </div>
           ))}
@@ -187,7 +187,7 @@ export default function DashboardTab({ client, projectCode }: Props) {
         {/* Progress bar */}
         <div className="px-6 pb-4 bg-purple-50">
           <div className="h-2 rounded-full bg-purple-100">
-            <div className={`h-2 rounded-full transition-all ${isOver ? 'bg-red-500' : 'bg-purple-500'}`}
+            <div className={`h-2 rounded-full transition-all ${isOver ? 'bg-red-500' : 'bg-bba-action'}`}
               style={{ width: `${Math.min(pct, 100)}%` }} />
           </div>
           <div className="flex justify-between mt-1.5 text-xs text-slate-400">
@@ -208,7 +208,7 @@ export default function DashboardTab({ client, projectCode }: Props) {
           </div>
           <div className="grid grid-cols-5 gap-3">
             {[
-              { label: 'Bookkeeping', value: harvest.bkpr,  color: 'text-purple-700' },
+              { label: 'Bookkeeping', value: harvest.bkpr,  color: 'text-bba-action' },
               { label: 'QA',          value: harvest.qa,    color: 'text-violet-600' },
               { label: 'Year-End',    value: harvest.ye,    color: 'text-amber-600'  },
               { label: 'Mgmt/CS',     value: harvest.mgmt,  color: 'text-pink-600'   },
@@ -264,11 +264,11 @@ export default function DashboardTab({ client, projectCode }: Props) {
             onChange={e => setRawNotes(e.target.value)}
             placeholder="Paste raw meeting notes here…"
             rows={4}
-            className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
+            className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-bba-action resize-none"
           />
           <div className="flex items-center gap-3">
             <button type="submit" disabled={submitState === 'loading' || !rawNotes.trim()}
-              className="rounded-lg bg-bba-primary px-4 py-2 text-sm font-semibold text-white hover:bg-bba-primary/85 disabled:opacity-50 transition-colors">
+              className="rounded-lg bg-bba-action px-4 py-2 text-sm font-semibold text-white hover:bg-bba-action/85 disabled:opacity-50 transition-colors">
               {submitState === 'loading' ? 'Processing…' : 'Process Notes'}
             </button>
             {submitState === 'done'  && <span className="text-xs text-green-600">✓ Saved</span>}

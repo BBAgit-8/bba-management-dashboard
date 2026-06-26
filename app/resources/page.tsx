@@ -60,18 +60,18 @@ function AddSheetCard({ onAdd }: { onAdd: (r: Resource) => void }) {
       <form onSubmit={handleSubmit} className="space-y-3">
         <input type="text" value={title} onChange={e => setTitle(e.target.value)}
           placeholder="Title (optional)"
-          className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+          className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-bba-action" />
         <input type="text" value={desc} onChange={e => setDesc(e.target.value)}
           placeholder="Description (optional)"
-          className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+          className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-bba-action" />
         <input type="url" value={url} onChange={e => setUrl(e.target.value)}
           placeholder="Paste Google Sheet URL or any link…"
           autoFocus
-          className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono text-xs" />
+          className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-bba-action font-mono text-xs" />
         {error && <p className="text-xs text-red-500">{error}</p>}
         <div className="flex gap-2">
           <button type="submit"
-            className="rounded-lg bg-bba-primary px-4 py-2 text-xs font-semibold text-white hover:bg-bba-primary/85">
+            className="rounded-lg bg-bba-action px-4 py-2 text-xs font-semibold text-white hover:bg-bba-action/85">
             Add Resource
           </button>
           <button type="button" onClick={() => setOpen(false)}
@@ -139,7 +139,7 @@ const CATEGORY_LABEL: Record<Resource['category'], string> = {
 const CATEGORY_COLOR: Record<Resource['category'], { bg: string; text: string }> = {
   sheet: { bg: 'bg-green-100', text: 'text-green-700' },
   tool:  { bg: 'bg-blue-100',  text: 'text-blue-700'  },
-  app:   { bg: 'bg-purple-100',text: 'text-purple-700' },
+  app:   { bg: 'bg-purple-100',text: 'text-bba-action' },
 }
 
 export default function ResourcesPage() {
@@ -231,8 +231,8 @@ export default function ResourcesPage() {
                         onClick={() => toggleEmbed(resource.id)}
                         className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold border transition-all ${
                           isExpanded
-                            ? 'bg-purple-600 text-white border-purple-600'
-                            : 'bg-white text-slate-600 border-slate-200 hover:border-purple-300 hover:text-purple-700'
+                            ? 'bg-bba-action text-white border-bba-action'
+                            : 'bg-white text-slate-600 border-slate-200 hover:border-purple-300 hover:text-bba-action'
                         }`}
                       >
                         <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -273,7 +273,7 @@ export default function ResourcesPage() {
                   <div className="border-t border-slate-100">
                     <div className="flex items-center justify-between px-5 py-2 bg-slate-50 border-b border-slate-100">
                       <p className="text-xs text-slate-500">
-                        Preview — for editing, use <a href={resource.url} target="_blank" rel="noopener noreferrer" className="text-purple-600 underline underline-offset-2">Open ↗</a>
+                        Preview — for editing, use <a href={resource.url} target="_blank" rel="noopener noreferrer" className="text-bba-action underline underline-offset-2">Open ↗</a>
                       </p>
                       <button onClick={() => setExpandedId(null)} className="text-xs text-slate-400 hover:text-slate-600">
                         ✕ Close

@@ -67,7 +67,7 @@ export default function HubConfirmPage() {
         <div className="rounded-2xl bg-white p-8 shadow-2xl">
           {!needsPassword ? (
             <div className="flex flex-col items-center gap-3 py-4">
-              <div className="h-6 w-6 animate-spin rounded-full border-2 border-purple-600 border-t-transparent" />
+              <div className="h-6 w-6 animate-spin rounded-full border-2 border-bba-action border-t-transparent" />
               <p className="text-sm text-slate-600">{status}</p>
             </div>
           ) : (
@@ -81,11 +81,11 @@ export default function HubConfirmPage() {
                 <input type="password" required minLength={8} value={password}
                   onChange={e => setPassword(e.target.value)}
                   placeholder="At least 8 characters" autoFocus autoComplete="new-password"
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-bba-action" />
               </div>
               {error && <p className="text-xs text-red-500 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
               <button type="submit" disabled={loading}
-                className="w-full rounded-lg bg-purple-700 py-2.5 text-sm font-semibold text-white hover:bg-purple-800 transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
+                className="w-full rounded-lg bg-bba-action py-2.5 text-sm font-semibold text-white hover:bg-purple-800 transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
                 {loading && <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>}
                 {loading ? 'Saving…' : 'Activate Account'}
               </button>

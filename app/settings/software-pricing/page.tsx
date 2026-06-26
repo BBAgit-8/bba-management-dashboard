@@ -136,12 +136,12 @@ export default function SoftwarePricingPage() {
 
       <div className="flex items-center gap-3 flex-wrap">
         <button onClick={() => handleSave(false)} disabled={saving || !isDirty || loading}
-          className="rounded-lg bg-bba-primary px-5 py-2 text-sm font-semibold text-white hover:bg-bba-primary/85 transition-colors disabled:opacity-50 flex items-center gap-2">
+          className="rounded-lg bg-bba-action px-5 py-2 text-sm font-semibold text-white hover:bg-bba-action/85 transition-colors disabled:opacity-50 flex items-center gap-2">
           {saving && <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>}
           {saving ? 'Saving…' : 'Save Changes'}
         </button>
         <button onClick={() => handleSave(true)} disabled={saving || !isDirty || loading}
-          className="rounded-lg border border-purple-300 bg-purple-50 px-5 py-2 text-sm font-semibold text-purple-700 hover:bg-purple-100 transition-colors disabled:opacity-50">
+          className="rounded-lg border border-purple-300 bg-purple-50 px-5 py-2 text-sm font-semibold text-bba-action hover:bg-purple-100 transition-colors disabled:opacity-50">
           Save + Update Existing Clients
         </button>
         {isDirty && (
@@ -166,7 +166,7 @@ function PriceRow({ label, value, onChange }: { label: string; value: string; on
           type="number" min={0} step="0.01"
           value={value}
           onChange={e => onChange(e.target.value)}
-          className="w-24 rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-right text-slate-700 tabular-nums focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+          className="w-24 rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-right text-slate-700 tabular-nums focus:outline-none focus:ring-2 focus:ring-bba-action focus:border-transparent"
         />
         <span className="text-xs text-slate-400">/mo</span>
       </div>

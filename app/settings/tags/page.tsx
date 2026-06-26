@@ -129,7 +129,7 @@ export default function TagSettingsPage() {
 
           <button
             type="submit" disabled={saving || !name.trim()}
-            className="inline-flex items-center gap-2 rounded-lg bg-bba-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-bba-primary/85 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-lg bg-bba-action px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-bba-action/85 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />

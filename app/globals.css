@@ -5,6 +5,7 @@
   --background:     #f0eeed;
   --foreground:     #1a0030;
   --bba-primary:    #4e008e;
+  --bba-action:     #b20476;
   --bba-secondary:  #8a6a90;
   --bba-highlight:  #b20476;
   --surface-card:   #ffffff;
@@ -17,6 +18,7 @@
   --color-background:    var(--background);
   --color-foreground:    var(--foreground);
   --color-bba-primary:   var(--bba-primary);
+  --color-bba-action:    var(--bba-action);
   --color-bba-secondary: var(--bba-secondary);
   --color-bba-highlight: var(--bba-highlight);
 
