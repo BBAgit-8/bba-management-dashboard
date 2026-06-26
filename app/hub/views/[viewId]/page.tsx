@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { supabaseClient } from '@/lib/supabaseClient'
@@ -54,6 +54,14 @@ function fmtVal(key: string, val: any): string {
   return String(val)
 }
 
+function colLabel(key: string): string {
+  if (key === 'name') return 'Client Name'
+  if (key === 'code') return 'Code'
+  return key.replace(/([A-Z])/g, ' $1').trim()
+}
+
+const EDITABLE_TEXT = new Set(['clientContactName', 'clientContactEmail', 'clientContactPhone', 'notes', 'bookkeeper'])
+
 export default function HubViewPage() {
   const { viewId } = useParams<{ viewId: string }>()
   const [view,       setView]       = useState<ClientView | null>(null)
@@ -64,6 +72,14 @@ export default function HubViewPage() {
   const [search,     setSearch]     = useState('')
   const [savingId,   setSavingId]   = useState<string | null>(null)
   const [localEdits, setLocalEdits] = useState<Record<string, Record<string, string>>>({})
+
+  // Sort state
+  const [sortKey, setSortKey] = useState<string>('name')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
+
+  // Column widths — start from view definition, user can resize
+  const [colWidths, setColWidths] = useState<Record<string, number>>({})
+  const resizingCol = useRef<{ key: string; startX: number; startW: number } | null>(null)
 
   useEffect(() => {
     async function load() {
@@ -79,13 +95,46 @@ export default function HubViewPage() {
       const vJson = await vRes.json()
       const cJson = await cRes.json()
       const found = (vJson.views ?? []).find((v: ClientView) => v.id === viewId)
-      if (found) setView(found)
+      if (found) {
+        setView(found)
+        setSortKey(found.sortKey ?? 'name')
+        setSortDir((found.sortDir ?? 'asc') as 'asc' | 'desc')
+        setColWidths(found.colWidths ?? {})
+      }
       if (Array.isArray(cJson.clients)) setAllClients(cJson.clients)
       setLoading(false)
     }
     load()
   }, [viewId])
 
+  // Column resize handlers
+  function startResize(e: React.MouseEvent, colKey: string, currentW: number) {
+    e.preventDefault()
+    e.stopPropagation()
+    resizingCol.current = { key: colKey, startX: e.clientX, startW: currentW }
+
+    function onMove(ev: MouseEvent) {
+      if (!resizingCol.current) return
+      const delta = ev.clientX - resizingCol.current.startX
+      const newW = Math.max(60, resizingCol.current.startW + delta)
+      setColWidths(prev => ({ ...prev, [resizingCol.current!.key]: newW }))
+    }
+    function onUp() {
+      resizingCol.current = null
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+  }
+
+  // Sort toggle
+  function handleSort(key: string) {
+    if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    else { setSortKey(key); setSortDir('asc') }
+  }
+
+  // Patch cell
   async function patchCell(client: Client, field: string, value: string) {
     setLocalEdits(prev => ({ ...prev, [client.id]: { ...(prev[client.id] ?? {}), [field]: value } }))
     setSavingId(client.id)
@@ -101,10 +150,11 @@ export default function HubViewPage() {
         if (next[client.id]) delete next[client.id][field]
         return next
       })
-    } catch { /* revert would go here */ }
+    } catch { /* silent */ }
     finally { setSavingId(null) }
   }
 
+  // Filter
   const filtered = allClients.filter(client => {
     if (!showAll && empName) {
       if ((client.bookkeeper ?? '').toLowerCase() !== empName.toLowerCase()) return false
@@ -131,12 +181,16 @@ export default function HubViewPage() {
     return true
   })
 
-  // Columns to show — from view definition, or fallback
+  // Sort
+  const sorted = [...filtered].sort((a, b) => {
+    const aVal = sortKey === 'status' ? deriveStatus(a) : (a[sortKey] ?? '')
+    const bVal = sortKey === 'status' ? deriveStatus(b) : (b[sortKey] ?? '')
+    const cmp = String(aVal).localeCompare(String(bVal), undefined, { numeric: true })
+    return sortDir === 'asc' ? cmp : -cmp
+  })
+
   const cols = view ? view.colOrder.filter(k => view.visibleCols.includes(k)) : ['name', 'status', 'bookkeeper']
   const canEdit = view?.allowEditing ?? false
-
-  // Editable text fields
-  const EDITABLE_TEXT = new Set(['clientContactName', 'clientContactEmail', 'clientContactPhone', 'notes', 'bookkeeper'])
 
   if (loading) return (
     <div className="space-y-4">
@@ -159,7 +213,7 @@ export default function HubViewPage() {
         <div>
           <h1 className="text-2xl font-semibold text-slate-800">{view.name}</h1>
           <p className="mt-1 text-sm text-slate-500">
-            {filtered.length} client{filtered.length !== 1 ? 's' : ''}
+            {sorted.length} client{sorted.length !== 1 ? 's' : ''}
             {!showAll && empName ? ` · ${empName.split(' ')[0]}'s clients` : ' · All bookkeepers'}
             {canEdit && <span className="ml-2 text-xs text-bba-action font-medium">· Editing enabled</span>}
           </p>
@@ -187,7 +241,7 @@ export default function HubViewPage() {
       </div>
 
       {/* Table */}
-      {filtered.length === 0 ? (
+      {sorted.length === 0 ? (
         <div className="rounded-xl border border-dashed border-slate-300 bg-white p-12 text-center">
           <p className="text-slate-400 text-sm">
             {search ? 'No clients match your search.' : !showAll ? 'No clients assigned to you match this view.' : 'No clients match this view.'}
@@ -201,22 +255,39 @@ export default function HubViewPage() {
       ) : (
         <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-sm">
+            <table className="w-full border-collapse text-sm" style={{ tableLayout: 'fixed' }}>
               <thead>
                 <tr style={{ backgroundColor: '#4e008e' }}>
-                  {cols.map(colKey => (
-                    <th key={colKey}
-                      className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-white whitespace-nowrap"
-                      style={{ minWidth: view.colWidths?.[colKey] ?? 120 }}>
-                      {colKey === 'name' ? 'Client Name'
-                        : colKey === 'code' ? 'Code'
-                        : colKey.replace(/([A-Z])/g, ' $1').trim()}
-                    </th>
-                  ))}
+                  {cols.map(colKey => {
+                    const w = colWidths[colKey] ?? 150
+                    const isActive = sortKey === colKey
+                    return (
+                      <th key={colKey}
+                        className="relative px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-white select-none"
+                        style={{ width: w, minWidth: w }}>
+                        {/* Sort button */}
+                        <button
+                          onClick={() => handleSort(colKey)}
+                          className="flex items-center gap-1 hover:text-white/80 transition-colors w-full">
+                          <span className="truncate">{colLabel(colKey)}</span>
+                          <span className="text-[9px] opacity-60 shrink-0">
+                            {isActive ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}
+                          </span>
+                        </button>
+                        {/* Resize handle */}
+                        <div
+                          onMouseDown={e => startResize(e, colKey, w)}
+                          className="absolute right-0 top-0 h-full w-3 cursor-col-resize flex items-center justify-center group"
+                          style={{ touchAction: 'none' }}>
+                          <div className="w-px h-4 bg-white/30 group-hover:bg-white/70 transition-colors" />
+                        </div>
+                      </th>
+                    )
+                  })}
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((client, idx) => {
+                {sorted.map((client, idx) => {
                   const status = deriveStatus(client)
                   const statusStyle = STATUS_COLORS[status] ?? STATUS_COLORS.active
                   const isSaving = savingId === client.id
@@ -228,9 +299,10 @@ export default function HubViewPage() {
                         const rawVal = localEdits[client.id]?.[colKey] ?? client[colKey]
 
                         if (colKey === 'name') return (
-                          <td key={colKey} className="px-4 py-3 sticky left-0 z-10 bg-white" style={{ boxShadow: '2px 0 4px -1px rgba(0,0,0,0.06)', backgroundColor: rowBg }}>
+                          <td key={colKey} className="px-4 py-3 sticky left-0 z-10"
+                            style={{ backgroundColor: rowBg, boxShadow: '2px 0 4px -1px rgba(0,0,0,0.06)' }}>
                             <Link href={`/hub/clients/${client.harvestProjectCode}`}
-                              className="font-medium text-slate-800 hover:text-bba-action transition-colors whitespace-nowrap">
+                              className="font-medium text-slate-800 hover:text-bba-action transition-colors block truncate">
                               {client.name}
                             </Link>
                           </td>
@@ -253,20 +325,18 @@ export default function HubViewPage() {
                           </td>
                         )
 
-                        // Editable text cell
                         if (canEdit && EDITABLE_TEXT.has(colKey)) return (
                           <td key={colKey} className="px-4 py-3">
                             <input
                               defaultValue={rawVal ?? ''}
                               onBlur={e => { if (e.target.value !== (client[colKey] ?? '')) patchCell(client, colKey, e.target.value) }}
-                              className="w-full min-w-[120px] rounded border border-transparent bg-transparent px-1 py-0.5 text-sm text-slate-700 hover:border-slate-200 focus:border-bba-action focus:outline-none focus:ring-1 focus:ring-bba-action"
+                              className="w-full rounded border border-transparent bg-transparent px-1 py-0.5 text-sm text-slate-700 hover:border-slate-200 focus:border-bba-action focus:outline-none focus:ring-1 focus:ring-bba-action"
                             />
                           </td>
                         )
 
-                        // Read-only cell
                         return (
-                          <td key={colKey} className="px-4 py-3 text-slate-600 whitespace-nowrap">
+                          <td key={colKey} className="px-4 py-3 text-slate-600 truncate">
                             {fmtVal(colKey, rawVal)}
                           </td>
                         )
