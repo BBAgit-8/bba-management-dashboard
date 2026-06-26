@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { supabaseClient } from '@/lib/supabaseClient'
@@ -8,6 +8,9 @@ import { supabaseClient } from '@/lib/supabaseClient'
 type ClientView = {
   id:             string
   name:           string
+  visibleCols:    string[]
+  colOrder:       string[]
+  colWidths:      Record<string, number>
   filters:        {
     statusFilters:     string[]
     bookkeeperFilters: string[]
@@ -16,145 +19,141 @@ type ClientView = {
     cadenceFilters:    string[]
     search:            string
   }
+  sortKey:        string
+  sortDir:        string
   sharedWithTeam: boolean
+  allowEditing:   boolean
 }
 
-type Client = {
-  id:                 string
-  name:               string
-  harvestProjectCode: string
-  entityType:         string | null
-  processingCadence:  string | null
-  projectType:        string | null
-  archiveStatus:      string
-  bookkeeper:         string | null
-  tags:               { name: string; color: string }[]
-}
+type Client = Record<string, any>
 
-const CADENCE_LABEL: Record<string, string> = {
-  WEEKLY: 'Weekly', BIWEEKLY: 'Bi-Weekly', MONTHLY: 'Monthly', QUARTERLY: 'Quarterly',
-}
-
-const PTYPE_STYLE: Record<string, { bg: string; text: string; label: string }> = {
-  ANNUAL:              { bg: 'bg-blue-100',   text: 'text-blue-700',   label: 'Annual'    },
-  CLEAN_UP:            { bg: 'bg-orange-100', text: 'text-orange-700', label: 'Cleanup'   },
-  MONTHLY_MAINTENANCE: { bg: 'bg-purple-100', text: 'text-bba-action', label: 'Recurring' },
-  QBO_ONLY:            { bg: 'bg-sky-100',    text: 'text-sky-700',    label: 'QBO Only'  },
-  RECURRING:           { bg: 'bg-teal-100',   text: 'text-teal-700',   label: 'Recurring' },
+const STATUS_COLORS: Record<string, { bg: string; text: string; label: string }> = {
+  active:      { bg: '#dcfce7', text: '#166534', label: 'Active'       },
+  offboarding: { bg: '#fef9c3', text: '#854d0e', label: 'Off-boarding' },
+  inactive:    { bg: '#f1f5f9', text: '#475569', label: 'Inactive'     },
+  archived:    { bg: '#f1f5f9', text: '#94a3b8', label: 'Archived'     },
 }
 
 function deriveStatus(client: Client): string {
   if (client.archiveStatus === 'ARCHIVED') return 'archived'
-  return 'active'
+  if (client.archiveStatus === 'OFFBOARDING') return 'offboarding'
+  if (!client.contractEndDate) return 'active'
+  const end = new Date(client.contractEndDate.slice(0, 10))
+  const now = new Date(); now.setHours(0,0,0,0)
+  return end < now ? 'inactive' : 'active'
 }
 
-function initials(name: string) {
-  return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
+function fmtVal(key: string, val: any): string {
+  if (val === null || val === undefined || val === '') return '—'
+  if (typeof val === 'boolean') return val ? 'Yes' : 'No'
+  if ((key.toLowerCase().includes('rate') || key.toLowerCase().includes('cost')) && typeof val === 'number')
+    return `$${Number(val).toLocaleString()}`
+  if (key.toLowerCase().includes('date') && typeof val === 'string')
+    return val.slice(0, 10)
+  if (typeof val === 'string') return val.replace(/_/g, ' ')
+  return String(val)
 }
 
 export default function HubViewPage() {
   const { viewId } = useParams<{ viewId: string }>()
-
-  const [view,      setView]      = useState<ClientView | null>(null)
+  const [view,       setView]       = useState<ClientView | null>(null)
   const [allClients, setAllClients] = useState<Client[]>([])
-  const [empName,   setEmpName]   = useState('')
-  const [loading,   setLoading]   = useState(true)
-  const [showAll,   setShowAll]   = useState(false)
-  const [search,    setSearch]    = useState('')
+  const [empName,    setEmpName]    = useState('')
+  const [loading,    setLoading]    = useState(true)
+  const [showAll,    setShowAll]    = useState(false)
+  const [search,     setSearch]     = useState('')
+  const [savingId,   setSavingId]   = useState<string | null>(null)
+  const [localEdits, setLocalEdits] = useState<Record<string, Record<string, string>>>({})
 
   useEffect(() => {
     async function load() {
       setLoading(true)
-
-      // Get logged-in user
       const { data } = await supabaseClient.auth.getSession()
       if (!data.session) return
-
       const email = data.session.user.email ?? ''
       const meRes  = await fetch(`/api/hub/me?email=${encodeURIComponent(email)}`)
       const meJson = await meRes.json()
       if (meJson.name) setEmpName(meJson.name)
 
-      // Load views
-      const vRes  = await fetch('/api/views')
+      const [vRes, cRes] = await Promise.all([fetch('/api/views'), fetch('/api/clients')])
       const vJson = await vRes.json()
+      const cJson = await cRes.json()
       const found = (vJson.views ?? []).find((v: ClientView) => v.id === viewId)
       if (found) setView(found)
-
-      // Load all clients (we filter client-side)
-      const cRes  = await fetch('/api/clients')
-      const cJson = await cRes.json()
       if (Array.isArray(cJson.clients)) setAllClients(cJson.clients)
-
       setLoading(false)
     }
     load()
   }, [viewId])
 
-  // Apply view filters + my-clients toggle + search
-  const filtered = allClients.filter(client => {
-    // My clients filter
-    if (!showAll && empName) {
-      const bk = (client.bookkeeper ?? '').toLowerCase()
-      if (bk !== empName.toLowerCase()) return false
-    }
+  async function patchCell(client: Client, field: string, value: string) {
+    setLocalEdits(prev => ({ ...prev, [client.id]: { ...(prev[client.id] ?? {}), [field]: value } }))
+    setSavingId(client.id)
+    try {
+      await fetch(`/api/clients/${client.harvestProjectCode}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [field]: value || null }),
+      })
+      setAllClients(prev => prev.map(c => c.id === client.id ? { ...c, [field]: value || null } : c))
+      setLocalEdits(prev => {
+        const next = { ...prev }
+        if (next[client.id]) delete next[client.id][field]
+        return next
+      })
+    } catch { /* revert would go here */ }
+    finally { setSavingId(null) }
+  }
 
-    // Skip archived unless view explicitly includes them
+  const filtered = allClients.filter(client => {
+    if (!showAll && empName) {
+      if ((client.bookkeeper ?? '').toLowerCase() !== empName.toLowerCase()) return false
+    }
     const status = deriveStatus(client)
-    if (view?.filters.statusFilters?.length) {
+    if (view?.filters?.statusFilters?.length) {
       if (!view.filters.statusFilters.includes(status)) return false
     } else {
       if (status === 'archived') return false
     }
-
-    // Entity type filter
-    if (view?.filters.entityTypeFilters?.length) {
+    if (view?.filters?.entityTypeFilters?.length) {
       if (!view.filters.entityTypeFilters.includes(client.entityType ?? '')) return false
     }
-
-    // Project type filter
-    if (view?.filters.ptFilters?.length) {
+    if (view?.filters?.ptFilters?.length) {
       if (!view.filters.ptFilters.includes(client.projectType ?? '')) return false
     }
-
-    // Cadence filter
-    if (view?.filters.cadenceFilters?.length) {
+    if (view?.filters?.cadenceFilters?.length) {
       if (!view.filters.cadenceFilters.includes(client.processingCadence ?? '')) return false
     }
-
-    // Search
     if (search) {
       const q = search.toLowerCase()
-      if (!client.name.toLowerCase().includes(q) && !client.harvestProjectCode.toLowerCase().includes(q)) return false
+      if (!client.name.toLowerCase().includes(q) && !(client.harvestProjectCode ?? '').toLowerCase().includes(q)) return false
     }
-
     return true
   })
 
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <div className="h-8 w-48 bg-slate-200 rounded animate-pulse" />
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="rounded-xl border border-slate-200 bg-white p-5 animate-pulse h-32" />
-          ))}
-        </div>
-      </div>
-    )
-  }
+  // Columns to show — from view definition, or fallback
+  const cols = view ? view.colOrder.filter(k => view.visibleCols.includes(k)) : ['name', 'status', 'bookkeeper']
+  const canEdit = view?.allowEditing ?? false
 
-  if (!view) {
-    return (
-      <div className="text-center py-20">
-        <p className="text-slate-400">View not found.</p>
-        <Link href="/hub/dashboard" className="mt-4 inline-block text-sm text-bba-action hover:underline">← Back to My Clients</Link>
-      </div>
-    )
-  }
+  // Editable text fields
+  const EDITABLE_TEXT = new Set(['clientContactName', 'clientContactEmail', 'clientContactPhone', 'notes', 'bookkeeper'])
+
+  if (loading) return (
+    <div className="space-y-4">
+      <div className="h-8 w-56 bg-slate-200 rounded animate-pulse" />
+      <div className="h-64 bg-slate-100 rounded-xl animate-pulse" />
+    </div>
+  )
+
+  if (!view) return (
+    <div className="text-center py-20 space-y-3">
+      <p className="text-slate-400">View not found.</p>
+      <Link href="/hub/dashboard" className="text-sm text-bba-action hover:underline">← Back to My Clients</Link>
+    </div>
+  )
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
@@ -162,44 +161,36 @@ export default function HubViewPage() {
           <p className="mt-1 text-sm text-slate-500">
             {filtered.length} client{filtered.length !== 1 ? 's' : ''}
             {!showAll && empName ? ` · ${empName.split(' ')[0]}'s clients` : ' · All bookkeepers'}
+            {canEdit && <span className="ml-2 text-xs text-bba-action font-medium">· Editing enabled</span>}
           </p>
         </div>
-
         {/* My Clients / All toggle */}
         <div className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white p-1 shrink-0">
-          <button
-            onClick={() => setShowAll(false)}
-            className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-all ${
-              !showAll ? 'bg-bba-primary text-white shadow-sm' : 'text-slate-500 hover:text-slate-700'
-            }`}>
+          <button onClick={() => setShowAll(false)}
+            className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-all ${!showAll ? 'bg-bba-primary text-white shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
             My Clients
           </button>
-          <button
-            onClick={() => setShowAll(true)}
-            className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-all ${
-              showAll ? 'bg-bba-primary text-white shadow-sm' : 'text-slate-500 hover:text-slate-700'
-            }`}>
+          <button onClick={() => setShowAll(true)}
+            className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-all ${showAll ? 'bg-bba-primary text-white shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
             All Clients
           </button>
         </div>
       </div>
 
       {/* Search */}
-      <div className="relative max-w-sm">
-        <svg className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400"
-          fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div className="relative max-w-xs">
+        <svg className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
         </svg>
-        <input type="text" value={search} onChange={e => setSearch(e.target.value)}
-          placeholder="Search clients…"
-          className="w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 py-2 text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-bba-action" />
+        <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search clients…"
+          className="w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-bba-action" />
       </div>
 
-      {/* Client grid */}
+      {/* Table */}
       {filtered.length === 0 ? (
         <div className="rounded-xl border border-dashed border-slate-300 bg-white p-12 text-center">
           <p className="text-slate-400 text-sm">
-            {search ? 'No clients match your search.' : showAll ? 'No clients match this view.' : 'No clients assigned to you match this view.'}
+            {search ? 'No clients match your search.' : !showAll ? 'No clients assigned to you match this view.' : 'No clients match this view.'}
           </p>
           {!showAll && (
             <button onClick={() => setShowAll(true)} className="mt-3 text-sm text-bba-action hover:underline">
@@ -208,45 +199,84 @@ export default function HubViewPage() {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map(client => {
-            const pt = PTYPE_STYLE[client.projectType ?? 'RECURRING'] ?? PTYPE_STYLE.RECURRING
-            return (
-              <Link key={client.id} href={`/hub/clients/${client.harvestProjectCode}`}
-                className="group rounded-xl border border-slate-200 bg-white p-5 hover:shadow-md hover:border-purple-200 transition-all space-y-4">
-                <div className="flex items-start gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold"
-                    style={{ backgroundColor: 'rgba(78,0,142,0.12)', color: '#4e008e' }}>
-                    {initials(client.name)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-slate-800 group-hover:text-bba-action transition-colors truncate">{client.name}</p>
-                    <p className="text-xs font-mono text-slate-400">{client.harvestProjectCode}</p>
-                    {showAll && client.bookkeeper && (
-                      <p className="text-[10px] text-slate-400 mt-0.5">{client.bookkeeper}</p>
-                    )}
-                  </div>
-                  <svg className="h-4 w-4 text-slate-300 group-hover:text-purple-400 transition-colors shrink-0 mt-0.5"
-                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${pt.bg} ${pt.text}`}>{pt.label}</span>
-                  {client.entityType && (
-                    <span className="rounded-full px-2 py-0.5 text-[10px] font-semibold bg-slate-100 text-slate-600">
-                      {client.entityType.replace(/_/g, ' ')}
-                    </span>
-                  )}
-                  {client.processingCadence && (
-                    <span className="rounded-full px-2 py-0.5 text-[10px] font-semibold bg-indigo-50 text-indigo-600">
-                      {CADENCE_LABEL[client.processingCadence] ?? client.processingCadence}
-                    </span>
-                  )}
-                </div>
-              </Link>
-            )
-          })}
+        <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse text-sm">
+              <thead>
+                <tr style={{ backgroundColor: '#4e008e' }}>
+                  {cols.map(colKey => (
+                    <th key={colKey}
+                      className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-white whitespace-nowrap"
+                      style={{ minWidth: view.colWidths?.[colKey] ?? 120 }}>
+                      {colKey === 'name' ? 'Client Name'
+                        : colKey === 'code' ? 'Code'
+                        : colKey.replace(/([A-Z])/g, ' $1').trim()}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((client, idx) => {
+                  const status = deriveStatus(client)
+                  const statusStyle = STATUS_COLORS[status] ?? STATUS_COLORS.active
+                  const isSaving = savingId === client.id
+                  const rowBg = idx % 2 === 0 ? '#ffffff' : '#faf5ff'
+
+                  return (
+                    <tr key={client.id} style={{ backgroundColor: isSaving ? '#f5f0ff' : rowBg }}>
+                      {cols.map(colKey => {
+                        const rawVal = localEdits[client.id]?.[colKey] ?? client[colKey]
+
+                        if (colKey === 'name') return (
+                          <td key={colKey} className="px-4 py-3 sticky left-0 z-10 bg-white" style={{ boxShadow: '2px 0 4px -1px rgba(0,0,0,0.06)', backgroundColor: rowBg }}>
+                            <Link href={`/hub/clients/${client.harvestProjectCode}`}
+                              className="font-medium text-slate-800 hover:text-bba-action transition-colors whitespace-nowrap">
+                              {client.name}
+                            </Link>
+                          </td>
+                        )
+
+                        if (colKey === 'status') return (
+                          <td key={colKey} className="px-4 py-3">
+                            <span className="rounded-full px-2.5 py-0.5 text-[11px] font-semibold whitespace-nowrap"
+                              style={{ backgroundColor: statusStyle.bg, color: statusStyle.text }}>
+                              {statusStyle.label}
+                            </span>
+                          </td>
+                        )
+
+                        if (colKey === 'code') return (
+                          <td key={colKey} className="px-4 py-3">
+                            <span className="font-mono text-xs text-slate-700 bg-slate-100 border border-slate-200 rounded px-1.5 py-0.5">
+                              {client.harvestProjectCode}
+                            </span>
+                          </td>
+                        )
+
+                        // Editable text cell
+                        if (canEdit && EDITABLE_TEXT.has(colKey)) return (
+                          <td key={colKey} className="px-4 py-3">
+                            <input
+                              defaultValue={rawVal ?? ''}
+                              onBlur={e => { if (e.target.value !== (client[colKey] ?? '')) patchCell(client, colKey, e.target.value) }}
+                              className="w-full min-w-[120px] rounded border border-transparent bg-transparent px-1 py-0.5 text-sm text-slate-700 hover:border-slate-200 focus:border-bba-action focus:outline-none focus:ring-1 focus:ring-bba-action"
+                            />
+                          </td>
+                        )
+
+                        // Read-only cell
+                        return (
+                          <td key={colKey} className="px-4 py-3 text-slate-600 whitespace-nowrap">
+                            {fmtVal(colKey, rawVal)}
+                          </td>
+                        )
+                      })}
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>

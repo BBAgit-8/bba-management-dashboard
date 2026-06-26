@@ -80,6 +80,7 @@ type ClientView = {
   sortKey:        string
   sortDir:        string
   sharedWithTeam: boolean
+  allowEditing:   boolean
   createdAt:      string
 }
 
@@ -372,20 +373,22 @@ function ViewsDropdown({
   activeViewId: string | null
   saving: boolean
   onApply:       (v: ClientView) => void
-  onSaveNew:     (name: string, shared: boolean) => void
+  onSaveNew:     (name: string, shared: boolean, editable: boolean) => void
   onUpdate:      (id: string) => void
   onDelete:      (id: string) => void
   onRename:      (id: string, name: string) => void
-  onToggleShare: (id: string, shared: boolean) => void
+  onToggleShare: (id: string, shared: boolean, editable: boolean) => void
   onClearView:   () => void
 }) {
   const [open,        setOpen]        = useState(false)
   const [mode,        setMode]        = useState<'list' | 'new' | 'edit'>('list')
   const [newName,     setNewName]     = useState('')
   const [newShared,   setNewShared]   = useState(false)
+  const [newEditable, setNewEditable] = useState(false)
   const [editingId,   setEditingId]   = useState<string | null>(null)
   const [editName,    setEditName]    = useState('')
   const [editShared,  setEditShared]  = useState(false)
+  const [editEditable,setEditEditable]= useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -419,18 +422,25 @@ function ViewsDropdown({
             <div className="p-4 space-y-3">
               <p className="text-sm font-semibold text-slate-700">Save current view as…</p>
               <input autoFocus type="text" value={newName} onChange={e => setNewName(e.target.value)}
-                placeholder="View name" onKeyDown={e => { if (e.key === 'Enter' && newName.trim()) { onSaveNew(newName.trim(), newShared); setNewName(''); setNewShared(false); setOpen(false); setMode('list') } }}
+                placeholder="View name" onKeyDown={e => { if (e.key === 'Enter' && newName.trim()) { onSaveNew(newName.trim(), newShared, newEditable); setNewName(''); setNewShared(false); setNewEditable(false); setOpen(false); setMode('list') } }}
                 className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-bba-action" />
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" checked={newShared} onChange={e => setNewShared(e.target.checked)}
                   className="rounded border-slate-300 text-bba-action focus:ring-bba-action" />
                 <span className="text-xs text-slate-600">Share with team (visible in Hub)</span>
               </label>
+              {newShared && (
+                <label className="flex items-center gap-2 cursor-pointer pl-1">
+                  <input type="checkbox" checked={newEditable} onChange={e => setNewEditable(e.target.checked)}
+                    className="rounded border-slate-300 text-bba-action focus:ring-bba-action" />
+                  <span className="text-xs text-slate-600">Allow team editing</span>
+                </label>
+              )}
               <div className="flex gap-2">
                 <button onClick={() => { setMode('list'); setNewName('') }}
                   className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50">Cancel</button>
                 <button disabled={!newName.trim() || saving}
-                  onClick={() => { onSaveNew(newName.trim(), newShared); setNewName(''); setNewShared(false); setOpen(false); setMode('list') }}
+                  onClick={() => { onSaveNew(newName.trim(), newShared, newEditable); setNewName(''); setNewShared(false); setNewEditable(false); setOpen(false); setMode('list') }}
                   className="flex-1 rounded-lg bg-bba-action px-3 py-2 text-xs font-semibold text-white hover:bg-bba-action disabled:opacity-50">
                   {saving ? 'Saving…' : 'Save View'}
                 </button>
@@ -449,10 +459,17 @@ function ViewsDropdown({
                   className="rounded border-slate-300 text-bba-action focus:ring-bba-action" />
                 <span className="text-xs text-slate-600">Share with team (visible in Hub)</span>
               </label>
+              {editShared && (
+                <label className="flex items-center gap-2 cursor-pointer pl-1">
+                  <input type="checkbox" checked={editEditable} onChange={e => setEditEditable(e.target.checked)}
+                    className="rounded border-slate-300 text-bba-action focus:ring-bba-action" />
+                  <span className="text-xs text-slate-600">Allow team editing</span>
+                </label>
+              )}
               <div className="flex gap-2">
                 <button onClick={() => { setMode('list'); setEditingId(null) }}
                   className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50">Cancel</button>
-                <button onClick={() => { onRename(editingId, editName); onToggleShare(editingId, editShared); setMode('list'); setEditingId(null) }}
+                <button onClick={() => { onRename(editingId, editName); onToggleShare(editingId, editShared, editEditable); setMode('list'); setEditingId(null) }}
                   className="flex-1 rounded-lg bg-bba-action px-3 py-2 text-xs font-semibold text-white hover:bg-bba-action">
                   Save
                 </button>
@@ -476,13 +493,13 @@ function ViewsDropdown({
                 <div key={v.id} className={`flex items-center gap-2 px-3 py-2.5 hover:bg-slate-50 transition-colors ${activeViewId === v.id ? 'bg-purple-50' : ''}`}>
                   <button onClick={() => { onApply(v); setOpen(false) }} className="flex-1 text-left">
                     <p className={`text-sm ${activeViewId === v.id ? 'text-bba-action font-semibold' : 'text-slate-700'}`}>{v.name}</p>
-                    <p className="text-[10px] text-slate-400">{v.sharedWithTeam ? '🔗 Shared with team' : 'Private'}</p>
+                    <p className="text-[10px] text-slate-400">{v.sharedWithTeam ? (v.allowEditing ? '🔗 Shared · editable' : '🔗 Shared · read-only') : 'Private'}</p>
                   </button>
                   <button onClick={() => { onUpdate(v.id) }} title="Update with current settings"
                     className="p-1.5 rounded text-slate-400 hover:text-bba-action hover:bg-purple-50 transition-colors" >
                     <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                   </button>
-                  <button onClick={() => { setEditingId(v.id); setEditName(v.name); setEditShared(v.sharedWithTeam); setMode('edit') }} title="Rename / settings"
+                  <button onClick={() => { setEditingId(v.id); setEditName(v.name); setEditShared(v.sharedWithTeam); setEditEditable(v.allowEditing ?? false); setMode('edit') }} title="Rename / settings"
                     className="p-1.5 rounded text-slate-400 hover:text-bba-action hover:bg-purple-50 transition-colors">
                     <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                   </button>
@@ -536,7 +553,7 @@ export default function ClientDirectory() {
     })
   }
 
-  function captureCurrentView(): Omit<ClientView, 'id' | 'name' | 'createdAt' | 'sharedWithTeam'> {
+  function captureCurrentView(): Omit<ClientView, 'id' | 'name' | 'createdAt' | 'sharedWithTeam' | 'allowEditing'> {
     return {
       visibleCols:    [...visibleCols],
       colOrder,
@@ -555,12 +572,13 @@ export default function ClientDirectory() {
     }
   }
 
-  async function saveNewView(name: string, sharedWithTeam: boolean) {
+  async function saveNewView(name: string, sharedWithTeam: boolean, allowEditing: boolean) {
     setViewSaving(true)
     const view: ClientView = {
       id:   crypto.randomUUID(),
       name,
       sharedWithTeam,
+      allowEditing,
       createdAt: new Date().toISOString(),
       ...captureCurrentView(),
     }
@@ -590,8 +608,8 @@ export default function ClientDirectory() {
     await persistViews(next)
   }
 
-  async function toggleShareView(id: string, sharedWithTeam: boolean) {
-    const next = savedViews.map(v => v.id === id ? { ...v, sharedWithTeam } : v)
+  async function toggleShareView(id: string, sharedWithTeam: boolean, allowEditing: boolean) {
+    const next = savedViews.map(v => v.id === id ? { ...v, sharedWithTeam, allowEditing } : v)
     await persistViews(next)
   }
 
