@@ -236,7 +236,7 @@ export default function ProfitabilityPage() {
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-800">Profitability</h1>
+          <h1 className="text-2xl font-semibold tracking-tight" style={{ color: "#b20476" }}>Profitability</h1>
           <p className="mt-1 text-sm text-slate-500">
             Revenue minus cost of delivery per client
             {harvestConnected
@@ -252,7 +252,8 @@ export default function ProfitabilityPage() {
           <input type="date" value={to} onChange={e => setTo(e.target.value)}
             className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500 [color-scheme:light]" />
           <button onClick={load} disabled={loading}
-            className="rounded-lg bg-bba-primary px-4 py-2 text-sm font-semibold text-white hover:bg-bba-primary/85 transition-colors disabled:opacity-60">
+            className="rounded-lg px-4 py-2 text-sm font-semibold text-white transition-colors disabled:opacity-60"
+            style={{ backgroundColor: '#b20476' }}>
             {loading ? '…' : 'Run'}
           </button>
         </div>
@@ -311,7 +312,7 @@ export default function ProfitabilityPage() {
         <div className="rounded-xl overflow-hidden border border-slate-200">
           <table className="w-full text-sm">
             <thead>
-              <tr style={{ backgroundColor: 'var(--bba-primary)' }}>
+              <tr style={{ backgroundColor: '#b20476' }}>
                 {colOrder.map((key) => {
                   const col = ALL_COLS.find(c => c.key === key)!
                   const isDragOver = dragOver === key && colDrag.current?.key !== key
