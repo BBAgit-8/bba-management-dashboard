@@ -227,7 +227,8 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
           processingCadence:        ops.processingCadence,
         }),
       });
-      const json = await res.json();
+      let json: any = {}
+      try { json = await res.json() } catch { json = { error: `Server returned ${res.status} with no readable body` } }
       if (!res.ok) throw new Error(json.error ?? 'Save failed');
 
       // Save subscriptions
