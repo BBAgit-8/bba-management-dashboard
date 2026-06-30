@@ -1024,7 +1024,7 @@ export default function ClientDirectory() {
               className="w-full rounded-md border border-purple-200/60 bg-transparent px-1.5 py-1 text-[11px] font-semibold text-slate-700 hover:border-slate-200 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400 cursor-pointer"
             >
               <option value="">—</option>
-              {[{v:'RECURRING',l:'Recurring'},{v:'CLEAN_UP',l:'Cleanup'},{v:'ANNUAL',l:'Annual'},{v:'QBO_ONLY',l:'QBO Only'},].map(o => <option key={o.v} value={o.v}>{o.l}</option>)}
+              {[{v:'RECURRING',l:'Recurring'},{v:'CLEAN_UP',l:'Cleanup'},{v:'ANNUAL',l:'Annual'},{v:'QBO_ONLY',l:'QBO Only'},{v:'MONTHLY_MAINTENANCE',l:'Monthly Maintenance'}].map(o => <option key={o.v} value={o.v}>{o.l}</option>)}
             </select>
           </td>
         )

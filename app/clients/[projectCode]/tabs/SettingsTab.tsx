@@ -71,9 +71,12 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
     projectType:              client?.projectType ?? '',
     revType:                  client?.revType ?? '',
     clientContactName:        client?.clientContactName ?? '',
+    clientGroupName:          client?.clientGroupName ?? '',
+    state:                    client?.state ?? '',
     referredBy:               client?.referredBy ?? '',
     contractStartDate:        toDateInput(client?.contractStartDate),
     contractEndDate:          toDateInput(client?.contractEndDate),
+    contractedCloseDate:      toDateInput(client?.contractedCloseDate),
     // Services
     pettyCash:                client?.pettyCash ?? false,
     hasPayroll:               client?.hasPayroll ?? false,
@@ -82,8 +85,10 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
     hasScheduledMeetings:     client?.hasScheduledMeetings ?? false,
     // Pricing
     autoPriceIncreasePercent: String(client?.autoPriceIncreasePercent ?? ''),
+    hasSignedAutoIncrease:    client?.hasSignedAutoIncrease ?? false,
     priceAdjustmentDate:      toDateInput(client?.priceAdjustmentDate),
     guaranteedDeadlineDay:    String(client?.guaranteedDeadlineDay ?? ''),
+    recTime:                  String(client?.recTime ?? ''),
     // Accountant
     accountantId:             client?.accountantId ?? '',
     okToContactAccountant:    client?.okToContactAccountant ?? false,
@@ -149,17 +154,22 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
       projectType:              client.projectType ?? '',
       revType:                  client.revType ?? '',
       clientContactName:        client.clientContactName ?? '',
+      clientGroupName:          client.clientGroupName ?? '',
+      state:                    client.state ?? '',
       referredBy:               client.referredBy ?? '',
       contractStartDate:        toDateInput(client.contractStartDate),
       contractEndDate:          toDateInput(client.contractEndDate),
+      contractedCloseDate:      toDateInput(client.contractedCloseDate),
       pettyCash:                client.pettyCash ?? false,
       hasPayroll:               client.hasPayroll ?? false,
       payrollProvider:          client.payrollProvider ?? '',
       hasContractedLoom:        client.hasContractedLoom ?? false,
       hasScheduledMeetings:     client.hasScheduledMeetings ?? false,
       autoPriceIncreasePercent: String(client.autoPriceIncreasePercent ?? ''),
+      hasSignedAutoIncrease:    client.hasSignedAutoIncrease ?? false,
       priceAdjustmentDate:      toDateInput(client.priceAdjustmentDate),
       guaranteedDeadlineDay:    String(client.guaranteedDeadlineDay ?? ''),
+      recTime:                  String(client.recTime ?? ''),
       accountantId:             client.accountantId ?? '',
       okToContactAccountant:    client.okToContactAccountant ?? false,
       processingCadence:        (client.processingCadence ?? 'MONTHLY') as ProcessingCadence,
@@ -214,14 +224,18 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
           numBanksAndCCs:           ops.numBanksAndCCs ? parseFloat(ops.numBanksAndCCs) : null,
           numLoans:                 ops.numLoans ? parseFloat(ops.numLoans) : null,
           numPmtPortals:            ops.numPmtPortals ? parseFloat(ops.numPmtPortals) : null,
+          recTime:                  ops.recTime ? parseFloat(ops.recTime) : null,
           // Identity
           entityType:               ops.entityType || null,
           projectType:              ops.projectType || null,
           revType:                  ops.revType || null,
           clientContactName:        ops.clientContactName || null,
+          clientGroupName:          ops.clientGroupName || null,
+          state:                    ops.state || null,
           referredBy:               ops.referredBy || null,
           contractStartDate:        ops.contractStartDate || null,
           contractEndDate:          ops.contractEndDate || null,
+          contractedCloseDate:      ops.contractedCloseDate || null,
           // Services
           pettyCash:                ops.pettyCash,
           hasPayroll:               ops.hasPayroll,
@@ -230,6 +244,7 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
           hasScheduledMeetings:     ops.hasScheduledMeetings,
           // Pricing
           autoPriceIncreasePercent: ops.autoPriceIncreasePercent ? parseFloat(ops.autoPriceIncreasePercent) : null,
+          hasSignedAutoIncrease:    ops.hasSignedAutoIncrease,
           priceAdjustmentDate:      ops.priceAdjustmentDate || null,
           guaranteedDeadlineDay:    ops.guaranteedDeadlineDay ? parseInt(ops.guaranteedDeadlineDay) : null,
           // Accountant
@@ -333,8 +348,10 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
                 <select value={ops.projectType} onChange={e => setOps(o => ({ ...o, projectType: e.target.value }))} className={sel}>
                   <option value="">— Select —</option>
                   <option value="RECURRING">Recurring</option>
+                  <option value="CLEAN_UP">Cleanup</option>
+                  <option value="ANNUAL">Annual</option>
+                  <option value="QBO_ONLY">QBO Only</option>
                   <option value="MONTHLY_MAINTENANCE">Monthly Maintenance</option>
-                  <option value="CLEANUP">Cleanup</option>
                 </select>
               </div>
               <div>
@@ -366,6 +383,24 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
                   className={`${inp} [color-scheme:light]`} />
               </div>
               <div>
+                <label className="block text-xs font-medium text-slate-500 mb-1.5">Contracted Close Date</label>
+                <input type="date" value={ops.contractedCloseDate}
+                  onChange={e => setOps(o => ({ ...o, contractedCloseDate: e.target.value }))}
+                  className={`${inp} [color-scheme:light]`} />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-500 mb-1.5">State</label>
+                <input type="text" value={ops.state} maxLength={2}
+                  onChange={e => setOps(o => ({ ...o, state: e.target.value.toUpperCase() }))}
+                  placeholder="e.g. NH" className={`${inp} uppercase`} />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-500 mb-1.5">Client Group Name</label>
+                <input type="text" value={ops.clientGroupName}
+                  onChange={e => setOps(o => ({ ...o, clientGroupName: e.target.value }))}
+                  placeholder="e.g. Smith Family Holdings" className={inp} />
+              </div>
+              <div>
                 <label className="block text-xs font-medium text-slate-500 mb-1.5">Referred By</label>
                 <input type="text" value={ops.referredBy}
                   onChange={e => setOps(o => ({ ...o, referredBy: e.target.value }))}
@@ -381,6 +416,7 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
               {([
                 ['totalHrsPerMonth',   'Total Hrs / Mo'],
                 ['bkprHours',          'Bkpr Hours'],
+                ['recTime',            'Rec Time'],
                 ['qaHours',            'QA Hours'],
                 ['custSuccessMgmtHrs', 'Mgmt / CS Hrs'],
                 ['yeOrTaxHours',       'YE / Tax Hrs'],
@@ -448,6 +484,18 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
                     placeholder="e.g. 3.5" className={inp} />
                   <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">%</span>
                 </div>
+              </div>
+
+              <div className="flex items-center justify-between rounded-lg bg-slate-50 border border-slate-200 px-4 py-3">
+                <div>
+                  <span className="text-sm text-slate-700">Client signed auto-increase?</span>
+                  <p className="text-[11px] text-slate-400 mt-0.5">Client has agreed to the automatic price increase terms</p>
+                </div>
+                <button type="button"
+                  onClick={() => setOps(o => ({ ...o, hasSignedAutoIncrease: !o.hasSignedAutoIncrease }))}
+                  className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-bba-action focus:ring-offset-2 ${ops.hasSignedAutoIncrease ? 'bg-bba-action' : 'bg-slate-300'}`}>
+                  <span className={`inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${ops.hasSignedAutoIncrease ? 'translate-x-5' : 'translate-x-0'}`} />
+                </button>
               </div>
 
               <div>
