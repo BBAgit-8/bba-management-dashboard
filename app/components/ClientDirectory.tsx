@@ -1468,7 +1468,13 @@ export default function ClientDirectory() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm" style={{ tableLayout: 'fixed' }}>
+              <colgroup>
+                <col style={{ width: '4px' }} />
+                {activeColOrder.map(colKey => (
+                  <col key={colKey} style={{ width: colWidths[colKey] ? `${colWidths[colKey]}px` : undefined }} />
+                ))}
+              </colgroup>
               <thead>
                 <tr style={{ backgroundColor: 'var(--bba-primary)', borderBottom: '2px solid rgba(78,0,142,0.3)' }}>
                   <th className="w-1 px-0 shrink-0" />
