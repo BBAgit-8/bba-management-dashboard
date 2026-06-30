@@ -6,14 +6,14 @@ async function getStats() {
   try {
     const [total, active, qbo] = await Promise.all([
       supabase.from('clients').select('id', { count: 'exact', head: true }),
-      supabase.from('clients').select('id', { count: 'exact', head: true }).eq('archive_status', 'ACTIVE').eq('qbo_only', false),
-      supabase.from('clients').select('id', { count: 'exact', head: true }).eq('qbo_only', true),
+      supabase.from('clients').select('id', { count: 'exact', head: true }).eq('archiveStatus', 'ACTIVE').neq('projectType', 'QBO_ONLY'),
+      supabase.from('clients').select('id', { count: 'exact', head: true }).eq('projectType', 'QBO_ONLY'),
     ])
     return {
       totalClients:  total.count  ?? 0,
       activeClients: active.count ?? 0,
       qboOnly:       qbo.count    ?? 0,
-      error: null,
+      error: total.error?.message ?? active.error?.message ?? qbo.error?.message ?? null,
     }
   } catch (err) {
     return { totalClients: 0, activeClients: 0, qboOnly: 0, error: String(err) }
