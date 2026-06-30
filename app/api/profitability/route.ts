@@ -24,7 +24,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   const [clientRes, empRes, settingsRes] = await Promise.all([
     supabase
       .from('clients')
-      .select('id, name, harvestProjectCode, totalMonthlyAmount, bookkeepingRate, softwareRate, "Bookkeeper", totalHrsPerMonth, projectType')
+      .select('id, name, harvestProjectCode, totalMonthlyAmount, bookkeepingRate, softwareRate, "Bookkeeper", totalHrsPerMonth, projectType, revenueType')
       .neq('archiveStatus', 'ARCHIVED')
       .order('name'),
     supabase
@@ -38,7 +38,8 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
   if (clientRes.error) return NextResponse.json({ error: clientRes.error.message }, { status: 500 })
 
-  const clients   = clientRes.data ?? []
+  const EXCLUDED_REV_TYPES = new Set(['CLEANUP', 'QBO_ONLY_ANCHOR', 'QBO_ONLY_QBO'])
+  const clients   = (clientRes.data ?? []).filter((c: any) => !EXCLUDED_REV_TYPES.has(c.revenueType))
   const employees = empRes.data ?? []
   const settings  = settingsRes.data ?? []
 
