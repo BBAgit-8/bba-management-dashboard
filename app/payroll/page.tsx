@@ -179,16 +179,6 @@ export default function PayrollPage() {
     })
   }
 
-  async function toggleFlag(row: PayrollRow, field: 'isHourly' | 'isContractor') {
-    const newVal = !row[field]
-    setRows(prev => prev.map(r => r.id === row.id ? { ...r, [field]: newVal } : r))
-    await fetch('/api/payroll', {
-      method:  'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ id: row.id, [field]: newVal }),
-    })
-  }
-
   async function doOffboard(employeeId: string) {
     setOffboarding(true)
     const res  = await fetch('/api/employees/offboard', {
@@ -229,29 +219,12 @@ export default function PayrollPage() {
         {/* Name — sticky */}
         <td className="sticky left-0 z-10 px-4 py-2 text-sm font-semibold text-slate-800 whitespace-nowrap"
           style={{ backgroundColor: saved === row.id ? '#f0fdf4' : rowBg, boxShadow: '2px 0 4px -1px rgba(0,0,0,0.06)' }}>
-          <div className="flex items-center gap-1.5">
-            {row.isContractor ? (
-              <button onClick={() => toggleFlag(row, 'isContractor')} title="Click to remove CNTR tag"
-                className="rounded-full bg-blue-100 px-1.5 py-0.5 text-[9px] font-bold text-blue-700 hover:bg-blue-200 transition-colors">
-                CNTR ✕
-              </button>
-            ) : row.isHourly ? (
-              <button onClick={() => toggleFlag(row, 'isHourly')} title="Click to remove Hourly tag"
-                className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] font-bold text-amber-700 hover:bg-amber-200 transition-colors">
-                Hourly ✕
-              </button>
-            ) : (
-              <>
-                <button onClick={() => toggleFlag(row, 'isHourly')} title="Mark as Hourly"
-                  className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[9px] font-medium text-slate-400 hover:bg-amber-100 hover:text-amber-700 transition-colors">
-                  +Hrly
-                </button>
-                <button onClick={() => toggleFlag(row, 'isContractor')} title="Mark as Contractor"
-                  className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[9px] font-medium text-slate-400 hover:bg-blue-100 hover:text-blue-700 transition-colors">
-                  +Cntr
-                </button>
-              </>
-            )}
+          <div className="flex items-center gap-2">
+            {row.isContractor
+              ? <span className="rounded-full bg-blue-100 px-1.5 py-0.5 text-[9px] font-bold text-blue-700">CNTR</span>
+              : row.isHourly
+              ? <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] font-bold text-amber-700">Hourly</span>
+              : null}
             {!row.isActive && <span className="rounded-full bg-slate-200 px-1.5 py-0.5 text-[9px] font-bold text-slate-500">Inactive</span>}
             <a href={`/employees?open=${row.employeeId}`}
               className="hover:text-bba-action hover:underline underline-offset-2 transition-colors">
