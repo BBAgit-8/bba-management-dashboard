@@ -339,9 +339,19 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
               </div>
               <div>
                 <label className="block text-xs font-medium text-slate-500 mb-1.5">Rev Type</label>
-                <input type="text" value={ops.revType}
+                <select value={ops.revType}
                   onChange={e => setOps(o => ({ ...o, revType: e.target.value }))}
-                  placeholder="e.g. Flat Rate" className={inp} />
+                  className={sel}>
+                  <option value="">— Select —</option>
+                  <option value="RECURRING_MONTHLY_ACH">Recurring Monthly - ACH</option>
+                  <option value="RECURRING_MONTHLY_INVOICED">Recurring Monthly - Invoiced</option>
+                  <option value="RECURRING_MONTHLY_HOURLY">Recurring Monthly - Hourly</option>
+                  <option value="CLEANUP">Cleanup</option>
+                  <option value="HOURLY_CLEANUP">Hourly Cleanup</option>
+                  <option value="FREE">Free</option>
+                  <option value="QBO_ONLY_ANCHOR">QBO Only - Anchor</option>
+                  <option value="QBO_ONLY_QBO">QBO Only - QB</option>
+                </select>
               </div>
               <div>
                 <label className="block text-xs font-medium text-slate-500 mb-1.5">Contract Start</label>

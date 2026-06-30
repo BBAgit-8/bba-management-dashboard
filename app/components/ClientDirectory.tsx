@@ -1042,7 +1042,7 @@ export default function ClientDirectory() {
                 {v:'RECURRING_MONTHLY_INVOICED',l:'Recurring Monthly - Invoiced'},
                 {v:'RECURRING_MONTHLY_HOURLY',l:'Recurring Monthly - Hourly'},
                 {v:'CLEANUP',l:'Cleanup'},{v:'HOURLY_CLEANUP',l:'Hourly Cleanup'},
-                {v:'FREE',l:'Free'},{v:'QBO_ONLY_ANCHOR',l:'QBO Only - Anchor'},{v:'QBO_ONLY_QB',l:'QBO Only - QB'},
+                {v:'FREE',l:'Free'},{v:'QBO_ONLY_ANCHOR',l:'QBO Only - Anchor'},{v:'QBO_ONLY_QBO',l:'QBO Only - QB'},
               ].map(o => <option key={o.v} value={o.v}>{o.l}</option>)}
             </select>
           </td>
