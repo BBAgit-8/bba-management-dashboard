@@ -74,7 +74,7 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
     priceAdjustmentDate:      client?.priceAdjustmentDate ?? '',
     guaranteedDeadlineDay:    String(client?.guaranteedDeadlineDay ?? ''),
     // Accountant
-    accountantName:           client?.accountantName ?? '',
+    accountantId:             client?.accountantId ?? '',
     okToContactAccountant:    client?.okToContactAccountant ?? false,
     processingCadence:        (client?.processingCadence ?? 'MONTHLY') as ProcessingCadence,
   });
@@ -109,7 +109,7 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
       const d = await res.json();
       if (d.accountant) {
         setAccountants(prev => [...prev, d.accountant]);
-        setOps(o => ({ ...o, accountantName: d.accountant.name }));
+        setOps(o => ({ ...o, accountantId: d.accountant.id }));
         setNewAcct({ name: '', businessName: '', email: '' });
         setShowAddAcct(false);
       }
@@ -149,7 +149,7 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
       autoPriceIncreasePercent: String(client.autoPriceIncreasePercent ?? ''),
       priceAdjustmentDate:      client.priceAdjustmentDate ?? '',
       guaranteedDeadlineDay:    String(client.guaranteedDeadlineDay ?? ''),
-      accountantName:           client.accountantName ?? '',
+      accountantId:             client.accountantId ?? '',
       okToContactAccountant:    client.okToContactAccountant ?? false,
       processingCadence:        (client.processingCadence ?? 'MONTHLY') as ProcessingCadence,
     });
@@ -222,7 +222,7 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
           priceAdjustmentDate:      ops.priceAdjustmentDate || null,
           guaranteedDeadlineDay:    ops.guaranteedDeadlineDay ? parseInt(ops.guaranteedDeadlineDay) : null,
           // Accountant
-          accountantName:           ops.accountantName || null,
+          accountantId:             ops.accountantId || null,
           okToContactAccountant:    ops.okToContactAccountant,
           processingCadence:        ops.processingCadence,
         }),
@@ -462,16 +462,16 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
             <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">Accountant</p>
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
               <select
-                value={ops.accountantName}
+                value={ops.accountantId}
                 onChange={e => {
                   if (e.target.value === '__add_new__') { setShowAddAcct(true); return; }
-                  setOps(o => ({ ...o, accountantName: e.target.value }))
+                  setOps(o => ({ ...o, accountantId: e.target.value }))
                 }}
                 className={sel}
               >
                 <option value="">— Select accountant —</option>
                 {accountants.map(a => (
-                  <option key={a.id} value={a.name}>{a.name}{a.businessName ? ` — ${a.businessName}` : ''}</option>
+                  <option key={a.id} value={a.id}>{a.name}{a.businessName ? ` — ${a.businessName}` : ''}</option>
                 ))}
                 <option value="__add_new__">+ Add new accountant…</option>
               </select>
