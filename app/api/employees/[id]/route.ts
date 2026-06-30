@@ -23,6 +23,7 @@ export async function PATCH(
   if (typeof d.email === 'string') updates.email = d.email.trim().toLowerCase()
   if (typeof d.title === 'string') updates.title = d.title.trim()
   if (rateType)       updates.rateType       = rateType
+  if (typeof d.employeeType === 'string') updates.employeeType = d.employeeType
   if (salary != null) updates.salary         = salary
   if (contractedHours != null) updates.contractedHours = contractedHours
 

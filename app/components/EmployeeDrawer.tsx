@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 
 type Employee = {
   id: string; name: string; email: string | null; title: string | null
-  rateType: string; salary: number | null; effectiveHourlyRate: number
+  rateType: string; employeeType?: string; salary: number | null; effectiveHourlyRate: number
   contractedHours: number; adminTimePercent: number
   hubAccess: boolean; invitedAt: string | null
 }
@@ -63,6 +63,7 @@ export default function EmployeeDrawer({ employee, onClose, onUpdated }: Props) 
   const [editForm, setEditForm] = useState({
     name: '', email: '', title: '',
     rateType: 'hourly' as 'hourly' | 'salary',
+    employeeType: 'employee' as 'employee' | 'contractor',
     hourlyRate: '', salary: '', contractedHours: '',
     adminTimePercent: '', rateChangeNote: '',
   })
@@ -80,6 +81,7 @@ export default function EmployeeDrawer({ employee, onClose, onUpdated }: Props) 
       email:            employee.email ?? '',
       title:            employee.title ?? '',
       rateType:         (employee.rateType as 'hourly' | 'salary') ?? 'hourly',
+      employeeType:     (employee.employeeType as 'employee' | 'contractor') ?? 'employee',
       hourlyRate:       employee.rateType === 'hourly' ? String(employee.effectiveHourlyRate) : '',
       salary:           employee.salary ? String(employee.salary) : '',
       contractedHours:  String(employee.contractedHours),
@@ -273,6 +275,11 @@ export default function EmployeeDrawer({ employee, onClose, onUpdated }: Props) 
                     <div className="px-4 py-1">
                       <InfoRow label="Email"          value={employee.email} />
                       <InfoRow label="Title"          value={employee.title} />
+                      <InfoRow label="Type" value={
+                        employee.employeeType === 'contractor'
+                          ? <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-700">Contractor</span>
+                          : <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">Employee</span>
+                      } />
                       <InfoRow label="Contracted Hrs" value={employee.contractedHours ? `${employee.contractedHours} hrs/week` : null} />
                       <InfoRow label="Admin Time"     value={employee.adminTimePercent ? `${employee.adminTimePercent}%` : null} />
                       <InfoRow label="Capacity/Mo"    value={employee.contractedHours ? `${(Number(employee.contractedHours) * 4.33).toFixed(1)} hrs` : null} />
@@ -365,6 +372,16 @@ export default function EmployeeDrawer({ employee, onClose, onUpdated }: Props) 
                         <input type="text" value={editForm.title} onChange={e => setEdit('title', e.target.value)} placeholder="e.g. Senior Bookkeeper" className={inp} />
                       </Field>
                     </div>
+                    <Field label="Employee Type">
+                      <div className="flex rounded-lg border border-slate-200 overflow-hidden">
+                        {(['employee', 'contractor'] as const).map(v => (
+                          <button key={v} type="button" onClick={() => setEdit('employeeType', v)}
+                            className={`flex-1 py-2 text-xs font-medium transition-colors ${editForm.employeeType === v ? 'bg-bba-action text-white' : 'text-slate-500 hover:bg-slate-50'}`}>
+                            {v === 'employee' ? '👤 Employee' : '📋 Contractor'}
+                          </button>
+                        ))}
+                      </div>
+                    </Field>
                   </div>
 
                   <div className="space-y-4">

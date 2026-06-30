@@ -11,7 +11,7 @@ export async function GET(): Promise<NextResponse> {
 
   const { data: employees, error: eErr } = await supabase
     .from('employees')
-    .select('id, name, contractedHours, adminTimePercent, salary, rateType, isActive')
+    .select('id, name, contractedHours, adminTimePercent, salary, rateType, employeeType, isActive')
 
   if (eErr) return NextResponse.json({ error: eErr.message }, { status: 500 })
 
@@ -21,7 +21,8 @@ export async function GET(): Promise<NextResponse> {
     const emp            = empMap[p.employeeId] ?? {}
     const hoursPerWeek   = Number(emp.contractedHours ?? 40)
     const adminPct       = Number(p.adminPercent ?? emp.adminTimePercent ?? 15) / 100
-    const isHourly       = p.isHourly ?? emp.rateType === 'hourly'
+    const isHourly       = emp.rateType === 'hourly'
+    const isContractor   = emp.employeeType === 'contractor'
 
     // Salary: payroll.annualSalary overrides employee.salary
     const annualSalary = isHourly
@@ -40,7 +41,7 @@ export async function GET(): Promise<NextResponse> {
       employeeId:      p.employeeId,
       name:            emp.name ?? 'Unknown',
       dept:            p.dept ?? 'COGS',
-      isContractor:    p.isContractor ?? false,
+      isContractor,
       isActive:        emp.isActive ?? true,
       hourlyRate2023:  p.hourlyRate2023,
       hourlyRate2024:  p.hourlyRate2024,
