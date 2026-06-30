@@ -482,10 +482,10 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
                 className={sel}
               >
                 <option value="">— Select accountant —</option>
+                <option value="__add_new__">+ Add new accountant…</option>
                 {accountants.map(a => (
                   <option key={a.id} value={a.id}>{a.name}{a.businessName ? ` — ${a.businessName}` : ''}</option>
                 ))}
-                <option value="__add_new__">+ Add new accountant…</option>
               </select>
 
               {/* Inline add accountant form */}
