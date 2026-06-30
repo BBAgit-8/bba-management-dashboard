@@ -6,6 +6,17 @@ import { useRouter } from "next/navigation";
 
 type ProcessingCadence = 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY' | 'QUARTERLY';
 
+// Safely convert any date-ish value (ISO timestamp, date-only string, null) into
+// the YYYY-MM-DD format required by <input type="date">. Never throws.
+function toDateInput(val: unknown): string {
+  if (!val || typeof val !== 'string') return ''
+  // Already date-only
+  if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return val
+  const d = new Date(val)
+  if (isNaN(d.getTime())) return ''
+  return d.toISOString().slice(0, 10)
+}
+
 interface Props {
   clientId: string
   projectCode: string
@@ -61,8 +72,8 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
     revType:                  client?.revType ?? '',
     clientContactName:        client?.clientContactName ?? '',
     referredBy:               client?.referredBy ?? '',
-    contractStartDate:        client?.contractStartDate ?? '',
-    contractEndDate:          client?.contractEndDate ?? '',
+    contractStartDate:        toDateInput(client?.contractStartDate),
+    contractEndDate:          toDateInput(client?.contractEndDate),
     // Services
     pettyCash:                client?.pettyCash ?? false,
     hasPayroll:               client?.hasPayroll ?? false,
@@ -71,7 +82,7 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
     hasScheduledMeetings:     client?.hasScheduledMeetings ?? false,
     // Pricing
     autoPriceIncreasePercent: String(client?.autoPriceIncreasePercent ?? ''),
-    priceAdjustmentDate:      client?.priceAdjustmentDate ?? '',
+    priceAdjustmentDate:      toDateInput(client?.priceAdjustmentDate),
     guaranteedDeadlineDay:    String(client?.guaranteedDeadlineDay ?? ''),
     // Accountant
     accountantId:             client?.accountantId ?? '',
@@ -139,15 +150,15 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
       revType:                  client.revType ?? '',
       clientContactName:        client.clientContactName ?? '',
       referredBy:               client.referredBy ?? '',
-      contractStartDate:        client.contractStartDate ?? '',
-      contractEndDate:          client.contractEndDate ?? '',
+      contractStartDate:        toDateInput(client.contractStartDate),
+      contractEndDate:          toDateInput(client.contractEndDate),
       pettyCash:                client.pettyCash ?? false,
       hasPayroll:               client.hasPayroll ?? false,
       payrollProvider:          client.payrollProvider ?? '',
       hasContractedLoom:        client.hasContractedLoom ?? false,
       hasScheduledMeetings:     client.hasScheduledMeetings ?? false,
       autoPriceIncreasePercent: String(client.autoPriceIncreasePercent ?? ''),
-      priceAdjustmentDate:      client.priceAdjustmentDate ?? '',
+      priceAdjustmentDate:      toDateInput(client.priceAdjustmentDate),
       guaranteedDeadlineDay:    String(client.guaranteedDeadlineDay ?? ''),
       accountantId:             client.accountantId ?? '',
       okToContactAccountant:    client.okToContactAccountant ?? false,

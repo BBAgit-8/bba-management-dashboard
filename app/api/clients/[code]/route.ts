@@ -57,8 +57,10 @@ export async function PATCH(
       } else if (DATE_FIELDS.has(key)) {
         // Store as date-only string to avoid UTC timezone shift (e.g. "2025-06-23" not "2025-06-22T00:00:00Z")
         if (typeof val === 'string' && val) {
-          // Keep just the date portion, append noon UTC to avoid timezone shifting
-          mapped[dbKey] = new Date(val + 'T12:00:00Z').toISOString()
+          // Extract just the YYYY-MM-DD portion regardless of input format, then pin to noon UTC
+          const dateOnly = val.slice(0, 10)
+          const parsed = new Date(dateOnly + 'T12:00:00Z')
+          mapped[dbKey] = isNaN(parsed.getTime()) ? null : parsed.toISOString()
         } else {
           mapped[dbKey] = null
         }
