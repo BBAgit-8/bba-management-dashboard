@@ -991,7 +991,7 @@ export default function ClientDirectory() {
             <select
               value={getVal(client, 'bookkeeper')}
               onChange={e => patchCell(client, 'bookkeeper', e.target.value)}
-              className="w-full rounded-md border border-transparent bg-transparent px-1.5 py-1 text-sm text-slate-700 hover:border-slate-200 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400 cursor-pointer"
+              className="w-full rounded-md border border-purple-200/60 bg-transparent px-1.5 py-1 text-sm text-slate-700 hover:border-slate-200 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400 cursor-pointer"
             >
               <option value="">—</option>
               {employees.map((e: any) => <option key={e.id} value={e.name}>{e.name}</option>)}
@@ -1004,7 +1004,7 @@ export default function ClientDirectory() {
             <select
               value={getVal(client, 'entityType')}
               onChange={e => patchCell(client, 'entityType', e.target.value)}
-              className="w-full rounded-md border border-transparent bg-transparent px-1.5 py-1 text-sm text-slate-700 hover:border-slate-200 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400 cursor-pointer"
+              className="w-full rounded-md border border-purple-200/60 bg-transparent px-1.5 py-1 text-sm text-slate-700 hover:border-slate-200 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400 cursor-pointer"
             >
               <option value="">—</option>
               {[
@@ -1021,7 +1021,7 @@ export default function ClientDirectory() {
             <select
               value={getVal(client, 'projectType')}
               onChange={e => patchCell(client, 'projectType', e.target.value)}
-              className="w-full rounded-md border border-transparent bg-transparent px-1.5 py-1 text-[11px] font-semibold text-slate-700 hover:border-slate-200 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400 cursor-pointer"
+              className="w-full rounded-md border border-purple-200/60 bg-transparent px-1.5 py-1 text-[11px] font-semibold text-slate-700 hover:border-slate-200 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400 cursor-pointer"
             >
               <option value="">—</option>
               {[{v:'RECURRING',l:'Recurring'},{v:'CLEAN_UP',l:'Cleanup'},{v:'ANNUAL',l:'Annual'},{v:'QBO_ONLY',l:'QBO Only'},].map(o => <option key={o.v} value={o.v}>{o.l}</option>)}
@@ -1034,7 +1034,7 @@ export default function ClientDirectory() {
             <select
               value={getVal(client, 'revenueType')}
               onChange={e => patchCell(client, 'revenueType', e.target.value)}
-              className="w-full rounded-md border border-transparent bg-transparent px-1.5 py-1 text-xs text-slate-600 hover:border-slate-200 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400 cursor-pointer"
+              className="w-full rounded-md border border-purple-200/60 bg-transparent px-1.5 py-1 text-xs text-slate-600 hover:border-slate-200 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400 cursor-pointer"
             >
               <option value="">—</option>
               {[
@@ -1064,7 +1064,7 @@ export default function ClientDirectory() {
                 onChange={e => setInlineEdits(prev => ({ ...prev, [client.id]: { ...(prev[client.id] ?? {}), totalMonthlyAmount: e.target.value } }))}
                 onBlur={e => patchCell(client, 'totalMonthlyAmount', e.target.value)}
                 placeholder="0.00"
-                className="w-24 rounded-md border border-transparent bg-transparent pl-5 pr-2 py-1 text-sm text-slate-700 tabular-nums hover:border-slate-200 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400" />
+                className="w-24 rounded-md border border-purple-200/60 bg-transparent pl-5 pr-2 py-1 text-sm text-slate-700 tabular-nums hover:border-slate-200 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400" />
             </div>
           </td>
         )
@@ -1079,7 +1079,7 @@ export default function ClientDirectory() {
                 onChange={e => setInlineEdits(prev => ({ ...prev, [client.id]: { ...(prev[client.id] ?? {}), bookkeepingRate: e.target.value } }))}
                 onBlur={e => patchCell(client, 'bookkeepingRate', e.target.value)}
                 placeholder="0.00"
-                className="w-24 rounded-md border border-transparent bg-transparent pl-5 pr-2 py-1 text-sm text-slate-700 tabular-nums hover:border-slate-200 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400" />
+                className="w-24 rounded-md border border-purple-200/60 bg-transparent pl-5 pr-2 py-1 text-sm text-slate-700 tabular-nums hover:border-slate-200 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400" />
             </div>
           </td>
         )
@@ -1093,7 +1093,7 @@ export default function ClientDirectory() {
                 onChange={e => setInlineEdits(prev => ({ ...prev, [client.id]: { ...(prev[client.id] ?? {}), softwareRate: e.target.value } }))}
                 onBlur={e => patchCell(client, 'softwareRate', e.target.value)}
                 placeholder="0.00"
-                className="w-24 rounded-md border border-transparent bg-transparent pl-5 pr-2 py-1 text-sm text-slate-700 tabular-nums hover:border-slate-200 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400" />
+                className="w-24 rounded-md border border-purple-200/60 bg-transparent pl-5 pr-2 py-1 text-sm text-slate-700 tabular-nums hover:border-slate-200 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400" />
             </div>
           </td>
         )
@@ -1105,7 +1105,7 @@ export default function ClientDirectory() {
               onChange={e => setInlineEdits(prev => ({ ...prev, [client.id]: { ...(prev[client.id] ?? {}), guaranteedDeadlineDay: e.target.value } }))}
               onBlur={e => patchCell(client, 'guaranteedDeadlineDay', e.target.value)}
               placeholder="—"
-              className="w-14 rounded-md border border-transparent bg-transparent py-1 text-sm text-center text-slate-700 tabular-nums hover:border-slate-200 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400" />
+              className="w-14 rounded-md border border-purple-200/60 bg-transparent py-1 text-sm text-center text-slate-700 tabular-nums hover:border-slate-200 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400" />
           </td>
         )
       case 'hasContractedLoom':
@@ -1144,7 +1144,7 @@ export default function ClientDirectory() {
                 onChange={e => setInlineEdits(prev => ({ ...prev, [client.id]: { ...(prev[client.id] ?? {}), autoPriceIncreasePercent: e.target.value } }))}
                 onBlur={e => patchCell(client, 'autoPriceIncreasePercent', e.target.value)}
                 placeholder="0"
-                className="w-16 rounded-md border border-transparent bg-transparent px-2 py-1 text-sm text-right text-slate-700 tabular-nums hover:border-slate-200 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400" />
+                className="w-16 rounded-md border border-purple-200/60 bg-transparent px-2 py-1 text-sm text-right text-slate-700 tabular-nums hover:border-slate-200 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400" />
               <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 text-xs">%</span>
             </div>
           </td>
@@ -1155,7 +1155,7 @@ export default function ClientDirectory() {
             <select
               value={client.accountantId ?? ''}
               onChange={e => patchCell(client, 'accountantId', e.target.value)}
-              className="w-full rounded-md border border-transparent bg-transparent px-1.5 py-1 text-sm text-slate-700 hover:border-slate-200 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400 cursor-pointer"
+              className="w-full rounded-md border border-purple-200/60 bg-transparent px-1.5 py-1 text-sm text-slate-700 hover:border-slate-200 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400 cursor-pointer"
             >
               <option value="">—</option>
               {accountants.map((a: any) => (
@@ -1198,7 +1198,7 @@ export default function ClientDirectory() {
               defaultValue={(inlineEdits[client.id]?.contractEndDate ?? client.contractEndDate ?? '').slice(0, 10)}
               key={inlineEdits[client.id]?.contractEndDate ?? client.contractEndDate ?? 'empty'}
               onBlur={e => patchCell(client, 'contractEndDate', e.target.value || '')}
-              className="w-full bg-transparent rounded px-1 py-1 text-xs text-slate-600 border border-transparent hover:border-slate-200 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400 [color-scheme:light]"
+              className="w-full bg-transparent rounded px-1 py-1 text-xs text-slate-600 border border-purple-200/60 hover:border-purple-300 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400 [color-scheme:light]"
             />
           </td>
         )
@@ -1214,7 +1214,7 @@ export default function ClientDirectory() {
               onBlur={e => patchCell(client, 'state', e.target.value.toUpperCase() || '')}
               placeholder="—"
               maxLength={2}
-              className="w-14 bg-transparent rounded px-2 py-1 text-xs text-slate-700 uppercase placeholder-slate-300 border border-transparent hover:border-slate-200 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400"
+              className="w-14 bg-transparent rounded px-2 py-1 text-xs text-slate-700 uppercase placeholder-slate-300 border border-purple-200/60 hover:border-purple-300 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400"
             />
           </td>
         )
@@ -1270,7 +1270,7 @@ export default function ClientDirectory() {
                 }))}
                 onBlur={e => patchCell(client, meta.field as string, e.target.value)}
                 placeholder="—"
-                className="w-16 rounded-md border border-transparent bg-transparent px-1.5 py-1 text-sm text-slate-700 tabular-nums text-right hover:border-slate-200 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400"
+                className="w-16 rounded-md border border-purple-200/60 bg-transparent px-1.5 py-1 text-sm text-slate-700 tabular-nums text-right hover:border-slate-200 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400"
               />
             </td>
           )
