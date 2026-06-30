@@ -7,7 +7,8 @@ export async function GET(): Promise<NextResponse> {
     .select(`
       *,
       tags:client_tags(tag:tags(*)),
-      sows(billingType, fixedMonthlyRate, billingRate, targetHours)
+      sows(billingType, fixedMonthlyRate, billingRate, targetHours),
+      accountant:accountants(id, name, businessName)
     `)
     .order('name')
 
@@ -51,7 +52,9 @@ export async function GET(): Promise<NextResponse> {
     // Bookkeeper (text field on clients table)
     bookkeeper:               c.Bookkeeper          ?? null,
     costRate:                 c.Bookkeeper ? (empRateByName[c.Bookkeeper] ?? 0) : 0,
-    accountantName:           c.accountantName      ?? null,
+    accountantName:           c.accountant?.businessName || c.accountant?.name || c.accountantName || null,
+    accountantPersonName:     c.accountant?.name || null,
+    accountantId:             c.accountantId        ?? null,
     // New fields
     clientGroupName:          c.clientGroupName     ?? null,
     doubleId:                 c.doubleId            ?? null,

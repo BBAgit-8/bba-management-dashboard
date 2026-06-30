@@ -54,6 +54,8 @@ type ApiClient = {
   autoPriceIncreasePercent?: number | null
   priceAdjustmentDate?: string | null
   accountantName?: string | null
+  accountantId?: string | null
+  accountantPersonName?: string | null
   guaranteedDeadlineDay?: number | null
   tags: Tag[]
   sows: Array<{ billingType: string; fixedMonthlyRate?: number | null; billingRate?: number | null; targetHours?: number | null }>
@@ -749,6 +751,7 @@ export default function ClientDirectory() {
   const [tagFilters,        setTagFilters]        = useState<Set<string>>(new Set())
   const [statusFilters,     setStatusFilters]     = useState<Set<string>>(new Set(['active', 'offboarding', 'inactive']))
   const [bookkeeperFilters, setBookkeeperFilters] = useState<Set<string>>(new Set())
+  const [accountantFilters, setAccountantFilters] = useState<Set<string>>(new Set())
   const [entityTypeFilters, setEntityTypeFilters] = useState<Set<string>>(new Set())
   const [ptFilters,         setPtFilters]         = useState<Set<string>>(new Set())
   const [cadenceFilters,    setCadenceFilters]    = useState<Set<string>>(new Set())
@@ -782,7 +785,8 @@ export default function ClientDirectory() {
 
   const [tags,    setTags]    = useState<Tag[]>([])
   const [clients,   setClients]   = useState<ApiClient[]>([])
-  const [employees, setEmployees] = useState<any[]>([])
+  const [employees,  setEmployees]  = useState<any[]>([])
+  const [accountants, setAccountants] = useState<any[]>([])
   const [loading,   setLoading]   = useState(true)
   const [fetchKey, setFetchKey] = useState(0)
 
@@ -798,9 +802,11 @@ export default function ClientDirectory() {
     Promise.all([
       fetch('/api/clients').then(r => r.json()),
       fetch('/api/employees').then(r => r.json()),
-    ]).then(([cd, ed]) => {
+      fetch('/api/accountants').then(r => r.json()),
+    ]).then(([cd, ed, ad]) => {
       if (Array.isArray(cd.clients)) setClients(cd.clients)
       if (Array.isArray(ed)) setEmployees(ed)
+      if (Array.isArray(ad.accountants)) setAccountants(ad.accountants)
     }).catch(() => {}).finally(() => setLoading(false))
   }, [fetchKey])
 
@@ -904,6 +910,7 @@ export default function ClientDirectory() {
       if (statusFilters.size > 0 && !statusFilters.has(deriveStatus(merged))) return false
       // empty statusFilters = show all statuses
       if (bookkeeperFilters.size > 0 && !bookkeeperFilters.has(c.bookkeeper ?? '')) return false
+      if (accountantFilters.size > 0 && !accountantFilters.has(c.accountantId ?? '')) return false
       if (entityTypeFilters.size > 0 && !entityTypeFilters.has(c.entityType ?? '')) return false
       const q = search.trim().toLowerCase()
       if (q && !c.name.toLowerCase().includes(q) && !c.harvestProjectCode.toLowerCase().includes(q)) return false
@@ -925,7 +932,7 @@ export default function ClientDirectory() {
       }
       return sortDir === 'asc' ? cmp : -cmp
     })
-  }, [clients, inlineEdits, search, tagFilters, cadenceFilters, ptFilters, statusFilters, bookkeeperFilters, entityTypeFilters, sortKey, sortDir])
+  }, [clients, inlineEdits, search, tagFilters, cadenceFilters, ptFilters, statusFilters, bookkeeperFilters, accountantFilters, entityTypeFilters, sortKey, sortDir])
 
   const anyFilter = tagFilters.size > 0 || cadenceFilters.size > 0 || ptFilters.size > 0 ||
     statusFilters.size > 0 ||
@@ -1143,7 +1150,20 @@ export default function ClientDirectory() {
           </td>
         )
       case 'accountantName':
-        return <td key={colKey} className="px-4 py-3 text-sm text-slate-700">{client.accountantName ?? <span className="text-slate-400">—</span>}</td>
+        return (
+          <td key={colKey} className="px-3 py-2">
+            <select
+              value={client.accountantId ?? ''}
+              onChange={e => patchCell(client, 'accountantId', e.target.value)}
+              className="w-full rounded-md border border-transparent bg-transparent px-1.5 py-1 text-sm text-slate-700 hover:border-slate-200 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400 cursor-pointer"
+            >
+              <option value="">—</option>
+              {accountants.map((a: any) => (
+                <option key={a.id} value={a.id}>{a.businessName || a.name}</option>
+              ))}
+            </select>
+          </td>
+        )
       case 'status':
         return (
           <td key={colKey} className="px-3 py-2">
@@ -1399,6 +1419,7 @@ export default function ClientDirectory() {
             { v: 'archived',      label: 'Archived'     },
           ]} />
           <MultiFilter label="Bookkeeper" filters={bookkeeperFilters} setFilters={setBookkeeperFilters} options={bookkeepers.map(b => ({ v: b, label: b }))} />
+          <MultiFilter label="Accountant" filters={accountantFilters} setFilters={setAccountantFilters} options={accountants.map((a: any) => ({ v: a.id, label: a.businessName || a.name }))} />
           <MultiFilter label="Entity Type" filters={entityTypeFilters} setFilters={setEntityTypeFilters} options={[
             { v: 'LLC',             label: 'LLC'            },
             { v: 'S_CORP',          label: 'S-Corp'         },
