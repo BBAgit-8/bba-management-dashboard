@@ -1493,7 +1493,7 @@ export default function ClientDirectory() {
               <colgroup>
                 <col style={{ width: '4px' }} />
                 {activeColOrder.map(colKey => (
-                  <col key={colKey} style={{ width: colWidths[colKey] ? `${colWidths[colKey]}px` : undefined }} />
+                  <col key={colKey} style={{ width: `${colWidths[colKey] ?? (colKey === 'name' ? 220 : 150)}px` }} />
                 ))}
               </colgroup>
               <thead>
@@ -1515,8 +1515,6 @@ export default function ClientDirectory() {
                         }}
                         className={`relative px-3 py-3 text-center text-[11px] font-semibold uppercase tracking-wider select-none transition-colors cursor-grab active:cursor-grabbing ${isDragOver ? 'bg-white/20' : ''} ${colKey === 'name' ? 'sticky left-0 z-20' : ''}`}
                         style={{
-                          width: colWidths[colKey] ?? undefined,
-                          minWidth: colWidths[colKey] ?? undefined,
                           ...(colKey === 'name' ? { backgroundColor: 'var(--bba-primary)', boxShadow: '2px 0 4px -1px rgba(0,0,0,0.15)' } : {}),
                         }}
                       >
