@@ -3,7 +3,11 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { broadcastBookkeeperChange, useBookkeeperSync } from "@/app/hooks/useBookkeeperSync";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+// SHARED TYPES
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Individual-view types
 interface DbEmployee {
   id: string
   name: string
@@ -27,7 +31,51 @@ interface DbClient {
   sows: { billingType: string; fixedMonthlyRate: number | null; billingRate: number | null; targetHours: number | null }[]
 }
 
-// ─── Constants ────────────────────────────────────────────────────────────────
+// Pod-view types
+type TaskType = 'bkpr' | 'bankFeed' | 'rec' | 'apAr' | 'prRec' | 'qa' | 'ye' | 'audit'
+
+type EmployeeRollup = {
+  employeeId: string
+  name: string
+  podId: string | null
+  capacity: number
+  byTask: Partial<Record<TaskType, number>>
+  totalAssigned: number
+  difference: number
+}
+
+type PodRollup = {
+  podId: string
+  name: string
+  members: string[]
+  byTask: Partial<Record<TaskType, number>>
+  capacity: number
+  totalAssigned: number
+  difference: number
+}
+
+type ClientBreakdown = {
+  clientId: string
+  clientName: string
+  qa: number; cs: number; ye: number; audit: number
+  bankFeed: number; rec: number; apAr: number; prRec: number
+  bkprRemainder: number; bkprBudget: number
+  warnings: string[]
+  isCleanup: boolean
+}
+
+type CapacityResponse = {
+  employees: EmployeeRollup[]
+  pods: PodRollup[]
+  csPool: number
+  clients: ClientBreakdown[]
+  warnings: { client: string; msgs: string[] }[]
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════════════════════════════════════
+
 const WEEKS_PER_MONTH = 52 / 12;
 const BILLABLE_FACTOR = 0.80;
 
@@ -35,7 +83,21 @@ const CADENCE_LABEL: Record<string, string> = {
   WEEKLY: "Weekly", BIWEEKLY: "Bi-Weekly", MONTHLY: "Monthly", QUARTERLY: "Quarterly",
 };
 
-// ─── Pure helpers ─────────────────────────────────────────────────────────────
+const TASK_COLS: { key: TaskType; label: string }[] = [
+  { key: 'bkpr',     label: 'Bkpr Hrs' },
+  { key: 'qa',       label: 'QA Hrs' },
+  { key: 'apAr',     label: 'AP/AR' },
+  { key: 'bankFeed', label: 'Bank Feed' },
+  { key: 'rec',      label: 'Recon' },
+  { key: 'prRec',    label: 'PR Rec' },
+  { key: 'ye',       label: 'YE' },
+  { key: 'audit',    label: 'Audit' },
+];
+
+// ═══════════════════════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════════════════════
+
 function r2(n: number) { return Math.round((n + Number.EPSILON) * 100) / 100; }
 function initials(name: string) { return name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase(); }
 
@@ -46,41 +108,54 @@ function billableWeeklyHrs(emp: DbEmployee): number {
   return r2(Number(emp.contractedHours) * BILLABLE_FACTOR);
 }
 function clientMonthlyHrs(client: DbClient): number {
-  // Prefer the bookkeeper hours stored directly on the client record
   if (client.bkprHours != null && client.bkprHours > 0) return client.bkprHours;
   return client.sows?.[0]?.targetHours ?? 0;
 }
 
-// ─── Color scale ──────────────────────────────────────────────────────────────
 function barColor(pct: number) {
   if (pct > 100) return "bg-red-500";
-  if (pct >= 90)  return "bg-orange-500";
-  if (pct >= 70)  return "bg-amber-500";
+  if (pct >= 90) return "bg-orange-500";
+  if (pct >= 70) return "bg-amber-500";
   return "bg-bba-action";
 }
 function textColor(pct: number) {
   if (pct > 100) return "text-red-600";
-  if (pct >= 90)  return "text-orange-600";
-  if (pct >= 70)  return "text-amber-600";
+  if (pct >= 90) return "text-orange-600";
+  if (pct >= 70) return "text-amber-600";
   return "text-bba-primary";
 }
 function cardBorder(pct: number) {
   if (pct > 100) return "border-red-300";
-  if (pct >= 90)  return "border-orange-300";
-  if (pct >= 70)  return "border-amber-300";
+  if (pct >= 90) return "border-orange-300";
+  if (pct >= 70) return "border-amber-300";
   return "border-slate-200";
 }
 
-// ─── CapacityCard ─────────────────────────────────────────────────────────────
+function fmt(n: number | undefined): string {
+  if (n === undefined || n === null) return '—';
+  if (n === 0) return '—';
+  return n.toFixed(2);
+}
+
+function diffColor(diff: number): string {
+  if (diff < 0) return 'text-red-600';
+  if (diff < 5) return 'text-amber-600';
+  return 'text-green-700';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SHARED COMPONENTS
+// ═══════════════════════════════════════════════════════════════════════════
+
 function CapacityCard({ emp, assignedHrs, assignedCount, capacityHrs }: {
   emp: DbEmployee
   assignedHrs: number
   assignedCount: number
   capacityHrs: number
 }) {
-  const pct        = capacityHrs > 0 ? r2((assignedHrs / capacityHrs) * 100) : 0;
+  const pct = capacityHrs > 0 ? r2((assignedHrs / capacityHrs) * 100) : 0;
   const overloaded = pct > 100;
-  const remaining  = r2(Math.max(capacityHrs - assignedHrs, 0));
+  const remaining = r2(Math.max(capacityHrs - assignedHrs, 0));
 
   return (
     <div
@@ -140,35 +215,46 @@ function CapacityCard({ emp, assignedHrs, assignedCount, capacityHrs }: {
   );
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
-export default function CapacityPlanningPage() {
-  const [employees,  setEmployees]  = useState<DbEmployee[]>([])
-  const [clients,    setClients]    = useState<DbClient[]>([])
-  const [loading,    setLoading]    = useState(true)
-  const [fetchErr,   setFetchErr]   = useState<string | null>(null)
+function StatCard({ label, value, sub, color }: { label: string; value: string; sub?: string; color?: string }) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-5">
+      <p className="text-xs text-slate-400 font-medium">{label}</p>
+      <p className={`text-2xl font-bold mt-1 ${color ?? 'text-slate-800'}`}>{value}</p>
+      {sub && <p className="text-xs text-slate-400 mt-0.5">{sub}</p>}
+    </div>
+  );
+}
 
-  const [assignments,      setAssignments]      = useState<Record<string, string>>({})
+// ═══════════════════════════════════════════════════════════════════════════
+// INDIVIDUAL CAPACITY VIEW (existing — unchanged)
+// ═══════════════════════════════════════════════════════════════════════════
+
+function IndividualCapacityView() {
+  const [employees, setEmployees] = useState<DbEmployee[]>([])
+  const [clients, setClients] = useState<DbClient[]>([])
+  const [loading, setLoading] = useState(true)
+  const [fetchErr, setFetchErr] = useState<string | null>(null)
+
+  const [assignments, setAssignments] = useState<Record<string, string>>({})
   const [savedAssignments, setSavedAssignments] = useState<Record<string, string>>({})
-  const [search,           setSearch]           = useState("")
-  const [empFilter,        setEmpFilter]        = useState<string>("all")
-  const [tagFilter,        setTagFilter]        = useState<string>("all")
-  const [ptFilter,         setPtFilter]         = useState<string>("all")
-  const [syncStatus,       setSyncStatus]       = useState<"idle" | "saving" | "saved">("idle")
-  const [sortCol,          setSortCol]          = useState<"name" | "hrs" | "employee" | "cadence">("name")
-  const [sortDir,          setSortDir]          = useState<"asc" | "desc">("asc")
+  const [search, setSearch] = useState("")
+  const [empFilter, setEmpFilter] = useState<string>("all")
+  const [tagFilter, setTagFilter] = useState<string>("all")
+  const [ptFilter, setPtFilter] = useState<string>("all")
+  const [syncStatus, setSyncStatus] = useState<"idle" | "saving" | "saved">("idle")
+  const [sortCol, setSortCol] = useState<"name" | "hrs" | "employee" | "cadence">("name")
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc")
 
-  // ── Fetch data ──────────────────────────────────────────────────────────────
   useEffect(() => {
     Promise.all([
       fetch('/api/employees').then(r => r.json()),
       fetch('/api/clients').then(r => r.json()),
     ]).then(([empData, clientData]) => {
       const emps: DbEmployee[] = Array.isArray(empData) ? empData : []
-      const cls: DbClient[]    = Array.isArray(clientData.clients) ? clientData.clients : []
+      const cls: DbClient[] = Array.isArray(clientData.clients) ? clientData.clients : []
       setEmployees(emps)
       setClients(cls)
 
-      // Build initial assignments from client.bookkeeper → employee id
       const active = cls.filter(c => c.archiveStatus === 'ACTIVE')
       const init: Record<string, string> = {}
       active.forEach(c => {
@@ -184,7 +270,6 @@ export default function CapacityPlanningPage() {
 
   const activeClients = useMemo(() => clients.filter(c => c.archiveStatus === 'ACTIVE'), [clients])
 
-  // ── Modified ids ────────────────────────────────────────────────────────────
   const modifiedIds = useMemo(() => {
     const s = new Set<string>()
     activeClients.forEach(c => {
@@ -195,29 +280,26 @@ export default function CapacityPlanningPage() {
 
   const hasUnsaved = modifiedIds.size > 0
 
-  // ── Employee stats ──────────────────────────────────────────────────────────
   const employeeStats = useMemo(() =>
     employees.map(emp => {
-      const capacityHrs   = billableMonthlyHrs(emp)
-      const assigned      = activeClients.filter(c => assignments[c.id] === emp.id)
-      const assignedHrs   = r2(assigned.reduce((s, c) => s + clientMonthlyHrs(c), 0))
+      const capacityHrs = billableMonthlyHrs(emp)
+      const assigned = activeClients.filter(c => assignments[c.id] === emp.id)
+      const assignedHrs = r2(assigned.reduce((s, c) => s + clientMonthlyHrs(c), 0))
       return { emp, capacityHrs, assignedHrs, assignedCount: assigned.length }
     }),
   [employees, activeClients, assignments])
 
-  // ── Tags ────────────────────────────────────────────────────────────────────
   const allTags = useMemo(() => {
     const seen = new Map<string, { id: string; name: string; color: string }>()
     activeClients.forEach(c => c.tags.forEach(t => seen.set(t.id, t)))
     return [...seen.values()]
   }, [activeClients])
 
-  // ── Filtered clients ────────────────────────────────────────────────────────
   const visibleClients = useMemo(() => {
     let list = activeClients
     if (empFilter !== "all") list = list.filter(c => assignments[c.id] === empFilter)
     if (tagFilter !== "all") list = list.filter(c => c.tags.some(t => t.id === tagFilter))
-    if (ptFilter  !== "all") list = list.filter(c => (c.projectType ?? "MONTHLY_MAINTENANCE") === ptFilter)
+    if (ptFilter !== "all") list = list.filter(c => (c.projectType ?? "MONTHLY_MAINTENANCE") === ptFilter)
     const q = search.trim().toLowerCase()
     if (q) list = list.filter(c =>
       c.name.toLowerCase().includes(q) ||
@@ -225,10 +307,10 @@ export default function CapacityPlanningPage() {
     )
     return [...list].sort((a, b) => {
       let cmp = 0
-      if (sortCol === "name")     cmp = a.name.localeCompare(b.name)
-      if (sortCol === "hrs")      cmp = clientMonthlyHrs(a) - clientMonthlyHrs(b)
+      if (sortCol === "name") cmp = a.name.localeCompare(b.name)
+      if (sortCol === "hrs") cmp = clientMonthlyHrs(a) - clientMonthlyHrs(b)
       if (sortCol === "employee") cmp = (assignments[a.id] ?? "").localeCompare(assignments[b.id] ?? "")
-      if (sortCol === "cadence")  cmp = a.processingCadence.localeCompare(b.processingCadence)
+      if (sortCol === "cadence") cmp = a.processingCadence.localeCompare(b.processingCadence)
       return sortDir === "asc" ? cmp : -cmp
     })
   }, [activeClients, search, empFilter, tagFilter, ptFilter, assignments, sortCol, sortDir])
@@ -248,13 +330,12 @@ export default function CapacityPlanningPage() {
     )
   }
 
-  const unassignedClients  = activeClients.filter(c => !assignments[c.id])
-  const totalAllocatedHrs  = r2(activeClients.reduce((s, c) => s + (assignments[c.id] ? clientMonthlyHrs(c) : 0), 0))
+  const unassignedClients = activeClients.filter(c => !assignments[c.id])
+  const totalAllocatedHrs = r2(activeClients.reduce((s, c) => s + (assignments[c.id] ? clientMonthlyHrs(c) : 0), 0))
 
   const [savingClients, setSavingClients] = useState<Set<string>>(new Set())
 
   async function handleAssign(clientId: string, projectCode: string, empId: string) {
-    // Optimistic update
     setAssignments(prev => ({ ...prev, [clientId]: empId }))
     setSavingClients(prev => new Set(prev).add(clientId))
 
@@ -273,13 +354,10 @@ export default function CapacityPlanningPage() {
         throw new Error(json.error ?? `HTTP ${res.status}`)
       }
 
-      // Mark as saved
       setSavedAssignments(prev => ({ ...prev, [clientId]: empId }))
-      // Broadcast to other pages
       broadcastBookkeeperChange(clientId, bookkeeper)
     } catch (err) {
       console.error('Assignment save failed:', err)
-      // Revert optimistic update
       setAssignments(prev => {
         const next = { ...prev }
         const saved = savedAssignments[clientId]
@@ -298,7 +376,6 @@ export default function CapacityPlanningPage() {
       const empMap: Record<string, string> = {}
       employees.forEach((e: any) => { empMap[e.id] = e.name })
 
-      // PATCH every active client's bookkeeper field directly
       await Promise.all(
         activeClients.map(client => {
           const empId = assignments[client.id] ?? ''
@@ -315,7 +392,6 @@ export default function CapacityPlanningPage() {
       setSyncStatus("saved")
       setTimeout(() => setSyncStatus("idle"), 2200)
 
-      // Broadcast all changes
       Object.entries(assignments).forEach(([clientId, empId]) => {
         broadcastBookkeeperChange(clientId, empMap[empId] ?? null)
       })
@@ -325,7 +401,6 @@ export default function CapacityPlanningPage() {
     }
   }
 
-  // Listen for bookkeeper changes from other pages — sync assignments state
   useBookkeeperSync(useCallback(({ clientId, bookkeeper }) => {
     if (!bookkeeper) {
       setAssignments(prev => { const next = { ...prev }; delete next[clientId]; return next })
@@ -339,7 +414,6 @@ export default function CapacityPlanningPage() {
     }
   }, [employees]))
 
-  // ── Loading / error ─────────────────────────────────────────────────────────
   if (loading) return (
     <div className="flex items-center justify-center h-64">
       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-bba-action" />
@@ -354,7 +428,6 @@ export default function CapacityPlanningPage() {
 
   return (
     <div>
-      {/* ── Sticky header ────────────────────────────────────────────────── */}
       <div className="sticky top-0 z-20 -mx-8 px-8 backdrop-blur" style={{ backgroundColor: 'rgba(240,238,237,0.97)', borderBottom: '1px solid #e2d8e8' }}>
         <div className="flex items-center justify-between py-4 gap-4">
           <div className="min-w-0">
@@ -399,24 +472,23 @@ export default function CapacityPlanningPage() {
             {syncStatus === "saved"
               ? "✓ Synced"
               : syncStatus === "saving"
-              ? "Syncing…"
-              : (
-                <>
-                  Confirm &amp; Sync Changes
-                  {hasUnsaved && (
-                    <span className="rounded-full bg-white/20 px-1.5 py-0.5 text-[11px] font-bold tabular-nums">
-                      {modifiedIds.size}
-                    </span>
-                  )}
-                </>
-              )
+                ? "Syncing…"
+                : (
+                  <>
+                    Confirm &amp; Sync Changes
+                    {hasUnsaved && (
+                      <span className="rounded-full bg-white/20 px-1.5 py-0.5 text-[11px] font-bold tabular-nums">
+                        {modifiedIds.size}
+                      </span>
+                    )}
+                  </>
+                )
             }
           </button>
         </div>
       </div>
 
       <div className="pt-6 space-y-8">
-        {/* ── Capacity cards ────────────────────────────────────────────── */}
         <section>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-[11px] font-bold uppercase tracking-widest text-slate-500">Live Employee Capacity</h2>
@@ -445,7 +517,6 @@ export default function CapacityPlanningPage() {
           )}
         </section>
 
-        {/* ── Assignment matrix ─────────────────────────────────────────── */}
         <section>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-[11px] font-bold uppercase tracking-widest text-slate-500">Client Assignment Matrix</h2>
@@ -545,13 +616,13 @@ export default function CapacityPlanningPage() {
                     </td>
                   </tr>
                 ) : visibleClients.map((client, idx) => {
-                  const isModified    = modifiedIds.has(client.id)
+                  const isModified = modifiedIds.has(client.id)
                   const assignedEmpId = assignments[client.id] ?? ""
-                  const assignedEmp   = employees.find(e => e.id === assignedEmpId)
-                  const hours         = clientMonthlyHrs(client)
-                  const empCapacity   = assignedEmp ? billableMonthlyHrs(assignedEmp) : 0
-                  const loadPct       = empCapacity > 0 ? r2((hours / empCapacity) * 100) : 0
-                  const baseBg        = isModified ? 'rgba(245,158,11,0.06)' : idx % 2 === 0 ? '#ffffff' : '#faf5ff'
+                  const assignedEmp = employees.find(e => e.id === assignedEmpId)
+                  const hours = clientMonthlyHrs(client)
+                  const empCapacity = assignedEmp ? billableMonthlyHrs(assignedEmp) : 0
+                  const loadPct = empCapacity > 0 ? r2((hours / empCapacity) * 100) : 0
+                  const baseBg = isModified ? 'rgba(245,158,11,0.06)' : idx % 2 === 0 ? '#ffffff' : '#faf5ff'
 
                   return (
                     <tr
@@ -606,8 +677,8 @@ export default function CapacityPlanningPage() {
                             disabled={savingClients.has(client.id)}
                             className={`w-full max-w-[200px] rounded-lg border py-1.5 pl-3 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-bba-primary focus:border-transparent transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-wait ${
                               savingClients.has(client.id) ? "bg-purple-50 border-purple-200 text-bba-action"
-                              : isModified ? "bg-amber-50 border-amber-300 text-amber-700"
-                              : "bg-white border-surface-border text-slate-700"
+                                : isModified ? "bg-amber-50 border-amber-300 text-amber-700"
+                                : "bg-white border-surface-border text-slate-700"
                             }`}
                           >
                             <option value="">— Unassigned —</option>
@@ -678,5 +749,285 @@ export default function CapacityPlanningPage() {
         </section>
       </div>
     </div>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// POD CAPACITY VIEW (new — from /api/capacity)
+// ═══════════════════════════════════════════════════════════════════════════
+
+function PodCapacityView() {
+  const [data, setData] = useState<CapacityResponse | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [showWarnings, setShowWarnings] = useState(false)
+
+  useEffect(() => {
+    setLoading(true)
+    fetch('/api/capacity')
+      .then(r => r.json())
+      .then(d => {
+        if (d.error) { setError(d.error); return }
+        setData(d)
+      })
+      .catch(e => setError(e.message))
+      .finally(() => setLoading(false))
+  }, [])
+
+  const grouped = useMemo(() => {
+    if (!data) return { pods: [], solo: [] as EmployeeRollup[] }
+    const byPod: Record<string, EmployeeRollup[]> = {}
+    const solo: EmployeeRollup[] = []
+    for (const e of data.employees) {
+      if (e.podId) {
+        byPod[e.podId] = byPod[e.podId] ?? []
+        byPod[e.podId].push(e)
+      } else {
+        solo.push(e)
+      }
+    }
+    const pods = data.pods.map(p => ({
+      pod: p,
+      members: byPod[p.podId] ?? [],
+    }))
+    return { pods, solo: solo.sort((a, b) => a.name.localeCompare(b.name)) }
+  }, [data])
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight" style={{ color: '#b20476' }}>
+            Pod Capacity
+          </h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Monthly hour capacity vs. assigned task hours per person and pod
+          </p>
+        </div>
+      </div>
+
+      {error && (
+        <div className="rounded-xl bg-red-50 border border-red-200 px-5 py-4">
+          <p className="text-sm text-red-600">{error}</p>
+        </div>
+      )}
+
+      {loading && (
+        <div className="flex items-center justify-center py-20">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-bba-action border-t-transparent" />
+        </div>
+      )}
+
+      {data && !loading && (
+        <>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <StatCard
+              label="Total Capacity"
+              value={data.employees.reduce((s, e) => s + e.capacity, 0).toFixed(1)}
+              sub={`${data.employees.length} people`}
+            />
+            <StatCard
+              label="Assigned Hours"
+              value={data.employees.reduce((s, e) => s + e.totalAssigned, 0).toFixed(1)}
+              sub={`${data.clients.length} clients`}
+            />
+            <StatCard
+              label="Available"
+              value={data.employees.reduce((s, e) => s + e.difference, 0).toFixed(1)}
+              color={data.employees.reduce((s, e) => s + e.difference, 0) < 0 ? 'text-red-600' : 'text-green-700'}
+              sub="Capacity − Assigned"
+            />
+            <StatCard
+              label="CS Pool"
+              value={data.csPool.toFixed(2)}
+              sub="Shared Dawn/Beth mgmt hours"
+            />
+          </div>
+
+          <div className="rounded-xl overflow-hidden border border-slate-200">
+            <table className="w-full text-sm">
+              <thead>
+                <tr style={{ backgroundColor: '#4e008e' }}>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-white">
+                    Owner
+                  </th>
+                  {TASK_COLS.map(c => (
+                    <th key={c.key} className="px-3 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-white">
+                      {c.label}
+                    </th>
+                  ))}
+                  <th className="px-3 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-white">
+                    Assigned
+                  </th>
+                  <th className="px-3 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-white">
+                    Capacity
+                  </th>
+                  <th className="px-3 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-white">
+                    Difference
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {grouped.pods.map(({ pod, members }) => (
+                  <PodBlock key={pod.podId} pod={pod} members={members} />
+                ))}
+
+                {grouped.solo.map((e, i) => (
+                  <EmployeeRow key={e.employeeId} emp={e} rowIndex={i} />
+                ))}
+
+                {grouped.pods.length === 0 && grouped.solo.length === 0 && (
+                  <tr>
+                    <td colSpan={TASK_COLS.length + 4} className="px-4 py-12 text-center text-sm text-slate-400">
+                      No employees found.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {data.warnings.length > 0 && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50/50 overflow-hidden">
+              <button
+                onClick={() => setShowWarnings(w => !w)}
+                className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-amber-50 transition-colors"
+              >
+                <span className="text-sm font-semibold text-amber-800">
+                  ⚠ {data.warnings.length} clients need attention
+                </span>
+                <svg className={`h-4 w-4 text-amber-600 transition-transform ${showWarnings ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {showWarnings && (
+                <div className="border-t border-amber-200 divide-y divide-amber-100 max-h-96 overflow-y-auto">
+                  {data.warnings.map((w, i) => (
+                    <div key={i} className="px-5 py-3 text-xs">
+                      <p className="font-semibold text-slate-700 mb-1">{w.client}</p>
+                      <ul className="space-y-0.5 text-slate-600 pl-4">
+                        {w.msgs.map((m, j) => <li key={j} className="list-disc">{m}</li>)}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="rounded-xl border border-slate-200 bg-white p-5">
+            <h2 className="text-sm font-semibold text-slate-700 mb-2">How capacity is calculated</h2>
+            <div className="text-xs text-slate-600 space-y-1.5">
+              <p><strong className="text-slate-700">Employee capacity</strong> = weekly contracted hours × 4.33 weeks − admin time % − any fixed deduction (e.g. Deb&apos;s 10 hrs of non-pod QA)</p>
+              <p><strong className="text-slate-700">Per client, Bkpr budget</strong> = Total Budgeted Hours − QA − CS − YE − Audit (tiered by total: ≤10 = 0.25, ≤20 = 0.5, else 0.75)</p>
+              <p><strong className="text-slate-700">Bank Feed hours</strong> come from the transaction bucket lookup, <strong>Recon</strong> = 0.5 hr × (bank + CC accounts), <strong>AP/AR</strong> and <strong>PR Rec</strong> are entered per client.</p>
+              <p><strong className="text-slate-700">Pod 1</strong> defaults: Deb owns bookkeeping + QA. Jada owns Bank Feed, Recon, AP/AR, PR Rec, YE. Rec can be overridden per client (e.g. Deb&apos;s one exception client).</p>
+              <p><strong className="text-slate-700">Excluded from capacity:</strong> QBO-only clients. <strong>Cleanup</strong> clients: hours = price ÷ $125 ÷ duration in months.</p>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+function PodBlock({ pod, members }: { pod: PodRollup; members: EmployeeRollup[] }) {
+  return (
+    <>
+      <tr style={{ backgroundColor: 'rgba(78,0,142,0.08)', borderTop: '2px solid rgba(78,0,142,0.15)', borderBottom: '1px solid rgba(78,0,142,0.15)' }}>
+        <td className="px-4 py-3 font-bold text-slate-800">
+          {pod.name}
+          <span className="ml-2 text-[10px] font-normal text-slate-500">({members.length} people)</span>
+        </td>
+        {TASK_COLS.map(c => (
+          <td key={c.key} className="px-3 py-3 text-right tabular-nums font-semibold text-slate-700">
+            {fmt(pod.byTask[c.key])}
+          </td>
+        ))}
+        <td className="px-3 py-3 text-right tabular-nums font-bold text-slate-800">
+          {pod.totalAssigned.toFixed(2)}
+        </td>
+        <td className="px-3 py-3 text-right tabular-nums font-bold text-slate-800">
+          {pod.capacity.toFixed(2)}
+        </td>
+        <td className={`px-3 py-3 text-right tabular-nums font-bold ${diffColor(pod.difference)}`}>
+          {pod.difference.toFixed(2)}
+        </td>
+      </tr>
+
+      {members.map((e, i) => (
+        <EmployeeRow key={e.employeeId} emp={e} rowIndex={i} inPod />
+      ))}
+    </>
+  )
+}
+
+function EmployeeRow({ emp, rowIndex, inPod }: { emp: EmployeeRollup; rowIndex: number; inPod?: boolean }) {
+  const bg = rowIndex % 2 === 0 ? '#ffffff' : '#faf5ff'
+  return (
+    <tr
+      style={{ backgroundColor: bg, borderBottom: '1px solid #f0e8f8' }}
+      onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#f3e8ff' }}
+      onMouseLeave={e => { e.currentTarget.style.backgroundColor = bg }}
+    >
+      <td className={`px-4 py-3 ${inPod ? 'pl-8 text-slate-600' : 'font-medium text-slate-800'}`}>
+        {inPod && <span className="text-slate-300 mr-2">└</span>}
+        {emp.name}
+      </td>
+      {TASK_COLS.map(c => (
+        <td key={c.key} className="px-3 py-3 text-right tabular-nums text-slate-700">
+          {fmt(emp.byTask[c.key])}
+        </td>
+      ))}
+      <td className="px-3 py-3 text-right tabular-nums text-slate-700">
+        {emp.totalAssigned > 0 ? emp.totalAssigned.toFixed(2) : '—'}
+      </td>
+      <td className="px-3 py-3 text-right tabular-nums text-slate-700 font-semibold">
+        {emp.capacity.toFixed(2)}
+      </td>
+      <td className={`px-3 py-3 text-right tabular-nums font-semibold ${diffColor(emp.difference)}`}>
+        {emp.difference.toFixed(2)}
+      </td>
+    </tr>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MAIN — TAB SWITCHER
+// ═══════════════════════════════════════════════════════════════════════════
+
+export default function CapacityPlanningPage() {
+  const [tab, setTab] = useState<'individual' | 'pod'>('individual')
+
+  return (
+    <div>
+      <div className="mb-6 flex gap-1 border-b border-slate-200">
+        <TabButton active={tab === 'individual'} onClick={() => setTab('individual')}>
+          Individual Capacity
+        </TabButton>
+        <TabButton active={tab === 'pod'} onClick={() => setTab('pod')}>
+          Pod Capacity
+        </TabButton>
+      </div>
+
+      {tab === 'individual' && <IndividualCapacityView />}
+      {tab === 'pod' && <PodCapacityView />}
+    </div>
+  )
+}
+
+function TabButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      className="px-4 py-2.5 text-sm font-semibold transition-colors relative"
+      style={{
+        color: active ? '#4e008e' : '#64748b',
+        borderBottom: active ? '2px solid #4e008e' : '2px solid transparent',
+        marginBottom: '-1px',
+      }}
+    >
+      {children}
+    </button>
   )
 }
