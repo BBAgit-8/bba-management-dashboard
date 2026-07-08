@@ -64,12 +64,21 @@ type ClientBreakdown = {
   isCleanup: boolean
 }
 
+type ClientAssignment = {
+  id: string
+  name: string
+  bookkeeper: string | null
+  assignedPodId: string | null
+  revenueType: string | null
+}
+
 type CapacityResponse = {
   employees: EmployeeRollup[]
   pods: PodRollup[]
   csPool: number
   qaPool: number
   clients: ClientBreakdown[]
+  clientAssignments: ClientAssignment[]
   warnings: { client: string; msgs: string[] }[]
 }
 
@@ -762,17 +771,21 @@ function PodCapacityView() {
   const [error, setError] = useState<string | null>(null)
   const [showWarnings, setShowWarnings] = useState(false)
 
-  useEffect(() => {
+  const reload = useCallback(async () => {
     setLoading(true)
-    fetch('/api/capacity')
-      .then(r => r.json())
-      .then(d => {
-        if (d.error) { setError(d.error); return }
-        setData(d)
-      })
-      .catch(e => setError(e.message))
-      .finally(() => setLoading(false))
+    try {
+      const r = await fetch('/api/capacity', { cache: 'no-store' })
+      const d = await r.json()
+      if (d.error) setError(d.error)
+      else { setData(d); setError(null) }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to load')
+    } finally {
+      setLoading(false)
+    }
   }, [])
+
+  useEffect(() => { reload() }, [reload])
 
   const grouped = useMemo(() => {
     if (!data) return { pods: [], podMembers: [] as EmployeeRollup[] }
@@ -886,6 +899,12 @@ function PodCapacityView() {
             </table>
           </div>
 
+          <ClientPodAssignments
+            assignments={data.clientAssignments}
+            pods={data.pods}
+            onChange={reload}
+          />
+
           {data.warnings.length > 0 && (
             <div className="rounded-xl border border-amber-200 bg-amber-50/50 overflow-hidden">
               <button
@@ -918,9 +937,9 @@ function PodCapacityView() {
             <h2 className="text-sm font-semibold text-slate-700 mb-2">How capacity is calculated</h2>
             <div className="text-xs text-slate-600 space-y-1.5">
               <p><strong className="text-slate-700">Employee capacity</strong> = weekly contracted hours × 4.33 weeks − admin time % − any fixed deduction (e.g. Deb&apos;s 10 hrs of non-pod QA)</p>
-              <p><strong className="text-slate-700">Per client, Bkpr budget</strong> = Total Budgeted Hours − QA − CS − YE − Audit (tiered by total: ≤10 = 0.25, ≤20 = 0.5, else 0.75)</p>
+              <p><strong className="text-slate-700">Per client:</strong> Total Budgeted Hours − QA (0.25) − CS (0.25) − YE (0.25) − Audit = Bookkeeper&apos;s monthly budget. QA and CS go to firm-wide pools (not the pod). YE stays in the pod (protected — cannot be reallocated to bookkeeping).</p>
               <p><strong className="text-slate-700">Bank Feed hours</strong> come from the transaction bucket lookup, <strong>Recon</strong> = 0.5 hr × (bank + CC accounts), <strong>AP/AR</strong> and <strong>PR Rec</strong> are entered per client.</p>
-              <p><strong className="text-slate-700">Pod 1</strong> defaults: Deb owns bookkeeping + QA. Jada owns Bank Feed, Recon, AP/AR, PR Rec, YE. Rec can be overridden per client (e.g. Deb&apos;s one exception client).</p>
+              <p><strong className="text-slate-700">Pod 1</strong> defaults: Deb owns bookkeeping. Jada owns Bank Feed, Recon, AP/AR, PR Rec, YE. Rec can be overridden per client (e.g. Deb&apos;s one exception client).</p>
               <p><strong className="text-slate-700">Excluded from capacity:</strong> QBO-only clients. <strong>Cleanup</strong> clients: hours = price ÷ $125 ÷ duration in months.</p>
             </div>
           </div>
@@ -1028,5 +1047,124 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
     >
       {children}
     </button>
+  )
+}
+
+function ClientPodAssignments({
+  assignments,
+  pods,
+  onChange,
+}: {
+  assignments: ClientAssignment[]
+  pods: PodRollup[]
+  onChange: () => void
+}) {
+  const [filter, setFilter] = useState<'all' | 'unassigned' | string>('unassigned')
+  const [search, setSearch] = useState('')
+  const [savingId, setSavingId] = useState<string | null>(null)
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    return assignments.filter(a => {
+      if (filter === 'unassigned' && a.assignedPodId != null) return false
+      if (filter !== 'unassigned' && filter !== 'all' && a.assignedPodId !== filter) return false
+      if (q && !a.name.toLowerCase().includes(q) && !(a.bookkeeper ?? '').toLowerCase().includes(q)) return false
+      return true
+    })
+  }, [assignments, filter, search])
+
+  const unassignedCount = assignments.filter(a => !a.assignedPodId).length
+
+  const setPod = async (clientId: string, podId: string | null) => {
+    setSavingId(clientId)
+    try {
+      const r = await fetch(`/api/clients/${clientId}/pod`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assignedPodId: podId }),
+      })
+      if (!r.ok) {
+        const j = await r.json().catch(() => ({}))
+        alert(j.error ?? 'Failed to assign pod')
+      } else {
+        onChange()
+      }
+    } finally {
+      setSavingId(null)
+    }
+  }
+
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
+      <div className="border-b border-slate-200 px-5 py-3.5 flex items-center justify-between gap-4 flex-wrap">
+        <div>
+          <h3 className="text-sm font-semibold text-slate-800">Client → Pod Assignments</h3>
+          <p className="mt-0.5 text-xs text-slate-500">
+            {unassignedCount > 0
+              ? `${unassignedCount} client${unassignedCount === 1 ? '' : 's'} not yet assigned to a pod`
+              : 'All clients are assigned to a pod'}
+          </p>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <select
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            className="rounded-md border border-slate-300 px-2.5 py-1.5 text-xs focus:border-[#4e008e] focus:outline-none focus:ring-1 focus:ring-[#4e008e]"
+          >
+            <option value="unassigned">Unassigned only ({unassignedCount})</option>
+            <option value="all">All clients ({assignments.length})</option>
+            {pods.map(p => (
+              <option key={p.podId} value={p.podId}>{p.name}</option>
+            ))}
+          </select>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search…"
+            className="rounded-md border border-slate-300 px-2.5 py-1.5 text-xs w-40 focus:border-[#4e008e] focus:outline-none focus:ring-1 focus:ring-[#4e008e]"
+          />
+        </div>
+      </div>
+
+      {filtered.length === 0 ? (
+        <div className="px-5 py-8 text-center text-sm text-slate-400">
+          {filter === 'unassigned' ? 'No unassigned clients.' : 'No clients match.'}
+        </div>
+      ) : (
+        <div className="max-h-96 overflow-y-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-slate-50 sticky top-0">
+              <tr>
+                <th className="px-4 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-600">Client</th>
+                <th className="px-4 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-600">Bookkeeper</th>
+                <th className="px-4 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-600 w-48">Pod</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {filtered.map(a => (
+                <tr key={a.id} className="hover:bg-purple-50/30">
+                  <td className="px-4 py-2 text-slate-800">{a.name}</td>
+                  <td className="px-4 py-2 text-slate-600">{a.bookkeeper ?? <span className="text-slate-400 italic">—</span>}</td>
+                  <td className="px-4 py-2">
+                    <select
+                      value={a.assignedPodId ?? ''}
+                      onChange={(e) => setPod(a.id, e.target.value || null)}
+                      disabled={savingId === a.id}
+                      className="w-full rounded-md border border-slate-300 px-2 py-1 text-xs focus:border-[#4e008e] focus:outline-none focus:ring-1 focus:ring-[#4e008e] disabled:opacity-50"
+                    >
+                      <option value="">— Unassigned —</option>
+                      {pods.map(p => (
+                        <option key={p.podId} value={p.podId}>{p.name}</option>
+                      ))}
+                    </select>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
   )
 }

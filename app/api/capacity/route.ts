@@ -64,23 +64,11 @@ export async function GET() {
         .map((e) => [e.clientId, e])
     );
 
-    // employee name → podId, so we can auto-assign clients to pods via their Bookkeeper.
-    // This means Dawn doesn't need to set assignedPodId manually on every client —
-    // whoever the Bookkeeper is, their pod owns the client.
-    const podByEmployeeName = new Map<string, string>();
-    for (const e of employeesRes.data ?? []) {
-      if (e.name && e.podId) podByEmployeeName.set(e.name, e.podId);
-    }
-
     const breakdowns = (clientsRes.data ?? [])
       .map((c) => {
         const cleanup = activeCleanups.get(c.id);
-        const derivedPodId =
-          c.assignedPodId ??
-          (c.Bookkeeper ? podByEmployeeName.get(c.Bookkeeper) ?? null : null);
         const workload: ClientWorkload = {
           ...c,
-          assignedPodId: derivedPodId,
           totalBudgetedHours: c.totalBudgetedHours != null ? Number(c.totalBudgetedHours) : null,
           numBankAccounts: c.numBankAccounts ?? 0,
           numLoans: c.numLoans ?? 0,
@@ -128,12 +116,26 @@ export async function GET() {
       };
     });
 
+    // For the pod-assignment UI: flat list of every non-QBO_ONLY client with
+    // its current bookkeeper + pod, so Dawn can assign clients to pods directly.
+    const clientAssignments = (clientsRes.data ?? [])
+      .filter((c) => !(c.revenueType ?? "").startsWith("QBO_ONLY"))
+      .map((c) => ({
+        id: c.id,
+        name: c.name,
+        bookkeeper: c.Bookkeeper ?? null,
+        assignedPodId: c.assignedPodId ?? null,
+        revenueType: c.revenueType ?? null,
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+
     return NextResponse.json({
       employees: result.employees,
       pods,
       csPool: result.csPool,
       qaPool: result.qaPool,
       clients: breakdowns,
+      clientAssignments,
       warnings: result.warnings,
     });
   } catch (err) {
