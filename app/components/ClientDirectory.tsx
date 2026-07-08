@@ -18,7 +18,6 @@ type ApiClient = {
   processingCadence: string
   contractEndDate?: string | null
   contractStartDate?: string | null
-  contractedCloseDate?: string | null
   projectType?: string | null
   revenueType?: string | null
   entityType?: string | null
@@ -93,7 +92,7 @@ type ColKey =
   | 'bookkeeper' | 'entityType' | 'monthlyBilling' | 'contractStartDate' | 'contractEndDate'
   | 'state'
   | 'clientGroupName' | 'doubleId' | 'qboId' | 'clickUpId' | 'clientContactName'
-  | 'contractedCloseDate' | 'softwareRate' | 'totalHrsPerMonth' | 'apArHrs'
+  | 'softwareRate' | 'totalHrsPerMonth' | 'apArHrs'
   | 'qaHours' | 'custSuccessMgmtHrs' | 'yeOrTaxHours' | 'auditHours' | 'bkprHours'
   | 'bankFeedTime' | 'transactionsPerMonth' | 'recTime' | 'numBanksAndCCs'
   | 'numLoans' | 'numPmtPortals' | 'pettyCash' | 'referredBy'
@@ -138,7 +137,6 @@ const ALL_COLUMNS: { key: ColKey; label: string; defaultVisible: boolean; align?
   { key: 'bookkeeper',         label: 'Bookkeeper',               defaultVisible: true  },
   // ── Hidden — available in Show Columns ─────────────────────────────────────
   { key: 'status',             label: 'Status',                   defaultVisible: false },
-  { key: 'contractedCloseDate',label: 'Contracted Close Date',    defaultVisible: false },
   { key: 'doubleId',           label: 'Double ID',                defaultVisible: false },
   { key: 'qboId',              label: 'QBO ID',                   defaultVisible: false },
   { key: 'clickUpId',          label: 'ClickUp ID',               defaultVisible: false },
@@ -247,7 +245,6 @@ function exportToCSV(clients: ApiClient[], visibleCols: Set<ColKey>) {
         case 'status':                 val = STATUS_PILL[statusKey].label; break
         case 'contractStartDate':      val = fmtDate(client.contractStartDate); break
         case 'contractEndDate':        val = fmtDate(client.contractEndDate); break
-        case 'contractedCloseDate':    val = fmtDate(client.contractedCloseDate); break
         case 'clientGroupName':        val = client.clientGroupName; break
         case 'doubleId':               val = client.doubleId; break
         case 'qboId':                  val = client.qboId; break
@@ -1202,8 +1199,6 @@ export default function ClientDirectory() {
             />
           </td>
         )
-      case 'contractedCloseDate':
-        return <td key={colKey} className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">{fmtDate(client.contractedCloseDate)}</td>
       case 'state':
         return (
           <td key={colKey} className="px-3 py-2">

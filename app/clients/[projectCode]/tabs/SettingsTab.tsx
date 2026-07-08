@@ -76,7 +76,6 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
     referredBy:               client?.referredBy ?? '',
     contractStartDate:        toDateInput(client?.contractStartDate),
     contractEndDate:          toDateInput(client?.contractEndDate),
-    contractedCloseDate:      toDateInput(client?.contractedCloseDate),
     // Services
     pettyCash:                client?.pettyCash ?? false,
     hasPayroll:               client?.hasPayroll ?? false,
@@ -159,7 +158,6 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
       referredBy:               client.referredBy ?? '',
       contractStartDate:        toDateInput(client.contractStartDate),
       contractEndDate:          toDateInput(client.contractEndDate),
-      contractedCloseDate:      toDateInput(client.contractedCloseDate),
       pettyCash:                client.pettyCash ?? false,
       hasPayroll:               client.hasPayroll ?? false,
       payrollProvider:          client.payrollProvider ?? '',
@@ -235,7 +233,6 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
           referredBy:               ops.referredBy || null,
           contractStartDate:        ops.contractStartDate || null,
           contractEndDate:          ops.contractEndDate || null,
-          contractedCloseDate:      ops.contractedCloseDate || null,
           // Services
           pettyCash:                ops.pettyCash,
           hasPayroll:               ops.hasPayroll,
@@ -380,12 +377,6 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
                 <label className="block text-xs font-medium text-slate-500 mb-1.5">Contract End</label>
                 <input type="date" value={ops.contractEndDate}
                   onChange={e => setOps(o => ({ ...o, contractEndDate: e.target.value }))}
-                  className={`${inp} [color-scheme:light]`} />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1.5">Contracted Close Date</label>
-                <input type="date" value={ops.contractedCloseDate}
-                  onChange={e => setOps(o => ({ ...o, contractedCloseDate: e.target.value }))}
                   className={`${inp} [color-scheme:light]`} />
               </div>
               <div>

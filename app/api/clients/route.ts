@@ -38,7 +38,6 @@ export async function GET(): Promise<NextResponse> {
     qboOnly:                  c.qboOnly            ?? false,
     contractStartDate:        c.contractStartDate  ?? null,
     contractEndDate:          c.contractEndDate    ?? null,
-    contractedCloseDate:      c.contractedCloseDate ?? null,
     entityType:               c.entityType         ?? null,
     guaranteedDeadlineDay:    c.guaranteedDeadlineDay ?? null,
     softwareRate:             c.softwareRate        != null ? Number(c.softwareRate)        : null,
@@ -129,8 +128,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
                                 ? parseFloat(data.autoPriceIncreasePercent) || null : null,
     contractStartDate:        typeof data.contractStartDate === 'string' && data.contractStartDate
                                 ? data.contractStartDate : null,
-    contractedCloseDate:      typeof data.contractedCloseDate === 'string' && data.contractedCloseDate
-                                ? data.contractedCloseDate : null,
+    contractEndDate:          typeof data.contractEndDate === 'string' && data.contractEndDate
+                                ? data.contractEndDate : null,
     priceAdjustmentDate:      typeof data.priceAdjustmentDate === 'string' && data.priceAdjustmentDate
                                 ? data.priceAdjustmentDate : null,
     clientGroupName:          typeof data.clientGroupName    === 'string' ? data.clientGroupName.trim()    || null : null,

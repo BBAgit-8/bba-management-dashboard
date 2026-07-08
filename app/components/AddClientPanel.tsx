@@ -47,7 +47,7 @@ const EMPTY = {
   name: '', harvestProjectCode: '', clientGroupName: '',
   doubleId: '', qboId: '', clickUpId: '', clientContactName: '',
   entityType: 'LLC' as EntityType, einNumber: '',
-  contractStartDate: '', contractedCloseDate: '',
+  contractStartDate: '', contractEndDate: '',
   referredBy: '',
   // Staff
   bookkeeper: '', accountantName: '',
@@ -359,8 +359,8 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
               <Field label="Contract Start Date">
                 <input type="date" value={form.contractStartDate} onChange={e => set('contractStartDate', e.target.value)} className={`${inp} [color-scheme:light]`} />
               </Field>
-              <Field label="Contracted Close Date">
-                <input type="date" value={form.contractedCloseDate} onChange={e => set('contractedCloseDate', e.target.value)} className={`${inp} [color-scheme:light]`} />
+              <Field label="Contract End Date">
+                <input type="date" value={form.contractEndDate} onChange={e => set('contractEndDate', e.target.value)} className={`${inp} [color-scheme:light]`} />
               </Field>
             </Grid2>
             <Field label="Referred By">
@@ -446,9 +446,6 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
               </Field>
             </Grid2>
             <Grid2>
-              <Field label="Contracted Close Date">
-                <input type="date" min={1} max={31} value={form.contractedCloseDate} onChange={e => set('contractedCloseDate', e.target.value)} placeholder="1–31" className={`${inp} [color-scheme:light]`} />
-              </Field>
               <Field label="Office Type">
                 <div className="flex rounded-lg border border-slate-200 overflow-hidden">
                   {(['HOME_OFFICE', 'PHYSICAL'] as OfficeType[]).map(v => (
