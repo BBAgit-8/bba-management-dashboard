@@ -144,15 +144,16 @@ export function computeClient(
   if (bkprRemainder < 0)
     warnings.push(`Task carve-outs (${carveOuts}) exceed bookkeeper budget (${bkprBudget}) — total budgeted hours may be too low`);
 
-  add("qa", qa);            // pod default: Deb (monthly pre-final QA)
-  add("ye", ye);            // pod default: Jada (annualized pool, counted monthly)
+  // qa & cs are NOT assigned to any pod member — they accrue to firm-wide pools.
+  // Quarterly rotating QA and Customer Success draw from these pools.
+  // Monthly "maintenance" QA that a bookkeeper does on their own clients is part of Bkpr.
+  add("ye", ye);            // pod default: Jada — protected budget, cannot be reallocated to bookkeeping
   add("audit", audit);
   add("bankFeed", bankFeed);
   add("rec", rec);          // default Jada; per-client override for Deb's one client
   add("apAr", c.apArHours ?? 0);
   add("prRec", c.prRecHours ?? 0);
   add("bkpr", Math.max(bkprRemainder, 0));
-  // cs intentionally NOT added — accrues to the shared pool
 
   return {
     clientId: c.id, clientName: c.name,
@@ -176,13 +177,15 @@ export interface EmployeeRollup {
 export function rollup(
   clients: ClientCapacityBreakdown[],
   employees: EmployeeCapacityInputs[]
-): { employees: EmployeeRollup[]; csPool: number; warnings: { client: string; msgs: string[] }[] } {
+): { employees: EmployeeRollup[]; csPool: number; qaPool: number; warnings: { client: string; msgs: string[] }[] } {
   const byEmp = new Map<string, Partial<Record<TaskType, number>>>();
   let csPool = 0;
+  let qaPool = 0;
   const warnings: { client: string; msgs: string[] }[] = [];
 
   for (const c of clients) {
     csPool = round2(csPool + c.cs);
+    qaPool = round2(qaPool + c.qa);
     if (c.warnings.length) warnings.push({ client: c.clientName, msgs: c.warnings });
     for (const [empId, tasks] of Object.entries(c.hoursByEmployee)) {
       const acc = byEmp.get(empId) ?? {};
@@ -204,7 +207,7 @@ export function rollup(
     };
   });
 
-  return { employees: rollups, csPool, warnings };
+  return { employees: rollups, csPool, qaPool, warnings };
 }
 
 function round2(n: number): number {

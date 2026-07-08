@@ -68,6 +68,7 @@ type CapacityResponse = {
   employees: EmployeeRollup[]
   pods: PodRollup[]
   csPool: number
+  qaPool: number
   clients: ClientBreakdown[]
   warnings: { client: string; msgs: string[] }[]
 }
@@ -85,7 +86,6 @@ const CADENCE_LABEL: Record<string, string> = {
 
 const TASK_COLS: { key: TaskType; label: string }[] = [
   { key: 'bkpr',     label: 'Bkpr Hrs' },
-  { key: 'qa',       label: 'QA Hrs' },
   { key: 'apAr',     label: 'AP/AR' },
   { key: 'bankFeed', label: 'Bank Feed' },
   { key: 'rec',      label: 'Recon' },
@@ -818,7 +818,7 @@ function PodCapacityView() {
 
       {data && !loading && (
         <>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
             <StatCard
               label="Pod Capacity"
               value={grouped.podMembers.reduce((s, e) => s + e.capacity, 0).toFixed(1)}
@@ -836,9 +836,14 @@ function PodCapacityView() {
               sub="Capacity − Assigned"
             />
             <StatCard
+              label="QA Pool"
+              value={(data.qaPool ?? 0).toFixed(2)}
+              sub="Quarterly rotating QA"
+            />
+            <StatCard
               label="CS Pool"
               value={data.csPool.toFixed(2)}
-              sub="Shared Dawn/Beth mgmt hours"
+              sub="Customer success hours"
             />
           </div>
 

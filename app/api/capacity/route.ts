@@ -120,6 +120,7 @@ export async function GET() {
       employees: result.employees,
       pods,
       csPool: result.csPool,
+      qaPool: result.qaPool,
       clients: breakdowns,
       warnings: result.warnings,
     });
