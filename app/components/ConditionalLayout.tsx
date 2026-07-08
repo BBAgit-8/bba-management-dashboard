@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import Sidebar from './Sidebar'
+import ChangeRequestBubble from './ChangeRequestBubble'
 import { supabaseClient } from '@/lib/supabaseClient'
 
 export default function ConditionalLayout({ children }: { children: React.ReactNode }) {
@@ -57,6 +58,7 @@ export default function ConditionalLayout({ children }: { children: React.ReactN
       >
         <div className="flex-1 p-8">{children}</div>
       </main>
+      <ChangeRequestBubble />
     </>
   )
 }
