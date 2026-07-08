@@ -1062,6 +1062,7 @@ function ClientPodAssignments({
   const [filter, setFilter] = useState<'all' | 'unassigned' | string>('unassigned')
   const [search, setSearch] = useState('')
   const [savingId, setSavingId] = useState<string | null>(null)
+  const [expanded, setExpanded] = useState(false)
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -1096,7 +1097,10 @@ function ClientPodAssignments({
 
   return (
     <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
-      <div className="border-b border-slate-200 px-5 py-3.5 flex items-center justify-between gap-4 flex-wrap">
+      <button
+        onClick={() => setExpanded(e => !e)}
+        className="w-full flex items-center justify-between gap-4 px-5 py-3.5 hover:bg-slate-50 transition-colors text-left"
+      >
         <div>
           <h3 className="text-sm font-semibold text-slate-800">Client → Pod Assignments</h3>
           <p className="mt-0.5 text-xs text-slate-500">
@@ -1105,65 +1109,73 @@ function ClientPodAssignments({
               : 'All clients are assigned to a pod'}
           </p>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <select
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            className="rounded-md border border-slate-300 px-2.5 py-1.5 text-xs focus:border-[#4e008e] focus:outline-none focus:ring-1 focus:ring-[#4e008e]"
-          >
-            <option value="unassigned">Unassigned only ({unassignedCount})</option>
-            <option value="all">All clients ({assignments.length})</option>
-            {pods.map(p => (
-              <option key={p.podId} value={p.podId}>{p.name}</option>
-            ))}
-          </select>
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search…"
-            className="rounded-md border border-slate-300 px-2.5 py-1.5 text-xs w-40 focus:border-[#4e008e] focus:outline-none focus:ring-1 focus:ring-[#4e008e]"
-          />
-        </div>
-      </div>
+        <svg className={`h-4 w-4 text-slate-400 shrink-0 transition-transform ${expanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
 
-      {filtered.length === 0 ? (
-        <div className="px-5 py-8 text-center text-sm text-slate-400">
-          {filter === 'unassigned' ? 'No unassigned clients.' : 'No clients match.'}
-        </div>
-      ) : (
-        <div className="max-h-96 overflow-y-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 sticky top-0">
-              <tr>
-                <th className="px-4 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-600">Client</th>
-                <th className="px-4 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-600">Bookkeeper</th>
-                <th className="px-4 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-600 w-48">Pod</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filtered.map(a => (
-                <tr key={a.id} className="hover:bg-purple-50/30">
-                  <td className="px-4 py-2 text-slate-800">{a.name}</td>
-                  <td className="px-4 py-2 text-slate-600">{a.bookkeeper ?? <span className="text-slate-400 italic">—</span>}</td>
-                  <td className="px-4 py-2">
-                    <select
-                      value={a.assignedPodId ?? ''}
-                      onChange={(e) => setPod(a.id, e.target.value || null)}
-                      disabled={savingId === a.id}
-                      className="w-full rounded-md border border-slate-300 px-2 py-1 text-xs focus:border-[#4e008e] focus:outline-none focus:ring-1 focus:ring-[#4e008e] disabled:opacity-50"
-                    >
-                      <option value="">— Unassigned —</option>
-                      {pods.map(p => (
-                        <option key={p.podId} value={p.podId}>{p.name}</option>
-                      ))}
-                    </select>
-                  </td>
-                </tr>
+      {expanded && (
+        <>
+          <div className="border-t border-slate-200 px-5 py-3 flex items-center gap-2 flex-wrap bg-slate-50/50">
+            <select
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              className="rounded-md border border-slate-300 px-2.5 py-1.5 text-xs focus:border-[#4e008e] focus:outline-none focus:ring-1 focus:ring-[#4e008e]"
+            >
+              <option value="unassigned">Unassigned only ({unassignedCount})</option>
+              <option value="all">All clients ({assignments.length})</option>
+              {pods.map(p => (
+                <option key={p.podId} value={p.podId}>{p.name}</option>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </select>
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search…"
+              className="rounded-md border border-slate-300 px-2.5 py-1.5 text-xs w-40 focus:border-[#4e008e] focus:outline-none focus:ring-1 focus:ring-[#4e008e]"
+            />
+          </div>
+
+          {filtered.length === 0 ? (
+            <div className="px-5 py-8 text-center text-sm text-slate-400">
+              {filter === 'unassigned' ? 'No unassigned clients.' : 'No clients match.'}
+            </div>
+          ) : (
+            <div className="max-h-96 overflow-y-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-slate-50 sticky top-0">
+                  <tr>
+                    <th className="px-4 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-600">Client</th>
+                    <th className="px-4 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-600">Bookkeeper</th>
+                    <th className="px-4 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-600 w-48">Pod</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filtered.map(a => (
+                    <tr key={a.id} className="hover:bg-purple-50/30">
+                      <td className="px-4 py-2 text-slate-800">{a.name}</td>
+                      <td className="px-4 py-2 text-slate-600">{a.bookkeeper ?? <span className="text-slate-400 italic">—</span>}</td>
+                      <td className="px-4 py-2">
+                        <select
+                          value={a.assignedPodId ?? ''}
+                          onChange={(e) => setPod(a.id, e.target.value || null)}
+                          disabled={savingId === a.id}
+                          className="w-full rounded-md border border-slate-300 px-2 py-1 text-xs focus:border-[#4e008e] focus:outline-none focus:ring-1 focus:ring-[#4e008e] disabled:opacity-50"
+                        >
+                          <option value="">— Unassigned —</option>
+                          {pods.map(p => (
+                            <option key={p.podId} value={p.podId}>{p.name}</option>
+                          ))}
+                        </select>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
       )}
     </div>
   )
