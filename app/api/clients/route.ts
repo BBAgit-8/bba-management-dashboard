@@ -48,6 +48,8 @@ export async function GET(): Promise<NextResponse> {
     autoPriceIncreasePercent: c.autoPriceIncreasePercent != null ? Number(c.autoPriceIncreasePercent) : null,
     priceAdjustmentDate:      c.priceAdjustmentDate ?? null,
     lastIncreaseDate:         c.lastIncreaseDate ?? null,
+    clientContext:            c.clientContext ?? null,
+    oddBookkeepingNotes:      c.oddBookkeepingNotes ?? null,
     // nextBkprRate: current bkpr rate × (1 + %/100), rounded up to nearest dollar.
     // Computed here so reports can consume the value directly (never stored — always fresh).
     nextBkprRate: (() => {

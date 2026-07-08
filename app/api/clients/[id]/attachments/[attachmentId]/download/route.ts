@@ -1,0 +1,38 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { supabase } from '@/lib/supabase'
+
+// GET /api/clients/[id]/attachments/[attachmentId]/download
+// Returns a short-lived signed URL. Bucket is private so anon links won't work.
+
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string; attachmentId: string }> }
+): Promise<NextResponse> {
+  try {
+    const { id: clientId, attachmentId } = await params
+
+    const { data: row, error: selErr } = await supabase
+      .from('clientAttachments')
+      .select('storagePath, fileName')
+      .eq('id', attachmentId)
+      .eq('clientId', clientId)
+      .single()
+
+    if (selErr || !row) {
+      return NextResponse.json({ error: 'attachment not found' }, { status: 404 })
+    }
+
+    const { data, error } = await supabase.storage
+      .from('client-attachments')
+      .createSignedUrl(row.storagePath, 300, { download: row.fileName })
+
+    if (error || !data) {
+      console.error('[GET attachment signed url]', error)
+      return NextResponse.json({ error: error?.message ?? 'signed url failed' }, { status: 500 })
+    }
+
+    return NextResponse.json({ url: data.signedUrl })
+  } catch (err: any) {
+    return NextResponse.json({ error: err?.message ?? 'server error' }, { status: 500 })
+  }
+}
