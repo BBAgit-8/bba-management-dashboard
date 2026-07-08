@@ -6,6 +6,7 @@ import { useBookkeeperSync } from '@/app/hooks/useBookkeeperSync'
 
 type ProfitRow = {
   id: string; name: string; code: string; projectType: string | null
+  revenueType: string | null
   bookkeeper: string | null; costRate: number
   revenue: number; totalMonthly: number; harvestHrs: number | null; budgetedHrs: number
   hoursUsed: number; cost: number; profit: number; margin: number | null
@@ -44,6 +45,16 @@ function marginBg(m: number | null) {
   if (m < 20) return 'bg-orange-100'
   if (m < 40) return 'bg-amber-100'
   return 'bg-green-100'
+}
+
+// Rev-type badge styling for the profitability report. Cleanups and Free stand out; recurring stays quiet.
+const REV_BADGE: Record<string, { label: string; cls: string }> = {
+  CLEANUP:                    { label: 'Cleanup',        cls: 'bg-orange-50 text-orange-700 ring-orange-200' },
+  HOURLY_CLEANUP:             { label: 'Hourly Cleanup', cls: 'bg-purple-50 text-purple-700 ring-purple-200' },
+  FREE:                       { label: 'Free',           cls: 'bg-slate-100 text-slate-600 ring-slate-200'   },
+  RECURRING_MONTHLY_ACH:      { label: 'Monthly ACH',    cls: 'bg-emerald-50 text-emerald-700 ring-emerald-200' },
+  RECURRING_MONTHLY_HOURLY:   { label: 'Monthly Hourly', cls: 'bg-teal-50 text-teal-700 ring-teal-200'       },
+  RECURRING_MONTHLY_INVOICED: { label: 'Monthly Inv.',   cls: 'bg-green-50 text-green-700 ring-green-200'    },
 }
 
 function StatCard({ label, value, sub, color }: { label: string; value: string; sub?: string; color?: string }) {
@@ -359,7 +370,24 @@ export default function ProfitabilityPage() {
                       const col = ALL_COLS.find(c => c.key === key)!
                       const cls = `px-4 py-3 ${col.align === 'right' ? 'text-right tabular-nums' : ''}`
                       switch (key) {
-                        case 'name':       return <td key={key} className={cls}><Link href={`/clients/${row.code}`} className="group"><p className="font-medium text-slate-800 group-hover:text-bba-action transition-colors">{row.name}</p><p className="text-[10px] font-mono text-slate-400">{row.code}</p></Link></td>
+                        case 'name': {
+                          const badge = row.revenueType ? REV_BADGE[row.revenueType] : null
+                          return (
+                            <td key={key} className={cls}>
+                              <Link href={`/clients/${row.code}`} className="group block">
+                                <div className="flex items-center gap-2">
+                                  <p className="font-medium text-slate-800 group-hover:text-bba-action transition-colors">{row.name}</p>
+                                  {badge && (
+                                    <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium ring-1 ${badge.cls}`}>
+                                      {badge.label}
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-[10px] font-mono text-slate-400">{row.code}</p>
+                              </Link>
+                            </td>
+                          )
+                        }
                         case 'bookkeeper': return <td key={key} className={cls + ' text-slate-600'}>{row.bookkeeper ?? <span className="text-slate-300">—</span>}{row.costRate > 0 && <span className="ml-1 text-[10px] text-slate-400">(${row.costRate}/hr)</span>}</td>
                         case 'hoursUsed':  return <td key={key} className={cls + ' text-slate-700'}>{row.hoursUsed.toFixed(1)}{row.harvestHrs === null && row.budgetedHrs > 0 && <span className="ml-1 text-[10px] text-slate-400">est</span>}</td>
                         case 'revenue':    return <td key={key} className={cls + ' text-slate-700'}>{fmtFull(row.revenue)}</td>

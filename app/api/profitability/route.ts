@@ -38,7 +38,10 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
   if (clientRes.error) return NextResponse.json({ error: clientRes.error.message }, { status: 500 })
 
-  const EXCLUDED_REV_TYPES = new Set(['CLEANUP', 'QBO_ONLY_ANCHOR', 'QBO_ONLY_QBO'])
+  // QBO-only clients don't generate bookkeeping revenue — exclude them from profitability entirely.
+  // CLEANUP and HOURLY_CLEANUP are INCLUDED — they show as their own rows with real revenue.
+  // FREE clients are also INCLUDED but their revenue is treated as $0 (see revenue calc below).
+  const EXCLUDED_REV_TYPES = new Set(['QBO_ONLY_ANCHOR', 'QBO_ONLY_QBO'])
   const clients   = (clientRes.data ?? []).filter((c: any) => !EXCLUDED_REV_TYPES.has(c.revenueType))
   const employees = empRes.data ?? []
   const settings  = settingsRes.data ?? []
@@ -114,16 +117,19 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   // 4. Build rows
   const rows = clients.map(client => {
     const code        = client.harvestProjectCode?.toUpperCase()?.trim() ?? ''
+    const revenueType = (client as any).revenueType ?? null
+    const isFree      = revenueType === 'FREE'
     const bookkeepingRate = Number((client as any).bookkeepingRate ?? 0)
     const softwareRate    = Number((client as any).softwareRate    ?? 0)
     // Revenue for profitability = bookkeepingRate only
     // Fall back to totalMonthlyAmount minus softwareRate if bookkeepingRate not set
+    // FREE clients: revenue forced to $0 (donation / comped clients — still track hours & cost)
     const savedTotal = Number((client as any).totalMonthlyAmount ?? 0)
-    const revenue = bookkeepingRate > 0
+    const revenue = isFree ? 0 : (bookkeepingRate > 0
       ? bookkeepingRate
       : savedTotal > 0
         ? Math.max(savedTotal - softwareRate, savedTotal)  // use total if bk rate not set
-        : 0
+        : 0)
     const totalMonthly = bookkeepingRate > 0 || softwareRate > 0
       ? bookkeepingRate + softwareRate
       : savedTotal
@@ -141,6 +147,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     return {
       id: client.id, name: client.name, code,
       projectType: client.projectType,
+      revenueType,
       bookkeeper, costRate, revenue,
       totalMonthly,
       harvestHrs: harvestHrs !== null ? parseFloat(harvestHrs.toFixed(2)) : null,
