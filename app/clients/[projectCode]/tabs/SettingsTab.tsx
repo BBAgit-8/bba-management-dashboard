@@ -574,7 +574,7 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
               <div className="mt-3 flex items-center justify-between rounded-lg bg-slate-50 border border-slate-200 px-4 py-3">
                 <div>
                   <span className="text-sm text-slate-700">Okay to contact accountant directly?</span>
-                  <p className="text-[11px] text-slate-400 mt-0.5">Client authorises BBA to contact their accountant</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">Client authorizes BBA to contact their accountant</p>
                 </div>
                 <button type="button"
                   onClick={() => setOps(o => ({ ...o, okToContactAccountant: !o.okToContactAccountant }))}
@@ -775,7 +775,7 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
           ) : (
             <div className="space-y-3 border-t border-red-200 pt-4">
               <p className="text-xs text-red-700 font-semibold">
-                Type <span className="font-mono bg-red-100 px-1.5 py-0.5 rounded text-red-800">CONFIRM</span> exactly to authorise this action:
+                Type <span className="font-mono bg-red-100 px-1.5 py-0.5 rounded text-red-800">CONFIRM</span> exactly to authorize this action:
               </p>
               <input
                 type="text"

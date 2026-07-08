@@ -460,7 +460,7 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
                 </div>
               </Field>
             </Grid2>
-            <Toggle label="Okay to contact accountant directly?" sub="Client authorises BBA to contact their accountant"
+            <Toggle label="Okay to contact accountant directly?" sub="Client authorizes BBA to contact their accountant"
               value={form.okToContactAccountant} onChange={v => set('okToContactAccountant', v)} />
           </Section>
 

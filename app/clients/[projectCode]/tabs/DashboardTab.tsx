@@ -23,8 +23,7 @@ interface Props {
 }
 
 export default function DashboardTab({ client, projectCode }: Props) {
-  const [rawNotes,    setRawNotes]   = useState('');
-  const [submitState, setSubmit]     = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
+  // AI Call Log removed — Dawn requested removal (July 2026).
   const [harvest,     setHarvest]    = useState<HarvestHours | null>(null)
   const [harvestConnected, setHarvestConnected] = useState(false)
   const [harvestLoading,   setHarvestLoading]   = useState(true)
@@ -131,21 +130,6 @@ export default function DashboardTab({ client, projectCode }: Props) {
   const YE_ACCUM     = parseFloat((YE_BUDGET   * monthsInYear).toFixed(2))
   const MGMT_ACCUM   = parseFloat((MGMT_BUDGET * monthsInQtr).toFixed(2))
 
-  async function handleSubmitNotes(e: React.FormEvent) {
-    e.preventDefault()
-    if (!rawNotes.trim()) return
-    setSubmit('loading')
-    try {
-      const res = await fetch('/api/clients/logs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ projectCode, rawNotes }),
-      })
-      if (!res.ok) throw new Error('Failed')
-      setSubmit('done'); setRawNotes('')
-    } catch { setSubmit('error') }
-  }
-
   return (
     <div className="space-y-6">
 
@@ -250,31 +234,6 @@ export default function DashboardTab({ client, projectCode }: Props) {
           budget={YE_ACCUM}
           color="#f59e0b"
         />
-      </div>
-
-      {/* AI Call Log */}
-      <div className="rounded-xl border border-slate-100 bg-white p-5 space-y-4">
-        <div>
-          <h3 className="text-sm font-semibold text-slate-700">AI Call Log</h3>
-          <p className="text-xs text-slate-400 mt-0.5">Paste raw call notes — Claude will extract a structured summary and save it to the client record.</p>
-        </div>
-        <form onSubmit={handleSubmitNotes} className="space-y-3">
-          <textarea
-            value={rawNotes}
-            onChange={e => setRawNotes(e.target.value)}
-            placeholder="Paste raw meeting notes here…"
-            rows={4}
-            className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-bba-action resize-none"
-          />
-          <div className="flex items-center gap-3">
-            <button type="submit" disabled={submitState === 'loading' || !rawNotes.trim()}
-              className="rounded-lg bg-bba-action px-4 py-2 text-sm font-semibold text-white hover:bg-bba-action/85 disabled:opacity-50 transition-colors">
-              {submitState === 'loading' ? 'Processing…' : 'Process Notes'}
-            </button>
-            {submitState === 'done'  && <span className="text-xs text-green-600">✓ Saved</span>}
-            {submitState === 'error' && <span className="text-xs text-red-500">Failed — try again</span>}
-          </div>
-        </form>
       </div>
 
     </div>
