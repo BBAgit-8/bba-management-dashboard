@@ -156,12 +156,14 @@ export function computeClient(
   if (bkprContainer === 0 && qa === 0 && cs === 0 && ye === 0)
     warnings.push("No hours entered on client");
 
-  add("ye", ye);
-  add("audit", audit);
+  // Audit folds into YE — Jada handles both as year-end work.
+  // PR Rec is Jada's regular maintenance work across all clients (done quarterly);
+  // not tracked per-client here. When Dawn has the total-hours estimate we'll
+  // add it as a fixed deduction on Jada's employee record.
+  add("ye", ye + audit);
   add("bankFeed", bankFeed);
   add("rec", rec);
   add("apAr", apAr);
-  add("prRec", prRec);
   add("bkpr", Math.max(pureBkpr, 0));
 
   return {

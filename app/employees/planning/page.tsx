@@ -99,9 +99,7 @@ const TASK_COLS: { key: TaskType; label: string }[] = [
   { key: 'apAr',     label: 'AP/AR' },
   { key: 'bankFeed', label: 'Bank Feed' },
   { key: 'rec',      label: 'Recon' },
-  { key: 'prRec',    label: 'PR Rec' },
-  { key: 'ye',       label: 'YE' },
-  { key: 'audit',    label: 'Audit' },
+  { key: 'ye',       label: 'YE + Audit' },
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -939,8 +937,9 @@ function PodCapacityView() {
             <div className="text-xs text-slate-600 space-y-1.5">
               <p><strong className="text-slate-700">Employee capacity</strong> = weekly contracted hours × 4.33 weeks − admin time % − any fixed deduction (e.g. Deb&apos;s 10 hrs of non-pod QA)</p>
               <p><strong className="text-slate-700">Client hours come from the client form:</strong> Total = Bkpr Hours + QA + CS + YE + Audit. The <strong>Bkpr Hours</strong> field is itself a container that includes Bank Feed + Rec + AP/AR. The bookkeeper&apos;s pure share = Bkpr − Bank Feed − Rec − AP/AR.</p>
-              <p><strong className="text-slate-700">QA and CS</strong> come off the top and go to firm-wide pools (quarterly rotating QA + Dawn/Beth CS). <strong>YE</strong> stays inside the pod (default: Jada) and is protected — cannot be reallocated to bookkeeping.</p>
-              <p><strong className="text-slate-700">Pod 1</strong> defaults: Deb owns bookkeeping. Jada owns Bank Feed, Recon, AP/AR, PR Rec, YE. Rec can be overridden per client.</p>
+              <p><strong className="text-slate-700">QA and CS</strong> come off the top and go to firm-wide pools (quarterly rotating QA + Dawn/Beth CS). <strong>YE + Audit</strong> stay inside the pod (default: Jada) and are protected — cannot be reallocated to bookkeeping.</p>
+              <p><strong className="text-slate-700">Pod 1</strong> defaults: Deb owns pure bookkeeping. Jada owns Bank Feed, Recon, AP/AR, YE, and Audit. Any of these can be overridden per client.</p>
+              <p><strong className="text-slate-700">PR Rec</strong> is Jada&apos;s firm-wide quarterly work (not per-client); it will be entered as a fixed deduction on Jada once the annual total is known.</p>
               <p><strong className="text-slate-700">Excluded from capacity:</strong> QBO-only clients. <strong>Cleanup</strong> clients: hours = price ÷ $125 ÷ duration in months.</p>
             </div>
           </div>
