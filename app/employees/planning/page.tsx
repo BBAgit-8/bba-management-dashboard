@@ -775,22 +775,20 @@ function PodCapacityView() {
   }, [])
 
   const grouped = useMemo(() => {
-    if (!data) return { pods: [], solo: [] as EmployeeRollup[] }
+    if (!data) return { pods: [], podMembers: [] as EmployeeRollup[] }
     const byPod: Record<string, EmployeeRollup[]> = {}
-    const solo: EmployeeRollup[] = []
     for (const e of data.employees) {
       if (e.podId) {
         byPod[e.podId] = byPod[e.podId] ?? []
         byPod[e.podId].push(e)
-      } else {
-        solo.push(e)
       }
     }
     const pods = data.pods.map(p => ({
       pod: p,
       members: byPod[p.podId] ?? [],
     }))
-    return { pods, solo: solo.sort((a, b) => a.name.localeCompare(b.name)) }
+    const podMembers = pods.flatMap(p => p.members)
+    return { pods, podMembers }
   }, [data])
 
   return (
@@ -822,19 +820,19 @@ function PodCapacityView() {
         <>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <StatCard
-              label="Total Capacity"
-              value={data.employees.reduce((s, e) => s + e.capacity, 0).toFixed(1)}
-              sub={`${data.employees.length} people`}
+              label="Pod Capacity"
+              value={grouped.podMembers.reduce((s, e) => s + e.capacity, 0).toFixed(1)}
+              sub={`${grouped.podMembers.length} people in ${grouped.pods.length} pod${grouped.pods.length !== 1 ? 's' : ''}`}
             />
             <StatCard
               label="Assigned Hours"
-              value={data.employees.reduce((s, e) => s + e.totalAssigned, 0).toFixed(1)}
+              value={grouped.podMembers.reduce((s, e) => s + e.totalAssigned, 0).toFixed(1)}
               sub={`${data.clients.length} clients`}
             />
             <StatCard
               label="Available"
-              value={data.employees.reduce((s, e) => s + e.difference, 0).toFixed(1)}
-              color={data.employees.reduce((s, e) => s + e.difference, 0) < 0 ? 'text-red-600' : 'text-green-700'}
+              value={grouped.podMembers.reduce((s, e) => s + e.difference, 0).toFixed(1)}
+              color={grouped.podMembers.reduce((s, e) => s + e.difference, 0) < 0 ? 'text-red-600' : 'text-green-700'}
               sub="Capacity − Assigned"
             />
             <StatCard
@@ -872,14 +870,10 @@ function PodCapacityView() {
                   <PodBlock key={pod.podId} pod={pod} members={members} />
                 ))}
 
-                {grouped.solo.map((e, i) => (
-                  <EmployeeRow key={e.employeeId} emp={e} rowIndex={i} />
-                ))}
-
-                {grouped.pods.length === 0 && grouped.solo.length === 0 && (
+                {grouped.pods.length === 0 && (
                   <tr>
                     <td colSpan={TASK_COLS.length + 4} className="px-4 py-12 text-center text-sm text-slate-400">
-                      No employees found.
+                      No pods configured yet. Assign employees to pods from the Employees page.
                     </td>
                   </tr>
                 )}

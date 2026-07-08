@@ -7,12 +7,15 @@ type Employee = {
   rateType: string; employeeType?: string; salary: number | null; effectiveHourlyRate: number
   contractedHours: number; adminTimePercent: number
   hubAccess: boolean; invitedAt: string | null
+  podId?: string | null
 }
 
 type RateHistory = {
   id: string; rateType: string; rate: number
   effectiveDate: string; notes: string | null; createdAt: string
 }
+
+type Pod = { id: string; name: string }
 
 interface Props {
   employee: Employee | null
@@ -44,20 +47,21 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
 
 export default function EmployeeDrawer({ employee, onClose, onUpdated }: Props) {
   const open = employee != null
-  const [tab,            setTab]           = useState<'profile' | 'edit' | 'rate-history'>('profile')
-  const [history,        setHistory]       = useState<RateHistory[]>([])
+  const [tab, setTab] = useState<'profile' | 'edit' | 'rate-history'>('profile')
+  const [history, setHistory] = useState<RateHistory[]>([])
   const [loadingHistory, setLoadingHistory] = useState(false)
-  const [lastChange,     setLastChange]     = useState<{ date: string; pct: number | null } | null>(null)
-  const [inviting,       setInviting]      = useState(false)
-  const [revoking,       setRevoking]      = useState(false)
-  const [inviteMsg,      setInviteMsg]     = useState<{ type: 'success' | 'error'; text: string } | null>(null)
-  const [saving,         setSaving]        = useState(false)
-  const [pastEntry,      setPastEntry]     = useState({ rate: '', date: '', notes: '', rateType: 'hourly' as 'hourly' | 'salary' })
-  const [savingPast,     setSavingPast]    = useState(false)
-  const [pastMsg,        setPastMsg]       = useState<{ type: 'success' | 'error'; text: string } | null>(null)
-  const [deletingId,     setDeletingId]    = useState<string | null>(null)
-  const [saveError,      setSaveError]     = useState<string | null>(null)
-  const [saveSuccess,    setSaveSuccess]   = useState(false)
+  const [lastChange, setLastChange] = useState<{ date: string; pct: number | null } | null>(null)
+  const [inviting, setInviting] = useState(false)
+  const [revoking, setRevoking] = useState(false)
+  const [inviteMsg, setInviteMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [pastEntry, setPastEntry] = useState({ rate: '', date: '', notes: '', rateType: 'hourly' as 'hourly' | 'salary' })
+  const [savingPast, setSavingPast] = useState(false)
+  const [pastMsg, setPastMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const [saveSuccess, setSaveSuccess] = useState(false)
+  const [pods, setPods] = useState<Pod[]>([])
 
   // Edit form state — seeded from employee when drawer opens
   const [editForm, setEditForm] = useState({
@@ -66,7 +70,16 @@ export default function EmployeeDrawer({ employee, onClose, onUpdated }: Props) 
     employeeType: 'employee' as 'employee' | 'contractor',
     hourlyRate: '', salary: '', contractedHours: '',
     adminTimePercent: '', rateChangeNote: '',
+    podId: '',
   })
+
+  // Fetch pods list once on mount
+  useEffect(() => {
+    fetch('/api/pods')
+      .then(r => r.json())
+      .then(d => setPods(Array.isArray(d.pods) ? d.pods : []))
+      .catch(() => {})
+  }, [])
 
   useEffect(() => {
     if (!employee) return
@@ -77,16 +90,17 @@ export default function EmployeeDrawer({ employee, onClose, onUpdated }: Props) 
     setLastChange(null)
     fetchLastChange(employee.id)
     setEditForm({
-      name:             employee.name,
-      email:            employee.email ?? '',
-      title:            employee.title ?? '',
-      rateType:         (employee.rateType as 'hourly' | 'salary') ?? 'hourly',
-      employeeType:     (employee.employeeType as 'employee' | 'contractor') ?? 'employee',
-      hourlyRate:       employee.rateType === 'hourly' ? String(employee.effectiveHourlyRate) : '',
-      salary:           employee.salary ? String(employee.salary) : '',
-      contractedHours:  String(employee.contractedHours),
+      name: employee.name,
+      email: employee.email ?? '',
+      title: employee.title ?? '',
+      rateType: (employee.rateType as 'hourly' | 'salary') ?? 'hourly',
+      employeeType: (employee.employeeType as 'employee' | 'contractor') ?? 'employee',
+      hourlyRate: employee.rateType === 'hourly' ? String(employee.effectiveHourlyRate) : '',
+      salary: employee.salary ? String(employee.salary) : '',
+      contractedHours: String(employee.contractedHours),
       adminTimePercent: String(employee.adminTimePercent),
-      rateChangeNote:   '',
+      rateChangeNote: '',
+      podId: employee.podId ?? '',
     })
   }, [employee?.id])
 
@@ -121,7 +135,6 @@ export default function EmployeeDrawer({ employee, onClose, onUpdated }: Props) 
         const h = d.history ?? []
         if (h.length === 0) { setLastChange(null); return }
         const latest = h[0]
-        // Find previous entry with same rateType for apples-to-apples comparison
         const prev = h.slice(1).find((e: any) => e.rateType === latest.rateType) ?? h[1]
         const pct = prev
           ? parseFloat((((Number(latest.rate) - Number(prev.rate)) / Number(prev.rate)) * 100).toFixed(1))
@@ -138,11 +151,11 @@ export default function EmployeeDrawer({ employee, onClose, onUpdated }: Props) 
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        employeeId:    employee.id,
-        rateType:      pastEntry.rateType,
-        rate:          parseFloat(pastEntry.rate),
+        employeeId: employee.id,
+        rateType: pastEntry.rateType,
+        rate: parseFloat(pastEntry.rate),
         effectiveDate: pastEntry.date,
-        notes:         pastEntry.notes || null,
+        notes: pastEntry.notes || null,
       }),
     })
     const json = await res.json()
@@ -159,7 +172,7 @@ export default function EmployeeDrawer({ employee, onClose, onUpdated }: Props) 
   async function handleSave() {
     if (!employee) return
     setSaving(true); setSaveError(null); setSaveSuccess(false)
-    const res  = await fetch(`/api/employees/${employee.id}`, {
+    const res = await fetch(`/api/employees/${employee.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(editForm),
@@ -178,7 +191,7 @@ export default function EmployeeDrawer({ employee, onClose, onUpdated }: Props) 
   async function loadHistory() {
     if (!employee) return
     setLoadingHistory(true)
-    const res  = await fetch(`/api/employees/rate-history?employeeId=${employee.id}`)
+    const res = await fetch(`/api/employees/rate-history?employeeId=${employee.id}`)
     const json = await res.json()
     if (json.history) setHistory(json.history)
     setLoadingHistory(false)
@@ -186,13 +199,13 @@ export default function EmployeeDrawer({ employee, onClose, onUpdated }: Props) 
 
   useEffect(() => {
     if (tab === 'rate-history' && employee) loadHistory()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, employee?.id])
 
   async function handleInvite() {
     if (!employee?.email) { setInviteMsg({ type: 'error', text: 'No email address on file.' }); return }
     setInviting(true); setInviteMsg(null)
-    const res  = await fetch('/api/team/invite', {
+    const res = await fetch('/api/team/invite', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ employeeId: employee.id, email: employee.email, name: employee.name }),
@@ -210,7 +223,7 @@ export default function EmployeeDrawer({ employee, onClose, onUpdated }: Props) 
   async function handleRevoke() {
     if (!employee) return
     setRevoking(true); setInviteMsg(null)
-    const res  = await fetch('/api/team/invite', {
+    const res = await fetch('/api/team/invite', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ employeeId: employee.id }),
@@ -273,16 +286,21 @@ export default function EmployeeDrawer({ employee, onClose, onUpdated }: Props) 
                       <p className="text-[10px] font-bold uppercase tracking-widest text-bba-action">Details</p>
                     </div>
                     <div className="px-4 py-1">
-                      <InfoRow label="Email"          value={employee.email} />
-                      <InfoRow label="Title"          value={employee.title} />
+                      <InfoRow label="Email" value={employee.email} />
+                      <InfoRow label="Title" value={employee.title} />
                       <InfoRow label="Type" value={
                         employee.employeeType === 'contractor'
                           ? <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-700">Contractor</span>
                           : <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">Employee</span>
                       } />
                       <InfoRow label="Contracted Hrs" value={employee.contractedHours ? `${employee.contractedHours} hrs/week` : null} />
-                      <InfoRow label="Admin Time"     value={employee.adminTimePercent ? `${employee.adminTimePercent}%` : null} />
-                      <InfoRow label="Capacity/Mo"    value={employee.contractedHours ? `${(Number(employee.contractedHours) * 4.33).toFixed(1)} hrs` : null} />
+                      <InfoRow label="Admin Time" value={employee.adminTimePercent ? `${employee.adminTimePercent}%` : null} />
+                      <InfoRow label="Capacity/Mo" value={employee.contractedHours ? `${(Number(employee.contractedHours) * 4.33).toFixed(1)} hrs` : null} />
+                      <InfoRow label="Pod" value={
+                        employee.podId
+                          ? (pods.find(p => p.id === employee.podId)?.name ?? '—')
+                          : <span className="text-slate-400 italic">Not in a pod</span>
+                      } />
                     </div>
                   </div>
 
@@ -291,7 +309,7 @@ export default function EmployeeDrawer({ employee, onClose, onUpdated }: Props) 
                       <p className="text-[10px] font-bold uppercase tracking-widest text-bba-action">Compensation</p>
                     </div>
                     <div className="px-4 py-1">
-                      <InfoRow label="Rate Type"  value={employee.rateType === 'salary' ? 'Salary' : 'Hourly'} />
+                      <InfoRow label="Rate Type" value={employee.rateType === 'salary' ? 'Salary' : 'Hourly'} />
                       {employee.rateType === 'salary' && employee.salary && (
                         <InfoRow label="Annual Salary" value={`$${Number(employee.salary).toLocaleString()}`} />
                       )}
@@ -382,6 +400,18 @@ export default function EmployeeDrawer({ employee, onClose, onUpdated }: Props) 
                         ))}
                       </div>
                     </Field>
+                    <Field label="Pod Assignment" hint="Groups employees for pod-based capacity planning. Leave unassigned if this employee works independently.">
+                      <select
+                        value={editForm.podId}
+                        onChange={e => setEdit('podId', e.target.value)}
+                        className={inp}
+                      >
+                        <option value="">— Not in a pod —</option>
+                        {pods.map(p => (
+                          <option key={p.id} value={p.id}>{p.name}</option>
+                        ))}
+                      </select>
+                    </Field>
                   </div>
 
                   <div className="space-y-4">
@@ -454,8 +484,6 @@ export default function EmployeeDrawer({ employee, onClose, onUpdated }: Props) 
                     {saving && <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>}
                     {saving ? 'Saving…' : 'Save Changes'}
                   </button>
-
-                  {/* Log Past Rate Change section intentionally removed — can be re-added if needed */}
                 </div>
               )}
 
