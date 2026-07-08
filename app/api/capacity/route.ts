@@ -1,5 +1,6 @@
 // app/api/capacity/route.ts
-// GET: full capacity rollup — per-client breakdowns + per-employee totals + pod rollup
+// GET: full capacity rollup — per-client breakdowns + per-employee totals + pod rollup.
+// Reads client workload hours directly from the client form fields.
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import {
@@ -16,9 +17,10 @@ export async function GET() {
       await Promise.all([
         supabase.from("capacitySettings").select("key, value"),
         supabase.from("clients").select(
-          `id, name, revenueType, totalBudgetedHours, numBankAccounts, numLoans,
-           txnBucket, numPmtPortals, pettyCash, apArHours, prRecHours, auditHours,
-           bankFeedHoursOverride, recHoursOverride, assignedPodId, "Bookkeeper"`
+          `id, name, revenueType, assignedPodId, "Bookkeeper",
+           totalHrsPerMonth, bkprHours, qaHours, custSuccessMgmtHrs, yeOrTaxHours,
+           auditHours, apArHrs, bankFeedTime, recTime,
+           numBanksAndCCs, numLoans, numPmtPortals`
         ),
         supabase.from("employees").select(
           `id, name, podId, contractedHours, adminTimePercent, fixedDeduction, fixedDeductionLabel`
@@ -38,13 +40,8 @@ export async function GET() {
       return NextResponse.json({ error: firstError.message }, { status: 500 });
     }
 
-    // settings jsonb -> typed object
     const raw = Object.fromEntries((settingsRes.data ?? []).map((r) => [r.key, r.value]));
     const settings: CapacitySettings = {
-      bankFeedBuckets: raw.bankFeedBuckets ?? {},
-      recHoursPerAccount: Number(raw.recHoursPerAccount ?? 0.5),
-      recHoursPerLoan: Number(raw.recHoursPerLoan ?? 0),
-      tierRules: raw.tierRules ?? { thresholds: [10, 20], hours: [0.25, 0.5, 0.75] },
       cleanupHourlyRate: Number(raw.cleanupHourlyRate ?? 125),
     };
 
@@ -64,22 +61,28 @@ export async function GET() {
         .map((e) => [e.clientId, e])
     );
 
+    const num = (v: unknown) => v == null ? 0 : Number(v);
+
     const breakdowns = (clientsRes.data ?? [])
       .map((c) => {
         const cleanup = activeCleanups.get(c.id);
         const workload: ClientWorkload = {
-          ...c,
-          totalBudgetedHours: c.totalBudgetedHours != null ? Number(c.totalBudgetedHours) : null,
-          numBankAccounts: c.numBankAccounts ?? 0,
-          numLoans: c.numLoans ?? 0,
-          apArHours: Number(c.apArHours ?? 0),
-          prRecHours: Number(c.prRecHours ?? 0),
-          auditHours: Number(c.auditHours ?? 0),
-          bankFeedHoursOverride: c.bankFeedHoursOverride != null ? Number(c.bankFeedHoursOverride) : null,
-          recHoursOverride: c.recHoursOverride != null ? Number(c.recHoursOverride) : null,
+          id: c.id,
+          name: c.name,
+          revenueType: cleanup ? "CLEANUP" : c.revenueType,
+          assignedPodId: c.assignedPodId ?? null,
+          totalHrs: c.totalHrsPerMonth != null ? Number(c.totalHrsPerMonth) : null,
+          bkprHours: num(c.bkprHours),
+          qaHours: num(c.qaHours),
+          csHours: num(c.custSuccessMgmtHrs),
+          yeHours: num(c.yeOrTaxHours),
+          auditHours: num(c.auditHours),
+          apArHours: num(c.apArHrs),
+          bankFeedHours: num(c.bankFeedTime),
+          recHours: num(c.recTime),
+          prRecHours: 0, // no dedicated column yet
           cleanupPrice: cleanup?.cleanupPrice != null ? Number(cleanup.cleanupPrice) : null,
           cleanupDurationMonths: cleanup?.cleanupDurationMonths ?? null,
-          revenueType: cleanup ? "CLEANUP" : c.revenueType,
         };
         return computeClient(workload, settings, assignments);
       })
@@ -96,7 +99,6 @@ export async function GET() {
 
     const result = rollup(breakdowns, employees);
 
-    // pod rollups: sum members
     const pods = (podsRes.data ?? []).map((p) => {
       const members = result.employees.filter((e) => e.podId === p.id);
       const byTask: Partial<Record<TaskType, number>> = {};
@@ -116,8 +118,6 @@ export async function GET() {
       };
     });
 
-    // For the pod-assignment UI: flat list of every non-QBO_ONLY client with
-    // its current bookkeeper + pod, so Dawn can assign clients to pods directly.
     const clientAssignments = (clientsRes.data ?? [])
       .filter((c) => !(c.revenueType ?? "").startsWith("QBO_ONLY"))
       .map((c) => ({

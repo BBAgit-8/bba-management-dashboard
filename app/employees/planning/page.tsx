@@ -59,7 +59,8 @@ type ClientBreakdown = {
   clientName: string
   qa: number; cs: number; ye: number; audit: number
   bankFeed: number; rec: number; apAr: number; prRec: number
-  bkprRemainder: number; bkprBudget: number
+  pureBkpr: number; bkprContainer: number
+  totalEntered: number; totalOnClient: number | null
   warnings: string[]
   isCleanup: boolean
 }
@@ -937,9 +938,9 @@ function PodCapacityView() {
             <h2 className="text-sm font-semibold text-slate-700 mb-2">How capacity is calculated</h2>
             <div className="text-xs text-slate-600 space-y-1.5">
               <p><strong className="text-slate-700">Employee capacity</strong> = weekly contracted hours × 4.33 weeks − admin time % − any fixed deduction (e.g. Deb&apos;s 10 hrs of non-pod QA)</p>
-              <p><strong className="text-slate-700">Per client:</strong> Total Budgeted Hours − QA (0.25) − CS (0.25) − YE (0.25) − Audit = Bookkeeper&apos;s monthly budget. QA and CS go to firm-wide pools (not the pod). YE stays in the pod (protected — cannot be reallocated to bookkeeping).</p>
-              <p><strong className="text-slate-700">Bank Feed hours</strong> come from the transaction bucket lookup, <strong>Recon</strong> = 0.5 hr × (bank + CC accounts), <strong>AP/AR</strong> and <strong>PR Rec</strong> are entered per client.</p>
-              <p><strong className="text-slate-700">Pod 1</strong> defaults: Deb owns bookkeeping. Jada owns Bank Feed, Recon, AP/AR, PR Rec, YE. Rec can be overridden per client (e.g. Deb&apos;s one exception client).</p>
+              <p><strong className="text-slate-700">Client hours come from the client form:</strong> Total = Bkpr Hours + QA + CS + YE + Audit. The <strong>Bkpr Hours</strong> field is itself a container that includes Bank Feed + Rec + AP/AR. The bookkeeper&apos;s pure share = Bkpr − Bank Feed − Rec − AP/AR.</p>
+              <p><strong className="text-slate-700">QA and CS</strong> come off the top and go to firm-wide pools (quarterly rotating QA + Dawn/Beth CS). <strong>YE</strong> stays inside the pod (default: Jada) and is protected — cannot be reallocated to bookkeeping.</p>
+              <p><strong className="text-slate-700">Pod 1</strong> defaults: Deb owns bookkeeping. Jada owns Bank Feed, Recon, AP/AR, PR Rec, YE. Rec can be overridden per client.</p>
               <p><strong className="text-slate-700">Excluded from capacity:</strong> QBO-only clients. <strong>Cleanup</strong> clients: hours = price ÷ $125 ÷ duration in months.</p>
             </div>
           </div>
