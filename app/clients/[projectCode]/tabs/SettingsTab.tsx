@@ -583,9 +583,19 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
               >
                 <option value="">— Select accountant —</option>
                 <option value="__add_new__">+ Add new accountant…</option>
-                {accountants.map(a => (
-                  <option key={a.id} value={a.id}>{a.name}{a.businessName ? ` — ${a.businessName}` : ''}</option>
-                ))}
+                {[...accountants]
+                  .sort((a, b) => {
+                    // Sort by firm name first (fall back to CPA name when firm is blank)
+                    const aKey = (a.businessName || a.name || '').toLowerCase()
+                    const bKey = (b.businessName || b.name || '').toLowerCase()
+                    if (aKey !== bKey) return aKey.localeCompare(bKey)
+                    return (a.name || '').toLowerCase().localeCompare((b.name || '').toLowerCase())
+                  })
+                  .map(a => (
+                    <option key={a.id} value={a.id}>
+                      {a.businessName ? `${a.businessName} — ${a.name}` : a.name}
+                    </option>
+                  ))}
               </select>
 
               {/* Inline add accountant form */}

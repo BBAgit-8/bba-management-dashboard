@@ -1194,9 +1194,18 @@ export default function ClientDirectory() {
               className="w-full rounded-md border border-purple-200/60 bg-transparent px-1.5 py-1 text-sm text-slate-700 hover:border-slate-200 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400 cursor-pointer"
             >
               <option value="">—</option>
-              {accountants.map((a: any) => (
-                <option key={a.id} value={a.id}>{a.businessName || a.name}</option>
-              ))}
+              {[...accountants]
+                .sort((a: any, b: any) => {
+                  const aKey = (a.businessName || a.name || '').toLowerCase()
+                  const bKey = (b.businessName || b.name || '').toLowerCase()
+                  if (aKey !== bKey) return aKey.localeCompare(bKey)
+                  return (a.name || '').toLowerCase().localeCompare((b.name || '').toLowerCase())
+                })
+                .map((a: any) => (
+                  <option key={a.id} value={a.id}>
+                    {a.businessName ? `${a.businessName} — ${a.name}` : a.name}
+                  </option>
+                ))}
             </select>
           </td>
         )

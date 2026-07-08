@@ -402,7 +402,18 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
                       className={sel}
                     >
                       <option value="">— Select accountant —</option>
-                      {accountants.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                      {[...accountants]
+                        .sort((a, b) => {
+                          const aKey = (a.businessName || a.name || '').toLowerCase()
+                          const bKey = (b.businessName || b.name || '').toLowerCase()
+                          if (aKey !== bKey) return aKey.localeCompare(bKey)
+                          return (a.name || '').toLowerCase().localeCompare((b.name || '').toLowerCase())
+                        })
+                        .map(a => (
+                          <option key={a.id} value={a.id}>
+                            {a.businessName ? `${a.businessName} — ${a.name}` : a.name}
+                          </option>
+                        ))}
                     </select>
                     <button type="button" onClick={() => setShowNewAcct(true)}
                       className="text-[11px] text-bba-action hover:text-purple-800 hover:underline font-medium transition-colors">
