@@ -86,6 +86,7 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
     autoPriceIncreasePercent: String(client?.autoPriceIncreasePercent ?? ''),
     hasSignedAutoIncrease:    client?.hasSignedAutoIncrease ?? false,
     priceAdjustmentDate:      toDateInput(client?.priceAdjustmentDate),
+    lastIncreaseDate:         toDateInput(client?.lastIncreaseDate),
     guaranteedDeadlineDay:    String(client?.guaranteedDeadlineDay ?? ''),
     recTime:                  String(client?.recTime ?? ''),
     // Accountant
@@ -166,6 +167,7 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
       autoPriceIncreasePercent: String(client.autoPriceIncreasePercent ?? ''),
       hasSignedAutoIncrease:    client.hasSignedAutoIncrease ?? false,
       priceAdjustmentDate:      toDateInput(client.priceAdjustmentDate),
+      lastIncreaseDate:         toDateInput(client.lastIncreaseDate),
       guaranteedDeadlineDay:    String(client.guaranteedDeadlineDay ?? ''),
       recTime:                  String(client.recTime ?? ''),
       accountantId:             client.accountantId ?? '',
@@ -243,6 +245,7 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
           autoPriceIncreasePercent: ops.autoPriceIncreasePercent ? parseFloat(ops.autoPriceIncreasePercent) : null,
           hasSignedAutoIncrease:    ops.hasSignedAutoIncrease,
           priceAdjustmentDate:      ops.priceAdjustmentDate || null,
+          lastIncreaseDate:         ops.lastIncreaseDate || null,
           guaranteedDeadlineDay:    ops.guaranteedDeadlineDay ? parseInt(ops.guaranteedDeadlineDay) : null,
           // Accountant
           accountantId:             ops.accountantId || null,
@@ -514,10 +517,18 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1.5">Price Adjustment Date</label>
+                <label className="block text-xs font-medium text-slate-500 mb-1.5">Next Price Adjustment Date</label>
                 <input type="date" value={ops.priceAdjustmentDate}
                   onChange={e => setOps(o => ({ ...o, priceAdjustmentDate: e.target.value }))}
                   className={`${inp} [color-scheme:light]`} />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-500 mb-1.5">Last Increase Date</label>
+                <input type="date" value={ops.lastIncreaseDate}
+                  onChange={e => setOps(o => ({ ...o, lastIncreaseDate: e.target.value }))}
+                  className={`${inp} [color-scheme:light]`} />
+                <p className="mt-1 text-[11px] text-slate-400">When you last raised this client&apos;s rate</p>
               </div>
 
               <div>

@@ -52,6 +52,8 @@ type ApiClient = {
   hasSignedAutoIncrease?: boolean | null
   autoPriceIncreasePercent?: number | null
   priceAdjustmentDate?: string | null
+  lastIncreaseDate?: string | null
+  nextBkprRate?: number | null
   accountantName?: string | null
   accountantId?: string | null
   accountantPersonName?: string | null
@@ -98,6 +100,7 @@ type ColKey =
   | 'numLoans' | 'numPmtPortals' | 'pettyCash' | 'referredBy'
   | 'guaranteedDeadlineDay' | 'hasContractedLoom' | 'hasScheduledMeetings'
   | 'hasSignedAutoIncrease' | 'autoPriceIncreasePercent' | 'accountantName'
+  | 'lastIncreaseDate' | 'nextBkprRate' | 'priceAdjustmentDate'
 
 type SortKey = ColKey
 
@@ -145,6 +148,9 @@ const ALL_COLUMNS: { key: ColKey; label: string; defaultVisible: boolean; align?
   { key: 'hasScheduledMeetings',  label: 'Meetings',              defaultVisible: false, align: 'center' as const },
   { key: 'hasSignedAutoIncrease', label: 'Auto Increase',         defaultVisible: false, align: 'center' as const },
   { key: 'autoPriceIncreasePercent', label: 'Auto Increase %',    defaultVisible: false, align: 'right'  as const },
+  { key: 'lastIncreaseDate',      label: 'Last Increase',         defaultVisible: false },
+  { key: 'priceAdjustmentDate',   label: 'Next Adjustment',       defaultVisible: false },
+  { key: 'nextBkprRate',          label: 'Next Bkpr Rate',        defaultVisible: false, align: 'right'  as const },
   { key: 'accountantName',        label: 'Accountant',            defaultVisible: false },
 ]
 
@@ -271,6 +277,9 @@ function exportToCSV(clients: ApiClient[], visibleCols: Set<ColKey>) {
         case 'hasScheduledMeetings':   val = client.hasScheduledMeetings ? 'Yes' : 'No'; break
         case 'hasSignedAutoIncrease':  val = client.hasSignedAutoIncrease ? 'Yes' : 'No'; break
         case 'autoPriceIncreasePercent': val = client.autoPriceIncreasePercent; break
+        case 'lastIncreaseDate':       val = client.lastIncreaseDate; break
+        case 'priceAdjustmentDate':    val = client.priceAdjustmentDate; break
+        case 'nextBkprRate':           val = client.nextBkprRate; break
         case 'accountantName':         val = client.accountantName; break
         default:                       val = (client as any)[col.key] ?? ''
       }
@@ -1144,6 +1153,36 @@ export default function ClientDirectory() {
                 className="w-16 rounded-md border border-purple-200/60 bg-transparent px-2 py-1 text-sm text-right text-slate-700 tabular-nums hover:border-slate-200 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400" />
               <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 text-xs">%</span>
             </div>
+          </td>
+        )
+      case 'lastIncreaseDate':
+        return (
+          <td key={colKey} className="px-2 py-2">
+            <input
+              type="date"
+              defaultValue={(inlineEdits[client.id]?.lastIncreaseDate ?? client.lastIncreaseDate ?? '').slice(0, 10)}
+              key={inlineEdits[client.id]?.lastIncreaseDate ?? client.lastIncreaseDate ?? 'empty'}
+              onBlur={e => patchCell(client, 'lastIncreaseDate', e.target.value || '')}
+              className="w-full bg-transparent rounded px-1 py-1 text-xs text-slate-600 border border-purple-200/60 hover:border-purple-300 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400 [color-scheme:light]"
+            />
+          </td>
+        )
+      case 'priceAdjustmentDate':
+        return (
+          <td key={colKey} className="px-2 py-2">
+            <input
+              type="date"
+              defaultValue={(inlineEdits[client.id]?.priceAdjustmentDate ?? client.priceAdjustmentDate ?? '').slice(0, 10)}
+              key={inlineEdits[client.id]?.priceAdjustmentDate ?? client.priceAdjustmentDate ?? 'empty'}
+              onBlur={e => patchCell(client, 'priceAdjustmentDate', e.target.value || '')}
+              className="w-full bg-transparent rounded px-1 py-1 text-xs text-slate-600 border border-purple-200/60 hover:border-purple-300 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400 [color-scheme:light]"
+            />
+          </td>
+        )
+      case 'nextBkprRate':
+        return (
+          <td key={colKey} className="px-4 py-3 text-xs text-right text-slate-700 tabular-nums whitespace-nowrap">
+            {client.nextBkprRate != null ? `$${client.nextBkprRate}` : <span className="text-slate-300">—</span>}
           </td>
         )
       case 'accountantName':

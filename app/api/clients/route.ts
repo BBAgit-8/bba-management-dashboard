@@ -47,6 +47,15 @@ export async function GET(): Promise<NextResponse> {
     hasSignedAutoIncrease:    c.hasSignedAutoIncrease ?? false,
     autoPriceIncreasePercent: c.autoPriceIncreasePercent != null ? Number(c.autoPriceIncreasePercent) : null,
     priceAdjustmentDate:      c.priceAdjustmentDate ?? null,
+    lastIncreaseDate:         c.lastIncreaseDate ?? null,
+    // nextBkprRate: current bkpr rate × (1 + %/100), rounded up to nearest dollar.
+    // Computed here so reports can consume the value directly (never stored — always fresh).
+    nextBkprRate: (() => {
+      const rate = c.bookkeepingRate != null ? Number(c.bookkeepingRate) : 0;
+      const pct  = c.autoPriceIncreasePercent != null ? Number(c.autoPriceIncreasePercent) : 0;
+      if (rate <= 0 || pct <= 0) return null;
+      return Math.ceil(rate * (1 + pct / 100));
+    })(),
     okToContactAccountant:    c.okToContactAccountant ?? false,
     // Bookkeeper (text field on clients table)
     bookkeeper:               c.Bookkeeper          ?? null,

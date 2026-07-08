@@ -21,7 +21,7 @@ const BOOLEAN_FIELDS = new Set([
 
 // Date fields — sent as ISO date strings, stored as timestamptz
 const DATE_FIELDS = new Set([
-  'priceAdjustmentDate', 'contractStartDate', 'contractEndDate',
+  'priceAdjustmentDate', 'contractStartDate', 'contractEndDate', 'lastIncreaseDate',
 ])
 
 // Enum columns — empty string means "leave as-is", skip the update
