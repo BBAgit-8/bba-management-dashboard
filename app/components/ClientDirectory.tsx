@@ -986,9 +986,13 @@ export default function ClientDirectory() {
       case 'code':
         return (
           <td key={colKey} className="px-4 py-3">
-            <span className="font-mono text-xs rounded px-1.5 py-0.5" style={{ backgroundColor: 'rgba(78,0,142,0.08)', color: '#4e008e' }}>
+            <Link
+              href={`/clients/${client.harvestProjectCode}`}
+              className="font-mono text-xs rounded px-1.5 py-0.5 hover:opacity-80 transition-opacity"
+              style={{ backgroundColor: 'rgba(78,0,142,0.08)', color: '#4e008e' }}
+            >
               {client.harvestProjectCode}
-            </span>
+            </Link>
           </td>
         )
       case 'bookkeeper':

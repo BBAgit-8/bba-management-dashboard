@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { type BillingCadence, type Accountant } from "@/lib/mock-data";
 import { useRouter } from "next/navigation";
 
@@ -265,6 +265,8 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
       });
 
       setOpsSaved('done');
+      // Snapshot what we just saved so the auto-save effect won't re-fire
+      lastSavedRef.current = JSON.stringify(ops);
       setTimeout(() => setOpsSaved('idle'), 2500);
     } catch (err: any) {
       setSaveError(err.message);
@@ -272,6 +274,42 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
       setTimeout(() => setOpsSaved('idle'), 4000);
     }
   }
+
+  // ── Auto-save on change ────────────────────────────────────────────────────
+  // Dawn's expectation: edits persist without needing the Save button. We debounce
+  // 1s after the last change, then PATCH. The lastSavedRef snapshot lets us skip
+  // saves when `ops` was re-hydrated from the client prop (no real user change).
+  const lastSavedRef = useRef<string | null>(null)
+  const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    if (!client) return
+    const snapshot = JSON.stringify(ops)
+    // Seed on first client load — this is a hydration, not a user edit
+    if (lastSavedRef.current === null) {
+      lastSavedRef.current = snapshot
+      return
+    }
+    // Reset the seed when the client prop itself changes (e.g. navigated to a
+    // different client). Detected by tracking client.id inside the closure.
+    if (snapshot === lastSavedRef.current) return
+
+    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
+    autoSaveTimer.current = setTimeout(() => {
+      if (opsSaved === 'saving') return  // let the in-flight save finish
+      saveOps(new Event('submit') as unknown as React.FormEvent)
+    }, 1000)
+
+    return () => { if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ops])
+
+  // Reset the auto-save baseline when navigating to a different client so we
+  // don't accidentally patch the newly-loaded record with the previous one's state.
+  useEffect(() => {
+    lastSavedRef.current = null
+  }, [client?.id])
+  // ──────────────────────────────────────────────────────────────────────────
 
   function updateSub(id: string, field: keyof SubRow, val: string) {
     setSubs(prev => prev.map(s => s.id === id ? { ...s, [field]: val } : s));
