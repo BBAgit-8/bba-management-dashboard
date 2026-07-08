@@ -98,7 +98,7 @@ function nextAnnualDate(from: string | null): string {
 export default function AddClientPanel({ open, onClose, onCreated }: AddClientPanelProps) {
   const [form, setForm] = useState(EMPTY);
   const [employees,   setEmployees]   = useState<{ id: string; name: string }[]>([]);
-  const [accountants,  setAccountants]  = useState<{ id: string; name: string }[]>([]);
+  const [accountants,  setAccountants]  = useState<{ id: string; name: string; businessName?: string | null }[]>([]);
   const [showNewAcct,   setShowNewAcct]  = useState(false);
   const [addingAcct,    setAddingAcct]   = useState(false);
   const [referrerOptions, setReferrerOptions] = useState<string[]>([]);
