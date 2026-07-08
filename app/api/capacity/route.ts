@@ -18,7 +18,7 @@ export async function GET() {
         supabase.from("clients").select(
           `id, name, revenueType, totalBudgetedHours, numBankAccounts, numLoans,
            txnBucket, numPmtPortals, pettyCash, apArHours, prRecHours, auditHours,
-           bankFeedHoursOverride, recHoursOverride, assignedPodId`
+           bankFeedHoursOverride, recHoursOverride, assignedPodId, "Bookkeeper"`
         ),
         supabase.from("employees").select(
           `id, name, podId, contractedHours, adminTimePercent, fixedDeduction, fixedDeductionLabel`
@@ -64,11 +64,23 @@ export async function GET() {
         .map((e) => [e.clientId, e])
     );
 
+    // employee name → podId, so we can auto-assign clients to pods via their Bookkeeper.
+    // This means Dawn doesn't need to set assignedPodId manually on every client —
+    // whoever the Bookkeeper is, their pod owns the client.
+    const podByEmployeeName = new Map<string, string>();
+    for (const e of employeesRes.data ?? []) {
+      if (e.name && e.podId) podByEmployeeName.set(e.name, e.podId);
+    }
+
     const breakdowns = (clientsRes.data ?? [])
       .map((c) => {
         const cleanup = activeCleanups.get(c.id);
+        const derivedPodId =
+          c.assignedPodId ??
+          (c.Bookkeeper ? podByEmployeeName.get(c.Bookkeeper) ?? null : null);
         const workload: ClientWorkload = {
           ...c,
+          assignedPodId: derivedPodId,
           totalBudgetedHours: c.totalBudgetedHours != null ? Number(c.totalBudgetedHours) : null,
           numBankAccounts: c.numBankAccounts ?? 0,
           numLoans: c.numLoans ?? 0,
