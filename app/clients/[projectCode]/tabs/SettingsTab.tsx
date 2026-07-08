@@ -472,18 +472,42 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
                   <input type="number" step="0.1" min={0}
                     value={ops.autoPriceIncreasePercent}
                     onChange={e => setOps(o => ({ ...o, autoPriceIncreasePercent: e.target.value }))}
-                    placeholder="e.g. 3.5" className={inp} />
+                    placeholder="e.g. 5" className={inp} />
                   <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">%</span>
                 </div>
+                {(() => {
+                  const pct = parseFloat(ops.autoPriceIncreasePercent) || 0;
+                  const rate = parseFloat(ops.bookkeepingRate) || 0;
+                  if (pct > 0 && rate > 0) {
+                    const next = Math.ceil(rate * (1 + pct / 100));
+                    return (
+                      <p className="mt-1 text-[11px] text-slate-500">
+                        Next bkpr rate: <span className="font-semibold text-slate-700">${next}</span>
+                        <span className="text-slate-400"> (rounded up from ${(rate * (1 + pct / 100)).toFixed(2)})</span>
+                      </p>
+                    );
+                  }
+                  return null;
+                })()}
               </div>
 
               <div className="flex items-center justify-between rounded-lg bg-slate-50 border border-slate-200 px-4 py-3">
                 <div>
                   <span className="text-sm text-slate-700">Client signed auto-increase?</span>
-                  <p className="text-[11px] text-slate-400 mt-0.5">Client has agreed to the automatic price increase terms</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">Toggling on defaults to 5% — override anytime</p>
                 </div>
                 <button type="button"
-                  onClick={() => setOps(o => ({ ...o, hasSignedAutoIncrease: !o.hasSignedAutoIncrease }))}
+                  onClick={() => setOps(o => {
+                    const turningOn = !o.hasSignedAutoIncrease;
+                    const currentPct = parseFloat(o.autoPriceIncreasePercent) || 0;
+                    return {
+                      ...o,
+                      hasSignedAutoIncrease: turningOn,
+                      // Auto-fill 5% only when turning ON and no value set yet.
+                      // User can override to any value at any time.
+                      autoPriceIncreasePercent: turningOn && currentPct === 0 ? '5' : o.autoPriceIncreasePercent,
+                    };
+                  })}
                   className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-bba-action focus:ring-offset-2 ${ops.hasSignedAutoIncrease ? 'bg-bba-action' : 'bg-slate-300'}`}>
                   <span className={`inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${ops.hasSignedAutoIncrease ? 'translate-x-5' : 'translate-x-0'}`} />
                 </button>

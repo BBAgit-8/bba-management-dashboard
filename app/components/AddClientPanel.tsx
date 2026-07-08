@@ -568,7 +568,21 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
 
             <Grid2>
               <Field label="Auto Price Increase %">
-                <input type="number" step="0.1" min={0} value={form.autoPriceIncreasePercent} onChange={e => set('autoPriceIncreasePercent', e.target.value)} placeholder="e.g. 3.5" className={inp} />
+                <input type="number" step="0.1" min={0} value={form.autoPriceIncreasePercent} onChange={e => set('autoPriceIncreasePercent', e.target.value)} placeholder="e.g. 5" className={inp} />
+                {(() => {
+                  const pct = parseFloat(form.autoPriceIncreasePercent) || 0;
+                  const rate = parseFloat(form.bookkeepingRate) || 0;
+                  if (pct > 0 && rate > 0) {
+                    const next = Math.ceil(rate * (1 + pct / 100));
+                    return (
+                      <p className="mt-1 text-[11px] text-slate-500">
+                        Next bkpr rate: <span className="font-semibold text-slate-700">${next}</span>
+                        <span className="text-slate-400"> (rounded up)</span>
+                      </p>
+                    );
+                  }
+                  return null;
+                })()}
               </Field>
               <Field label="Price Adjustment Date">
                 <input type="date" value={form.priceAdjustmentDate} onChange={e => set('priceAdjustmentDate', e.target.value)} className={`${inp} [color-scheme:light]`} />
@@ -577,7 +591,18 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
                 )}
               </Field>
             </Grid2>
-            <Toggle label="Signed Auto Price Increase" value={form.hasSignedAutoIncrease} onChange={v => set('hasSignedAutoIncrease', v)} />
+            <Toggle
+              label="Signed Auto Price Increase"
+              value={form.hasSignedAutoIncrease}
+              onChange={v => setForm(f => {
+                const currentPct = parseFloat(f.autoPriceIncreasePercent) || 0;
+                return {
+                  ...f,
+                  hasSignedAutoIncrease: v,
+                  autoPriceIncreasePercent: v && currentPct === 0 ? '5' : f.autoPriceIncreasePercent,
+                };
+              })}
+            />
           </Section>
 
           {/* ── Hours ── */}
