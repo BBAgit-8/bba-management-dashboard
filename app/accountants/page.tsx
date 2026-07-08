@@ -17,6 +17,17 @@ interface AccountantRow {
 type ColKey  = 'name' | 'biz' | 'email' | 'phone' | 'clients' | 'status' | 'consent'
 type SortDir = 'asc' | 'desc'
 
+// Progressive phone formatter — turns any input into "(xxx) xxx-xxxx" as digits accrue.
+// Strips a leading "1" country code, caps at 10 digits, drops all non-digit input.
+function formatPhone(input: string): string {
+  const digits = input.replace(/\D/g, '').slice(0, 11)
+  const d = digits.length === 11 && digits.startsWith('1') ? digits.slice(1) : digits.slice(0, 10)
+  if (d.length === 0)  return ''
+  if (d.length <= 3)   return `(${d}`
+  if (d.length <= 6)   return `(${d.slice(0, 3)}) ${d.slice(3)}`
+  return `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}`
+}
+
 const ALL_COLS: { key: ColKey; label: string; sortable: boolean }[] = [
   { key: 'name',    label: 'Name',                sortable: true  },
   { key: 'biz',     label: 'Business',            sortable: true  },
@@ -103,7 +114,7 @@ export default function AccountantsPage() {
   function resetForm() { setForm({ name: '', businessName: '', email: '', phoneNumber: '' }); setError(null); setEditingId(null) }
 
   function openEdit(acc: AccountantRow) {
-    setForm({ name: acc.name, businessName: acc.businessName ?? '', email: acc.email ?? '', phoneNumber: acc.phoneNumber ?? '' })
+    setForm({ name: acc.name, businessName: acc.businessName ?? '', email: acc.email ?? '', phoneNumber: formatPhone(acc.phoneNumber ?? '') })
     setEditingId(acc.id); setModalOpen(true)
   }
 
@@ -162,7 +173,7 @@ export default function AccountantsPage() {
       case 'name':    return <td key={key} className="px-5 py-3 font-medium text-slate-800 whitespace-nowrap">{acc.name}</td>
       case 'biz':     return <td key={key} className="px-5 py-3 text-slate-600">{acc.businessName ?? '—'}</td>
       case 'email':   return <td key={key} className="px-5 py-3 text-slate-600">{acc.email ?? '—'}</td>
-      case 'phone':   return <td key={key} className="px-5 py-3 text-slate-600">{acc.phoneNumber ?? '—'}</td>
+      case 'phone':   return <td key={key} className="px-5 py-3 text-slate-600 tabular-nums">{acc.phoneNumber ? formatPhone(acc.phoneNumber) : '—'}</td>
       case 'clients': return <td key={key} className="px-5 py-3 text-center tabular-nums text-slate-700">{acc.activeClientCount || '—'}</td>
       case 'status':
         return (
@@ -307,7 +318,7 @@ export default function AccountantsPage() {
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1.5">Phone</label>
-                    <input type="tel" value={form.phoneNumber} onChange={e => setForm(f => ({ ...f, phoneNumber: e.target.value }))} placeholder="(555) 000-0000" className={fieldCls} />
+                    <input type="tel" value={form.phoneNumber} onChange={e => setForm(f => ({ ...f, phoneNumber: formatPhone(e.target.value) }))} placeholder="(555) 000-0000" className={fieldCls} />
                   </div>
                 </div>
                 {error && <p className="text-xs text-red-500">{error}</p>}
