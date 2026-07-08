@@ -101,7 +101,7 @@ const REV_TYPE_MAP: Record<string, string> = {
   'qbo only anchor':            'QBO_ONLY_ANCHOR',
   'qbo only qb':                'QBO_ONLY_QB',
 }
-const NUMERIC_FIELDS = new Set(['bookkeepingRate','softwareRate','totalHrsPerMonth','bkprHours','qaHours','custSuccessMgmtHrs','yeOrTaxHours','auditHours','apArHrs','bankFeedTime','transactionsPerMonth','numBanksAndCCs','numLoans','numPmtPortals','autoPriceIncreasePercent','guaranteedDeadlineDay'])
+const NUMERIC_FIELDS = new Set(['bookkeepingRate','softwareRate','totalHrsPerMonth','bkprHours','qaHours','custSuccessMgmtHrs','yeOrTaxHours','auditHours','apArHrs','bankFeedTime','numBanksAndCCs','numLoans','numPmtPortals','autoPriceIncreasePercent','guaranteedDeadlineDay'])
 const DATE_FIELDS    = new Set(['contractStartDate','contractEndDate','priceAdjustmentDate'])
 
 export async function POST(req: NextRequest): Promise<NextResponse> {

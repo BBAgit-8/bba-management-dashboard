@@ -50,7 +50,7 @@ const EMPTY = {
   contractStartDate: '', contractEndDate: '',
   referredBy: '',
   // Staff
-  bookkeeper: '', accountantName: '',
+  bookkeeper: '', accountantName: '', accountantId: '',
   processingCadence: 'MONTHLY' as ProcessingCadence,
   projectType: 'RECURRING' as ProjectType,
   revType: '' as RevType | '',
@@ -195,6 +195,7 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
       if (res.ok && json.accountant) {
         setAccountants(prev => [...prev, json.accountant].sort((a, b) => a.name.localeCompare(b.name)));
         set('accountantName', json.accountant.name);
+        set('accountantId',   json.accountant.id);
         setNewAcct({ name: '', businessName: '', email: '', phoneNumber: '' });
         setShowNewAcct(false);
       } else {
@@ -390,9 +391,18 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
               <Field label="Accountant">
                 {!showNewAcct ? (
                   <div className="space-y-1.5">
-                    <select value={form.accountantName} onChange={e => set('accountantName', e.target.value)} className={sel}>
+                    <select
+                      value={form.accountantId}
+                      onChange={e => {
+                        const id = e.target.value
+                        const acct = accountants.find(a => a.id === id)
+                        set('accountantId',   id)
+                        set('accountantName', acct?.name ?? '')
+                      }}
+                      className={sel}
+                    >
                       <option value="">— Select accountant —</option>
-                      {accountants.map(a => <option key={a.id} value={a.name}>{a.name}</option>)}
+                      {accountants.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
                     </select>
                     <button type="button" onClick={() => setShowNewAcct(true)}
                       className="text-[11px] text-bba-action hover:text-purple-800 hover:underline font-medium transition-colors">

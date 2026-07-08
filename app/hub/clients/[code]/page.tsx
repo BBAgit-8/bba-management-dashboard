@@ -12,7 +12,7 @@ type ClientDetail = {
   clientContactName: string | null; accountantName: string | null
   referredBy: string | null; totalHrsPerMonth: number | null
   apArHrs: number | null; qaHours: number | null
-  bankFeedTime: number | null; transactionsPerMonth: number | null
+  bankFeedTime: number | null; transactionsPerMonth: string | null
   numBanksAndCCs: number | null; numLoans: number | null
   numPmtPortals: number | null; pettyCash: boolean | null
   hasPayroll: boolean | null; payrollProvider: string | null

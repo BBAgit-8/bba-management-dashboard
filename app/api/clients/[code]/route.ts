@@ -10,7 +10,7 @@ const NUMERIC_FIELDS = new Set([
   'bookkeepingRate', 'softwareRate', 'totalMonthlyAmount',
   'totalHrsPerMonth', 'apArHrs', 'qaHours', 'custSuccessMgmtHrs',
   'yeOrTaxHours', 'auditHours', 'bkprHours', 'bankFeedTime',
-  'transactionsPerMonth', 'recTime', 'numBanksAndCCs', 'numLoans',
+  'recTime', 'numBanksAndCCs', 'numLoans',
   'numPmtPortals', 'guaranteedDeadlineDay', 'autoPriceIncreasePercent',
 ])
 

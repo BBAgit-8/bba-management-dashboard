@@ -39,7 +39,7 @@ type ApiClient = {
   auditHours?: number | null
   bkprHours?: number | null
   bankFeedTime?: number | null
-  transactionsPerMonth?: number | null
+  transactionsPerMonth?: string | null
   recTime?: number | null
   numBanksAndCCs?: number | null
   numLoans?: number | null
@@ -1254,6 +1254,24 @@ export default function ClientDirectory() {
         )
       case 'clientGroupName':
         return <td key={colKey} className="px-4 py-3 text-sm text-slate-700">{client.clientGroupName ?? <span className="text-slate-400">—</span>}</td>
+      case 'transactionsPerMonth':
+        return (
+          <td key={colKey} className="px-2 py-1.5">
+            <select
+              value={String(client.transactionsPerMonth ?? '')}
+              onChange={e => patchCell(client, 'transactionsPerMonth', e.target.value)}
+              className="w-full rounded-md border border-purple-200/60 bg-transparent px-1.5 py-1 text-sm text-slate-700 hover:border-slate-200 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400 cursor-pointer"
+            >
+              <option value="">—</option>
+              <option value="0-100">0–100</option>
+              <option value="101-200">101–200</option>
+              <option value="201-300">201–300</option>
+              <option value="301-400">301–400</option>
+              <option value="401-500">401–500</option>
+              <option value="500+">500+</option>
+            </select>
+          </td>
+        )
       case 'doubleId':
         return <td key={colKey} className="px-4 py-3 text-xs font-mono text-slate-600">{client.doubleId ?? <span className="text-slate-400">—</span>}</td>
       case 'qboId':
@@ -1283,7 +1301,6 @@ export default function ClientDirectory() {
           auditHours:          { field: 'auditHours',          step: 0.25 },
           bkprHours:           { field: 'bkprHours',           step: 0.25 },
           bankFeedTime:        { field: 'bankFeedTime',        step: 0.25 },
-          transactionsPerMonth:{ field: 'transactionsPerMonth', step: 1   },
           recTime:             { field: 'recTime',             step: 0.25 },
           numBanksAndCCs:      { field: 'numBanksAndCCs',      step: 1   },
           numLoans:            { field: 'numLoans',            step: 1   },

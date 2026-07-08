@@ -13,25 +13,31 @@ export async function GET(): Promise<NextResponse> {
     return NextResponse.json({ accountants: [] })
   }
 
-  // Get active client counts per accountant
+  // Get active client counts per accountant — key off accountantId (the real FK).
+  // The old logic counted by accountantName which is a legacy denormalized text field;
+  // clients set via SettingsTab store only accountantId, so that count was always 0
+  // and every legitimately-assigned accountant appeared as "Inactive".
   const { data: clients } = await supabase
     .from('clients')
-    .select('accountantName, archiveStatus')
-    .not('accountantName', 'is', null)
+    .select('accountantId, accountantName, archiveStatus')
 
   const activeCounts: Record<string, number> = {}
   for (const c of (clients ?? [])) {
-    if (c.archiveStatus === 'ACTIVE' && c.accountantName) {
-      activeCounts[c.accountantName] = (activeCounts[c.accountantName] ?? 0) + 1
+    if (c.archiveStatus !== 'ACTIVE') continue
+    if (c.accountantId) {
+      activeCounts[c.accountantId] = (activeCounts[c.accountantId] ?? 0) + 1
     }
   }
 
-  // Derive status: active only if they have active clients
-  const shaped = (data ?? []).map(a => ({
-    ...a,
-    activeClientCount: activeCounts[a.name] ?? 0,
-    derivedStatus: (activeCounts[a.name] ?? 0) > 0 ? 'ACTIVE' : 'INACTIVE',
-  }))
+  // Manual override respected: an accountant whose status column is 'ARCHIVED' stays
+  // inactive even if a client is still linked (safety net for cleanup edge cases).
+  const shaped = (data ?? []).map(a => {
+    const count = activeCounts[a.id] ?? 0
+    const derivedStatus = a.status === 'ARCHIVED'
+      ? 'INACTIVE'
+      : count > 0 ? 'ACTIVE' : 'INACTIVE'
+    return { ...a, activeClientCount: count, derivedStatus }
+  })
 
   return NextResponse.json({ accountants: shaped })
 }

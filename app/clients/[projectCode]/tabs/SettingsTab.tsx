@@ -220,7 +220,7 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
           auditHours:               ops.auditHours ? parseFloat(ops.auditHours) : null,
           apArHrs:                  ops.apArHrs ? parseFloat(ops.apArHrs) : null,
           bankFeedTime:             ops.bankFeedTime ? parseFloat(ops.bankFeedTime) : null,
-          transactionsPerMonth:     ops.transactionsPerMonth ? parseFloat(ops.transactionsPerMonth) : null,
+          transactionsPerMonth:     ops.transactionsPerMonth || null,
           numBanksAndCCs:           ops.numBanksAndCCs ? parseFloat(ops.numBanksAndCCs) : null,
           numLoans:                 ops.numLoans ? parseFloat(ops.numLoans) : null,
           numPmtPortals:            ops.numPmtPortals ? parseFloat(ops.numPmtPortals) : null,
@@ -417,7 +417,6 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
                 ['auditHours',         'Audit Hrs'],
                 ['apArHrs',            'AP / AR Hrs'],
                 ['bankFeedTime',       'Bank Feed Time'],
-                ['transactionsPerMonth','Transactions / Mo'],
                 ['numBanksAndCCs',     '# Banks & CCs'],
                 ['numLoans',           '# Loans'],
                 ['numPmtPortals',      '# Pmt Portals'],
@@ -431,6 +430,23 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
                     className={inp} />
                 </div>
               ))}
+              {/* Transactions/mo — range dropdown so it matches the pricing sheet and drives bank-feed / rec-time calcs downstream */}
+              <div>
+                <label className="block text-xs font-medium text-slate-500 mb-1.5">Transactions / Mo</label>
+                <select
+                  value={String(ops.transactionsPerMonth ?? '')}
+                  onChange={e => setOps(o => ({ ...o, transactionsPerMonth: e.target.value }))}
+                  className={sel}
+                >
+                  <option value="">— Select range —</option>
+                  <option value="0-100">0 – 100</option>
+                  <option value="101-200">101 – 200</option>
+                  <option value="201-300">201 – 300</option>
+                  <option value="301-400">301 – 400</option>
+                  <option value="401-500">401 – 500</option>
+                  <option value="500+">500+</option>
+                </select>
+              </div>
             </div>
           </div>
 

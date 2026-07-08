@@ -80,7 +80,7 @@ export async function GET(): Promise<NextResponse> {
     auditHours:               c.auditHours          != null ? Number(c.auditHours)          : null,
     bkprHours:                c.bkprHours           != null ? Number(c.bkprHours)           : null,
     bankFeedTime:             c.bankFeedTime        != null ? Number(c.bankFeedTime)        : null,
-    transactionsPerMonth:     c.transactionsPerMonth != null ? Number(c.transactionsPerMonth) : null,
+    transactionsPerMonth:     c.transactionsPerMonth ?? null,
     recTime:                  c.recTime             != null ? Number(c.recTime)             : null,
     numBanksAndCCs:           c.numBanksAndCCs      != null ? Number(c.numBanksAndCCs)      : null,
     numLoans:                 c.numLoans            != null ? Number(c.numLoans)            : null,
@@ -120,6 +120,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     updatedAt: new Date().toISOString(),
     name,
     harvestProjectCode,
+    accountantId:             typeof data.accountantId             === 'string' ? data.accountantId.trim()    || null : null,
     accountantName:           typeof data.accountantName           === 'string' ? data.accountantName.trim()  || null : null,
     "Bookkeeper":             typeof data.bookkeeper               === 'string' ? data.bookkeeper.trim()       || null : null,
     entityType:               typeof data.entityType               === 'string' ? data.entityType              : 'LLC',
@@ -167,7 +168,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     bankFeedTime:             typeof data.bankFeedTime       === 'string' && data.bankFeedTime
                                 ? parseFloat(data.bankFeedTime) || null : null,
     transactionsPerMonth:     typeof data.transactionsPerMonth === 'string' && data.transactionsPerMonth
-                                ? parseFloat(data.transactionsPerMonth) || null : null,
+                                ? data.transactionsPerMonth.trim() : null,
     recTime:                  typeof data.recTime            === 'string' && data.recTime
                                 ? parseFloat(data.recTime) || null : null,
     numBanksAndCCs:           typeof data.numBanksAndCCs     === 'string' && data.numBanksAndCCs
