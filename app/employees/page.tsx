@@ -51,9 +51,53 @@ function EmployeesPageInner() {
   const [loading,      setLoading]      = useState(true)
   const [error,        setError]        = useState<string | null>(null)
   const [search,       setSearch]       = useState('')
-  const [colOrder,     setColOrder]     = useState<ColKey[]>(DEFAULT_COL_ORDER)
-  const [sortKey,      setSortKey]      = useState<SortKey>('employee')
-  const [sortDir,      setSortDir]      = useState<'asc' | 'desc'>('asc')
+
+  // Column order + sort — persisted per browser in localStorage.
+  const STORAGE_ORDER = 'bba.employees.colOrder.v1'
+  const STORAGE_SORT  = 'bba.employees.sort.v1'
+
+  const [colOrder,     setColOrder]     = useState<ColKey[]>(() => {
+    if (typeof window === 'undefined') return DEFAULT_COL_ORDER
+    try {
+      const saved = localStorage.getItem(STORAGE_ORDER)
+      if (saved) {
+        const parsed = JSON.parse(saved) as ColKey[]
+        if (Array.isArray(parsed) && parsed.length === DEFAULT_COL_ORDER.length
+            && parsed.every(k => DEFAULT_COL_ORDER.includes(k))) return parsed
+      }
+    } catch { /* ignore corrupt storage */ }
+    return DEFAULT_COL_ORDER
+  })
+  const [sortKey,      setSortKey]      = useState<SortKey>(() => {
+    if (typeof window === 'undefined') return 'employee'
+    try {
+      const raw = localStorage.getItem(STORAGE_SORT)
+      if (raw) {
+        const p = JSON.parse(raw) as { key: SortKey; dir: 'asc' | 'desc' }
+        if (p && DEFAULT_COL_ORDER.includes(p.key)) return p.key
+      }
+    } catch { /* ignore */ }
+    return 'employee'
+  })
+  const [sortDir,      setSortDir]      = useState<'asc' | 'desc'>(() => {
+    if (typeof window === 'undefined') return 'asc'
+    try {
+      const raw = localStorage.getItem(STORAGE_SORT)
+      if (raw) {
+        const p = JSON.parse(raw) as { key: SortKey; dir: 'asc' | 'desc' }
+        if (p && (p.dir === 'asc' || p.dir === 'desc')) return p.dir
+      }
+    } catch { /* ignore */ }
+    return 'asc'
+  })
+
+  useEffect(() => {
+    try { localStorage.setItem(STORAGE_ORDER, JSON.stringify(colOrder)) } catch {}
+  }, [colOrder])
+  useEffect(() => {
+    try { localStorage.setItem(STORAGE_SORT, JSON.stringify({ key: sortKey, dir: sortDir })) } catch {}
+  }, [sortKey, sortDir])
+
   const [addOpen,      setAddOpen]      = useState(false)
   const [selectedEmp,  setSelectedEmp]  = useState<Employee | null>(null)
 
