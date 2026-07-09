@@ -47,21 +47,22 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   try { body = await req.json() } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
-  const { name, businessName, email, phoneNumber } = (body ?? {}) as Record<string, unknown>
+  const { name, businessName, email, phoneNumber, okToContactAccountant } = (body ?? {}) as Record<string, unknown>
   if (typeof name !== 'string' || !name.trim())
     return NextResponse.json({ error: '"name" is required' }, { status: 422 })
 
   const { data, error } = await supabase
     .from('accountants')
     .insert({
-      id:           crypto.randomUUID(),
-      name:         name.trim(),
-      businessName: typeof businessName === 'string' ? businessName.trim() || null : null,
-      email:        typeof email        === 'string' ? email.trim()        || null : null,
-      phoneNumber:  typeof phoneNumber  === 'string' ? phoneNumber.trim()  || null : null,
-      status:       'ACTIVE',
-      createdAt:    new Date().toISOString(),
-      updatedAt:    new Date().toISOString(),
+      id:                     crypto.randomUUID(),
+      name:                   name.trim(),
+      businessName:           typeof businessName === 'string' ? businessName.trim() || null : null,
+      email:                  typeof email        === 'string' ? email.trim()        || null : null,
+      phoneNumber:            typeof phoneNumber  === 'string' ? phoneNumber.trim()  || null : null,
+      okToContactAccountant:  okToContactAccountant === true,
+      status:                 'ACTIVE',
+      createdAt:              new Date().toISOString(),
+      updatedAt:              new Date().toISOString(),
     })
     .select()
     .single()

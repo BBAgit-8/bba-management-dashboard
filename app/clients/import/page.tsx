@@ -15,6 +15,62 @@ export default function ImportClientsPage() {
   const [results,   setResults]   = useState<{ total: number; created: number; skipped: number; results: ResultRow[] } | null>(null)
   const [error,     setError]     = useState<string | null>(null)
 
+  // Template headers — MUST match keys in FIELD_MAP on the server. If a new
+  // field gets added to the importer, add it here too so the template stays
+  // in sync (there's no runtime import — this is a manual mirror by design,
+  // since the server code isn't accessible from the browser bundle).
+  const TEMPLATE_HEADERS = [
+    'Client Name', 'Project Code', 'Bookkeeper', 'Entity Type', 'Project Type', 'Rev Type',
+    'Processing Cadence', 'Bookkeeping Rate', 'Software Rate',
+    'Total Hrs/Mo', 'Bkpr Hours', 'QA Hours', 'Cust Success/Mgmt Hrs',
+    'YE/Tax Hours', 'Audit Hours', 'AP/AR Hours', 'Bank Feed Time',
+    '# Transactions/Mo', '# Banks & CCs', '# Loans', '# Payment Portals',
+    'Contract Start Date', 'Contract End Date', 'State',
+    'Client Contact Name', 'Referred By',
+    'Accountant Name', 'OK To Contact Acct',
+    'Has Payroll', 'Payroll Provider',
+    'Petty Cash', 'Has Contracted Loom', 'Has Scheduled Meetings',
+    'QBO ID', 'Double ID', 'ClickUp ID', 'Client Group Name',
+    'Auto Price Increase %', 'Price Adjustment Date', 'Guaranteed Deadline Day',
+  ] as const
+
+  // One example row so users can see the expected format. The importer skips
+  // rows that start with "Acme Corp" or contain "example" — so this row is
+  // safe to leave in the template.
+  const EXAMPLE_ROW: Record<string, string> = {
+    'Client Name': 'Acme Corp',
+    'Project Code': 'ACME',
+    'Bookkeeper': 'Deb',
+    'Entity Type': 'LLC',
+    'Project Type': 'RECURRING',
+    'Rev Type': 'Recurring Monthly ACH',
+    'Processing Cadence': 'Monthly',
+    'Bookkeeping Rate': '450',
+    'Software Rate': '50',
+    'Total Hrs/Mo': '',
+    'Bkpr Hours': '5',
+    '# Transactions/Mo': '101-200',
+    '# Banks & CCs': '2',
+    'Contract Start Date': '2026-01-01',
+    'State': 'NH',
+    'Accountant Name': '',
+    'OK To Contact Acct': 'FALSE',
+    'Has Payroll': 'FALSE',
+    'Petty Cash': 'FALSE',
+    'Has Contracted Loom': 'TRUE',
+    'Has Scheduled Meetings': 'TRUE',
+  }
+
+  function downloadTemplate() {
+    const rows: Record<string, string>[] = [
+      Object.fromEntries(TEMPLATE_HEADERS.map(h => [h, EXAMPLE_ROW[h] ?? ''])),
+    ]
+    const ws = XLSX.utils.json_to_sheet(rows, { header: [...TEMPLATE_HEADERS] })
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Clients')
+    XLSX.writeFile(wb, 'bba-client-import-template.xlsx')
+  }
+
   function parseFile(f: File) {
     setError(null); setResults(null)
     const reader = new FileReader()
@@ -115,7 +171,7 @@ export default function ImportClientsPage() {
           <h2 className="text-sm font-semibold text-slate-700 mb-3">How it works</h2>
           <ol className="space-y-2">
             {[
-              'Download the template (link below), fill it in — one client per row starting at row 4',
+              'Download the template below, fill it in — one client per row, keep the example row as a reference or delete it',
               'Drag & drop or browse for your filled file below',
               'Review the preview to confirm the rows look correct',
               'Click Confirm Import — duplicates are skipped automatically',
@@ -126,6 +182,18 @@ export default function ImportClientsPage() {
               </li>
             ))}
           </ol>
+          <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between">
+            <p className="text-xs text-slate-500">
+              The template includes every column the importer accepts. Only <span className="font-semibold">Client Name</span> and <span className="font-semibold">Project Code</span> are required — leave anything else blank if you don't have it.
+            </p>
+            <button
+              type="button"
+              onClick={downloadTemplate}
+              className="ml-4 shrink-0 rounded-lg bg-bba-action px-4 py-2 text-sm font-semibold text-white hover:opacity-90 transition-opacity"
+            >
+              ↓ Download Template
+            </button>
+          </div>
         </div>
       )}
 

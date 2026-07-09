@@ -58,7 +58,7 @@ export default function AccountantsPage() {
   const [loading,    setLoading]    = useState(true)
   const [modalOpen,  setModalOpen]  = useState(false)
   const [saving,     setSaving]     = useState(false)
-  const [form,       setForm]       = useState({ name: '', businessName: '', email: '', phoneNumber: '' })
+  const [form,       setForm]       = useState({ name: '', businessName: '', email: '', phoneNumber: '', okToContactAccountant: false })
   const [error,      setError]      = useState<string | null>(null)
   const [editingId,  setEditingId]  = useState<string | null>(null)
   const [statusFilter, setStatusFilter] = useState<'ACTIVE' | 'INACTIVE' | 'ALL'>('ACTIVE')
@@ -111,10 +111,10 @@ export default function AccountantsPage() {
       .finally(() => setLoading(false))
   }, [])
 
-  function resetForm() { setForm({ name: '', businessName: '', email: '', phoneNumber: '' }); setError(null); setEditingId(null) }
+  function resetForm() { setForm({ name: '', businessName: '', email: '', phoneNumber: '', okToContactAccountant: false }); setError(null); setEditingId(null) }
 
   function openEdit(acc: AccountantRow) {
-    setForm({ name: acc.name, businessName: acc.businessName ?? '', email: acc.email ?? '', phoneNumber: formatPhone(acc.phoneNumber ?? '') })
+    setForm({ name: acc.name, businessName: acc.businessName ?? '', email: acc.email ?? '', phoneNumber: formatPhone(acc.phoneNumber ?? ''), okToContactAccountant: !!acc.okToContactAccountant })
     setEditingId(acc.id); setModalOpen(true)
   }
 
@@ -321,6 +321,14 @@ export default function AccountantsPage() {
                     <input type="tel" value={form.phoneNumber} onChange={e => setForm(f => ({ ...f, phoneNumber: formatPhone(e.target.value) }))} placeholder="(555) 000-0000" className={fieldCls} />
                   </div>
                 </div>
+                <label className="flex items-center gap-3 cursor-pointer pt-1">
+                  <button type="button"
+                    onClick={() => setForm(f => ({ ...f, okToContactAccountant: !f.okToContactAccountant }))}
+                    className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-bba-action focus:ring-offset-2 ${form.okToContactAccountant ? 'bg-bba-action' : 'bg-slate-300'}`}>
+                    <span className={`inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${form.okToContactAccountant ? 'translate-x-5' : 'translate-x-0'}`} />
+                  </button>
+                  <span className="text-sm text-slate-700">Direct authorization <span className="text-xs text-slate-400">(OK to contact directly)</span></span>
+                </label>
                 {error && <p className="text-xs text-red-500">{error}</p>}
                 <div className="flex items-center justify-end gap-3 pt-1">
                   <button type="button" onClick={() => { setModalOpen(false); resetForm() }} className="rounded-lg px-4 py-2 text-sm text-slate-500 hover:text-slate-700 transition-colors">Cancel</button>

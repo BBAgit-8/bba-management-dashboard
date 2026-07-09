@@ -45,13 +45,18 @@ export async function PATCH(
 
       updates.effectiveHourlyRate = newRate
 
-      // Log rate change if rate actually changed
+      // Log rate change if rate actually changed.
+      // History rows record the RATE AS DAWN THINKS OF IT: annual salary for salary
+      // employees, hourly rate for hourly employees. Matches the seed logic in POST /api/employees.
+      // If we stored the derived hourly here for salary employees, the display would show
+      // e.g. "$28.85/yr" — which is the classic Beth-Row bug.
       if (newRate !== Number(existing.effectiveHourlyRate)) {
+        const historyRate = finalRateType === 'salary' && finalSalary ? finalSalary : newRate
         await supabase.from('employee_rate_history').insert({
           id: crypto.randomUUID(),
           employeeId: id,
           rateType: finalRateType,
-          rate: newRate,
+          rate: historyRate,
           effectiveDate: new Date().toISOString().split('T')[0],
           notes: typeof d.rateChangeNote === 'string' ? d.rateChangeNote : null,
         })
