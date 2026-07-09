@@ -81,6 +81,9 @@ export async function GET(): Promise<NextResponse> {
     bkprHours:                c.bkprHours           != null ? Number(c.bkprHours)           : null,
     bankFeedTime:             c.bankFeedTime        != null ? Number(c.bankFeedTime)        : null,
     transactionsPerMonth:     c.transactionsPerMonth ?? null,
+    annual1099sRange:         c.annual1099sRange     ?? null,
+    wcAuditSupport:           c.wcAuditSupport       ?? false,
+    annualAuditSupport:       c.annualAuditSupport   ?? false,
     recTime:                  c.recTime             != null ? Number(c.recTime)             : null,
     numBanksAndCCs:           c.numBanksAndCCs      != null ? Number(c.numBanksAndCCs)      : null,
     numLoans:                 c.numLoans            != null ? Number(c.numLoans)            : null,
@@ -169,6 +172,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
                                 ? parseFloat(data.bankFeedTime) || null : null,
     transactionsPerMonth:     typeof data.transactionsPerMonth === 'string' && data.transactionsPerMonth
                                 ? data.transactionsPerMonth.trim() : null,
+    annual1099sRange:         typeof data.annual1099sRange === 'string' && data.annual1099sRange
+                                ? data.annual1099sRange.trim() : null,
+    wcAuditSupport:           data.wcAuditSupport     === true,
+    annualAuditSupport:       data.annualAuditSupport === true,
     recTime:                  typeof data.recTime            === 'string' && data.recTime
                                 ? parseFloat(data.recTime) || null : null,
     numBanksAndCCs:           typeof data.numBanksAndCCs     === 'string' && data.numBanksAndCCs

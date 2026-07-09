@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { computeHours, BANK_FEED_HRS, ANNUAL_1099_HRS } from "@/lib/pricing";
 
 type ProcessingCadence = 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY' | 'QUARTERLY';
 type EntityType = 'LLC' | 'S_CORP' | 'C_CORP' | 'SOLE_PROPRIETOR' | 'PARTNERSHIP' | 'NON_PROFIT' | 'OTHER';
@@ -68,12 +69,16 @@ const EMPTY = {
   bankFeedTime: '', transactionsPerMonth: '', recTime: '',
   numBanksAndCCs: '', numLoans: '', numPmtPortals: '',
   pettyCash: false,
+  // Pricing-sheet inputs (drive auto-calc for audit + 1099 hours)
+  wcAuditSupport: false, annualAuditSupport: false,
+  annual1099sRange: '',
   // Manual overrides for auto-calculated fields
   bankFeedTimeOverride: false,
   recTimeOverride: false,
   qaHoursOverride: false,
   custSuccessOverride: false,
   yeOverride: false,
+  auditHoursOverride: false,
   // Payroll
   hasPayroll: false, payrollProvider: '',
   // Other
@@ -218,23 +223,31 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
     e.preventDefault();
     setSaving(true); setSaveError(null);
     try {
-      const total = parseFloat(form.totalHrsPerMonth) || 0
-      const tier  = total === 0 ? 0 : total <= 10 ? 0.25 : total <= 20 ? 0.50 : 0.75
+      // Auto-calc results (already computed above from current form state).
+      // For any field with an override toggle on, use the manual value instead.
+      const qaHours            = form.qaHoursOverride    ? (parseFloat(form.qaHours)            || 0) : calc.qaHours
+      const custSuccessMgmtHrs = form.custSuccessOverride ? (parseFloat(form.custSuccessMgmtHrs) || 0) : calc.custSuccessMgmtHrs
+      const yeOrTaxHours       = form.yeOverride          ? (parseFloat(form.yeOrTaxHours)       || 0) : calc.yeOrTaxHours
+      const auditHours         = form.auditHoursOverride  ? (parseFloat(form.auditHours)         || 0) : calc.auditHours
+      const bankFeedTime       = form.bankFeedTimeOverride || !calcBankFeedTime ? form.bankFeedTime : String(calc.bankFeedTime)
+      const recTime            = form.recTimeOverride      || !calcRecTime      ? form.recTime      : String(calc.recTime)
 
-      const qaHours          = form.qaHoursOverride    ? (parseFloat(form.qaHours)          || 0) : tier
-      const custSuccessMgmtHrs = form.custSuccessOverride ? (parseFloat(form.custSuccessMgmtHrs) || 0) : tier
-      const yeOrTaxHours     = form.yeOverride          ? (parseFloat(form.yeOrTaxHours)    || 0) : tier
-      const auditHours       = parseFloat(form.auditHours) || 0
-      const apArHrs          = parseFloat(form.apArHrs)    || 0
-      const pool             = qaHours + custSuccessMgmtHrs + yeOrTaxHours + auditHours + apArHrs
-      const bkprHours        = total === 0 ? '' : String(Math.max(parseFloat((total - pool).toFixed(2)), 0))
+      // bkprHours is user-entered — it's the container that includes bank feed, rec, and AR.
+      const bkprHours = parseFloat(form.bkprHours) || 0
 
-      const bankFeedTime = form.bankFeedTimeOverride || !calcBankFeedTime ? form.bankFeedTime : calcBankFeedTime
-      const recTime      = form.recTimeOverride      || !calcRecTime      ? form.recTime      : calcRecTime
+      // Total is the sum of the outer buckets (bkpr already contains bank feed/rec/AR).
+      const totalHrsPerMonth = String(
+        Math.round((bkprHours + qaHours + custSuccessMgmtHrs + yeOrTaxHours + auditHours) * 100) / 100
+      )
+
       const res = await fetch('/api/clients', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, qaHours, custSuccessMgmtHrs, yeOrTaxHours, bkprHours, bankFeedTime, recTime }),
+        body: JSON.stringify({
+          ...form,
+          qaHours, custSuccessMgmtHrs, yeOrTaxHours, auditHours,
+          bankFeedTime, recTime, totalHrsPerMonth,
+        }),
       });
       const json = await res.json();
       if (!res.ok) { setSaveError(json.error ?? `Error ${res.status}`); return; }
@@ -273,28 +286,27 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
   }
 
   // ── Calc helpers ──────────────────────────────────────────────
-  function txnTier(txn: string) {
-    switch (txn) {
-      case '0-100':   return { bft: 0.75,  rec: 0.25 }
-      case '101-200': return { bft: 1.75,  rec: 0.50 }
-      case '201-300': return { bft: 2.50,  rec: 0.75 }
-      case '301-400': return { bft: 3.25,  rec: 1.00 }
-      case '401-500': return { bft: 4.00,  rec: 1.25 }
-      case '500+':    return { bft: 5.00,  rec: 1.50 }
-      default:        return { bft: null,  rec: null  }
-    }
-  }
+  // Single source of truth is lib/pricing.ts. Everything below just feeds
+  // the current form state into computeHours() and hands off the results.
+  const calc = computeHours({
+    transactionsPerMonth: form.transactionsPerMonth || null,
+    numBanksAndCCs:       parseInt(form.numBanksAndCCs) || 0,
+    numLoans:             parseInt(form.numLoans)       || 0,
+    numPmtPortals:        parseInt(form.numPmtPortals)  || 0,
+    bkprHours:            parseFloat(form.bkprHours)    || 0,
+    wcAuditSupport:       !!form.wcAuditSupport,
+    annualAuditSupport:   !!form.annualAuditSupport,
+    annual1099sRange:     form.annual1099sRange || null,
+  })
 
-  const tier = txnTier(form.transactionsPerMonth)
+  const calcBankFeedTime = form.transactionsPerMonth ? String(calc.bankFeedTime) : ''
+  const calcRecTime      = calc.recTime > 0 ? String(calc.recTime) : ''
+  const calcAuditHours   = calc.auditHours > 0 ? String(calc.auditHours) : ''
 
-  const calcBankFeedTime = tier.bft !== null ? String(tier.bft) : ''
-  const calcRecTime = (() => {
-    if (tier.rec === null) return ''
-    const banks = parseInt(form.numBanksAndCCs) || 0
-    const loans = parseInt(form.numLoans)       || 0
-    const pmts  = parseInt(form.numPmtPortals)  || 0
-    return String(parseFloat(((banks + loans + pmts) * 0.25 + tier.rec).toFixed(2)))
-  })()
+  // QA/CS/YE tier — used by the existing inline display blocks below.
+  // Keep the same shape those blocks expect (a single tier number or null).
+  const calcTier = calc.totalHrsPerMonth > 0 ? calc.qaHours : null
+  const calcYeTier = calc.totalHrsPerMonth > 0 ? calc.yeOrTaxHours : null
 
   // Auto-fill calculated fields when dependencies change (unless overridden)
   // We expose both the calculated value and the override state
@@ -629,17 +641,34 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
           {/* ── Hours ── */}
           <Section label="Hours / Mo">
             <Grid3>
-              <Field label="Total Hrs/Mo">
-                <input type="number" step="0.25" min={0} value={form.totalHrsPerMonth} onChange={e => set('totalHrsPerMonth', e.target.value)} placeholder="0" className={inp} />
-              </Field>
+              {/* Total Hrs/Mo — auto-computed read-only: bkpr + qa + cs + ye + audit */}
+              <div>
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <label className="text-xs font-medium text-slate-500">Total Hrs/Mo</label>
+                  <div className="group relative">
+                    <svg className="h-3.5 w-3.5 text-slate-300 hover:text-purple-400 cursor-help transition-colors" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
+                    <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 w-56 rounded-lg bg-slate-800 px-3 py-2 text-[11px] text-white opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
+                      Bkpr + QA + CS + YE + Audit. Bkpr already contains bank feed, rec, and AR.
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800" />
+                    </div>
+                  </div>
+                  <span className="text-[10px] text-purple-500 font-medium">auto</span>
+                </div>
+                <div className="flex items-center rounded-lg bg-slate-50 border border-slate-200 px-3 py-2">
+                  <span className="text-sm font-semibold text-bba-action tabular-nums">{calc.totalHrsPerMonth}</span>
+                  <span className="ml-1 text-xs text-slate-400">hrs</span>
+                </div>
+              </div>
+
               <Field label="AP/AR Hrs">
                 <input type="number" step="0.25" min={0} value={form.apArHrs} onChange={e => set('apArHrs', e.target.value)} placeholder="0" className={inp} />
               </Field>
 
               {/* QA Hours — auto-calc from total with override */}
               {(() => {
-                const total = parseFloat(form.totalHrsPerMonth) || 0
-                const calcQa = total === 0 ? null : total <= 10 ? 0.25 : total <= 20 ? 0.50 : 0.75
+                const calcQa = calcTier
                 const showAuto = calcQa !== null && !form.qaHoursOverride
                 return (
                   <div>
@@ -676,8 +705,7 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
 
               {/* Cust Success / Mgmt — auto-calc same tier */}
               {(() => {
-                const total = parseFloat(form.totalHrsPerMonth) || 0
-                const calcCs = total === 0 ? null : total <= 10 ? 0.25 : total <= 20 ? 0.50 : 0.75
+                const calcCs = calcTier
                 const showAuto = calcCs !== null && !form.custSuccessOverride
                 return (
                   <div>
@@ -712,10 +740,9 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
                 )
               })()}
 
-              {/* YE / 1099 — auto-calc same tier */}
+              {/* YE / 1099 — auto-calc: tier + monthly slice of annual 1099s */}
               {(() => {
-                const total = parseFloat(form.totalHrsPerMonth) || 0
-                const calcYe = total === 0 ? null : total <= 10 ? 0.25 : total <= 20 ? 0.50 : 0.75
+                const calcYe = calcYeTier
                 const showAuto = calcYe !== null && !form.yeOverride
                 return (
                   <div>
@@ -725,8 +752,8 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
                         <svg className="h-3.5 w-3.5 text-slate-300 hover:text-purple-400 cursor-help transition-colors" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                         </svg>
-                        <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 w-48 rounded-lg bg-slate-800 px-3 py-2 text-[11px] text-white opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
-                          Based on Total Hrs/Mo:<br/>≤10 hrs = 0.25 · ≤20 = 0.50 · &gt;20 = 0.75
+                        <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 w-56 rounded-lg bg-slate-800 px-3 py-2 text-[11px] text-white opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
+                          Same tier as QA/CS (from Total Hrs) plus the monthly slice of the Annual 1099s range.
                           <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800" />
                         </div>
                       </div>
@@ -750,55 +777,58 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
                 )
               })()}
 
-              <Field label="Audit Hours">
-                <input type="number" step="0.25" min={0} value={form.auditHours} onChange={e => set('auditHours', e.target.value)} placeholder="0" className={inp} />
-              </Field>
-
-              {/* Bkpr Hours — always auto: total minus all pool fields */}
+              {/* Audit Hours — auto from W/C + Annual Audit toggles, /12 for monthly */}
               {(() => {
-                const total = parseFloat(form.totalHrsPerMonth) || 0
-                const tier  = total === 0 ? null : total <= 10 ? 0.25 : total <= 20 ? 0.50 : 0.75
-
-                const qa = form.qaHoursOverride   ? (parseFloat(form.qaHours)          || 0) : (tier ?? 0)
-                const cs = form.custSuccessOverride ? (parseFloat(form.custSuccessMgmtHrs) || 0) : (tier ?? 0)
-                const ye = form.yeOverride          ? (parseFloat(form.yeOrTaxHours)    || 0) : (tier ?? 0)
-                const audit = parseFloat(form.auditHours) || 0
-                const apAr  = parseFloat(form.apArHrs)    || 0
-
-                const pool  = qa + cs + ye + audit + apAr
-                const bkpr  = total === 0 ? null : Math.max(parseFloat((total - pool).toFixed(2)), 0)
-
+                const showAuto = !!calcAuditHours && !form.auditHoursOverride
                 return (
                   <div>
                     <div className="flex items-center gap-1.5 mb-1.5">
-                      <label className="text-xs font-medium text-slate-500">Bkpr Hours</label>
+                      <label className="text-xs font-medium text-slate-500">Audit Hours</label>
                       <div className="group relative">
                         <svg className="h-3.5 w-3.5 text-slate-300 hover:text-purple-400 cursor-help transition-colors" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                         </svg>
                         <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 w-56 rounded-lg bg-slate-800 px-3 py-2 text-[11px] text-white opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
-                          Total Hrs − (QA + Mgmt + YE + Audit + AP/AR)
+                          Annual: W/C 2.472 hrs + Annual Audit 20 hrs, ÷ 12 for monthly slice. Toggle audit types in the Year-End section below.
                           <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800" />
                         </div>
                       </div>
-                      {bkpr !== null && <span className="text-[10px] text-purple-500 font-medium">auto</span>}
-                    </div>
-                    <div className={`flex items-center rounded-lg border px-3 py-2 ${bkpr !== null && bkpr < 0 ? 'bg-red-50 border-red-200' : 'bg-slate-50 border-slate-200'}`}>
-                      {bkpr === null ? (
-                        <span className="text-sm text-slate-400">—</span>
-                      ) : (
-                        <>
-                          <span className={`text-sm font-semibold tabular-nums ${bkpr < 0 ? 'text-red-600' : 'text-bba-action'}`}>{bkpr}</span>
-                          <span className="ml-1 text-xs text-slate-400">hrs</span>
-                          {pool > total && total > 0 && (
-                            <span className="ml-2 text-[10px] text-red-500 font-medium">pool exceeds total</span>
-                          )}
-                        </>
+                      {showAuto && <span className="text-[10px] text-purple-500 font-medium">auto</span>}
+                      {calcAuditHours && (
+                        <button type="button" onClick={() => set('auditHoursOverride', !form.auditHoursOverride as any)}
+                          className="ml-auto text-[10px] text-slate-400 hover:text-bba-action underline underline-offset-2 transition-colors">
+                          {form.auditHoursOverride ? 'use formula' : 'override'}
+                        </button>
                       )}
                     </div>
+                    {form.auditHoursOverride || !calcAuditHours ? (
+                      <input type="number" step="0.25" min={0} value={form.auditHours} onChange={e => set('auditHours', e.target.value)} placeholder="0" className={inp} />
+                    ) : (
+                      <div className="flex items-center rounded-lg bg-slate-50 border border-slate-200 px-3 py-2">
+                        <span className="text-sm font-semibold text-bba-action tabular-nums">{calcAuditHours}</span>
+                        <span className="ml-1 text-xs text-slate-400">hrs</span>
+                      </div>
+                    )}
                   </div>
                 )
               })()}
+
+              {/* Bkpr Hours — user-entered container (includes bank feed, rec, and AR) */}
+              <div>
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <label className="text-xs font-medium text-slate-500">Bkpr Hours</label>
+                  <div className="group relative">
+                    <svg className="h-3.5 w-3.5 text-slate-300 hover:text-purple-400 cursor-help transition-colors" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
+                    <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 w-56 rounded-lg bg-slate-800 px-3 py-2 text-[11px] text-white opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
+                      Total bookkeeper container — includes bank feed, rec, and AR. Reference the auto-calc values below when estimating.
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800" />
+                    </div>
+                  </div>
+                </div>
+                <input type="number" step="0.25" min={0} value={form.bkprHours} onChange={e => set('bkprHours', e.target.value)} placeholder="0" className={inp} />
+              </div>
             </Grid3>
           </Section>
 
@@ -808,12 +838,9 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
               <Field label="# Transactions / mo">
                 <select value={form.transactionsPerMonth} onChange={e => set('transactionsPerMonth', e.target.value)} className={sel}>
                   <option value="">— Select range —</option>
-                  <option value="0-100">0 – 100</option>
-                  <option value="101-200">101 – 200</option>
-                  <option value="201-300">201 – 300</option>
-                  <option value="301-400">301 – 400</option>
-                  <option value="401-500">401 – 500</option>
-                  <option value="500+">500+</option>
+                  {Object.keys(BANK_FEED_HRS).map(k => (
+                    <option key={k} value={k}>{k}</option>
+                  ))}
                 </select>
               </Field>
               <Field label="# Banks &amp; CCs">
@@ -834,11 +861,11 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
                     <svg className="h-3.5 w-3.5 text-slate-300 hover:text-purple-400 cursor-help transition-colors" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                     </svg>
-                    <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 w-56 rounded-lg bg-slate-800 px-3 py-2 text-[11px] text-white opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
-                      Based on transaction range:<br/>
-                      0-100 = 0.75 · 101-200 = 1.75<br/>
-                      201-300 = 2.50 · 301-400 = 3.25<br/>
-                      401-500 = 4.00 · 500+ = 5.00
+                    <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 w-64 rounded-lg bg-slate-800 px-3 py-2 text-[11px] text-white opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
+                      Hours per transaction bracket (pricing sheet):<br/>
+                      0-100=0.83 · 101-200=1.67 · 201-300=2.50<br/>
+                      301-400=3.33 · 401-500=4.17 · 501-750=6.25<br/>
+                      751-1000=8.33 · 1000+=10.00
                       <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800" />
                     </div>
                   </div>
@@ -875,10 +902,10 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
                       <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                     </svg>
                     <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 w-64 rounded-lg bg-slate-800 px-3 py-2 text-[11px] text-white opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
-                      (Banks + Loans + Pmt Portals) × 0.25 + txn tier<br/>
-                      Txn tier: 0-100=0.25 · 101-200=0.50<br/>
-                      201-300=0.75 · 301-400=1.00<br/>
-                      401-500=1.25 · 500+=1.50
+                      Per item (pricing sheet):<br/>
+                      Banks &amp; CCs = 0.3574 hrs each<br/>
+                      Loans = 0.1787 hrs each<br/>
+                      Pmt Portals = 0.5956 hrs each
                       <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800" />
                     </div>
                   </div>
@@ -907,6 +934,23 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
               </div>
             </Grid3>
             <Toggle label="Petty Cash" value={form.pettyCash} onChange={v => set('pettyCash', v)} />
+          </Section>
+
+          {/* ── Year-End Services ── (drives Audit + YE 1099 auto-calc) */}
+          <Section label="Year-End Services">
+            <Grid2>
+              <Field label="Annual 1099s">
+                <select value={form.annual1099sRange} onChange={e => set('annual1099sRange', e.target.value)} className={inp}>
+                  <option value="">— none —</option>
+                  {Object.keys(ANNUAL_1099_HRS).map(k => (
+                    <option key={k} value={k}>{k}</option>
+                  ))}
+                </select>
+              </Field>
+              <div />
+              <Toggle label="W/C Audit Support" value={form.wcAuditSupport} onChange={v => set('wcAuditSupport', v)} />
+              <Toggle label="Annual Audit Support" value={form.annualAuditSupport} onChange={v => set('annualAuditSupport', v)} />
+            </Grid2>
           </Section>
 
           {/* ── Payroll ── */}

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { type BillingCadence, type Accountant } from "@/lib/mock-data";
 import { useRouter } from "next/navigation";
+import { computeHours, BANK_FEED_HRS, ANNUAL_1099_HRS } from "@/lib/pricing";
 
 type ProcessingCadence = 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY' | 'QUARTERLY';
 
@@ -66,6 +67,9 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
     numBanksAndCCs:           String(client?.numBanksAndCCs ?? ''),
     numLoans:                 String(client?.numLoans ?? ''),
     numPmtPortals:            String(client?.numPmtPortals ?? ''),
+    annual1099sRange:         String(client?.annual1099sRange ?? ''),
+    wcAuditSupport:           !!client?.wcAuditSupport,
+    annualAuditSupport:       !!client?.annualAuditSupport,
     // Identity
     entityType:               client?.entityType ?? '',
     projectType:              client?.projectType ?? '',
@@ -150,6 +154,9 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
       numBanksAndCCs:           String(client.numBanksAndCCs ?? ''),
       numLoans:                 String(client.numLoans ?? ''),
       numPmtPortals:            String(client.numPmtPortals ?? ''),
+      annual1099sRange:         String(client.annual1099sRange ?? ''),
+      wcAuditSupport:           !!client.wcAuditSupport,
+      annualAuditSupport:       !!client.annualAuditSupport,
       entityType:               client.entityType ?? '',
       projectType:              client.projectType ?? '',
       revType:                  client.revType ?? '',
@@ -225,6 +232,9 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
           numLoans:                 ops.numLoans ? parseFloat(ops.numLoans) : null,
           numPmtPortals:            ops.numPmtPortals ? parseFloat(ops.numPmtPortals) : null,
           recTime:                  ops.recTime ? parseFloat(ops.recTime) : null,
+          annual1099sRange:         ops.annual1099sRange || null,
+          wcAuditSupport:           !!ops.wcAuditSupport,
+          annualAuditSupport:       !!ops.annualAuditSupport,
           // Identity
           entityType:               ops.entityType || null,
           projectType:              ops.projectType || null,
@@ -477,14 +487,70 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
                   className={sel}
                 >
                   <option value="">— Select range —</option>
-                  <option value="0-100">0 – 100</option>
-                  <option value="101-200">101 – 200</option>
-                  <option value="201-300">201 – 300</option>
-                  <option value="301-400">301 – 400</option>
-                  <option value="401-500">401 – 500</option>
-                  <option value="500+">500+</option>
+                  {Object.keys(BANK_FEED_HRS).map(k => (
+                    <option key={k} value={k}>{k}</option>
+                  ))}
                 </select>
               </div>
+              {/* Annual 1099s — feeds YE + audit auto-calc */}
+              <div>
+                <label className="block text-xs font-medium text-slate-500 mb-1.5">Annual 1099s</label>
+                <select
+                  value={String(ops.annual1099sRange ?? '')}
+                  onChange={e => setOps(o => ({ ...o, annual1099sRange: e.target.value }))}
+                  className={sel}
+                >
+                  <option value="">— none —</option>
+                  {Object.keys(ANNUAL_1099_HRS).map(k => (
+                    <option key={k} value={k}>{k}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Audit-support toggles + recalculate action */}
+            <div className="mt-4 flex flex-wrap items-center gap-6">
+              {([
+                ['wcAuditSupport',     'W/C Audit Support'],
+                ['annualAuditSupport', 'Annual Audit Support'],
+              ] as [keyof typeof ops, string][]).map(([field, label]) => (
+                <label key={field} className="flex items-center gap-3 cursor-pointer">
+                  <button type="button"
+                    onClick={() => setOps(o => ({ ...o, [field]: !o[field] }))}
+                    className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-bba-action focus:ring-offset-2 ${ops[field] ? 'bg-bba-action' : 'bg-slate-300'}`}>
+                    <span className={`inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${ops[field] ? 'translate-x-5' : 'translate-x-0'}`} />
+                  </button>
+                  <span className="text-sm text-slate-700">{label}</span>
+                </label>
+              ))}
+              <button
+                type="button"
+                onClick={() => {
+                  const r = computeHours({
+                    transactionsPerMonth: ops.transactionsPerMonth || null,
+                    numBanksAndCCs:       parseInt(ops.numBanksAndCCs) || 0,
+                    numLoans:             parseInt(ops.numLoans)       || 0,
+                    numPmtPortals:        parseInt(ops.numPmtPortals)  || 0,
+                    bkprHours:            parseFloat(ops.bkprHours)    || 0,
+                    wcAuditSupport:       !!ops.wcAuditSupport,
+                    annualAuditSupport:   !!ops.annualAuditSupport,
+                    annual1099sRange:     ops.annual1099sRange || null,
+                  })
+                  setOps(o => ({
+                    ...o,
+                    bankFeedTime:       String(r.bankFeedTime),
+                    recTime:            String(r.recTime),
+                    auditHours:         String(r.auditHours),
+                    qaHours:            String(r.qaHours),
+                    custSuccessMgmtHrs: String(r.custSuccessMgmtHrs),
+                    yeOrTaxHours:       String(r.yeOrTaxHours),
+                    totalHrsPerMonth:   String(r.totalHrsPerMonth),
+                  }))
+                }}
+                className="ml-auto rounded-lg bg-bba-action px-3.5 py-1.5 text-xs font-semibold text-white hover:opacity-90 transition-opacity"
+              >
+                Recalculate hours from inputs
+              </button>
             </div>
           </div>
 

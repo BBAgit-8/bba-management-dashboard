@@ -17,6 +17,7 @@ const NUMERIC_FIELDS = new Set([
 const BOOLEAN_FIELDS = new Set([
   'hasContractedLoom', 'hasScheduledMeetings', 'hasSignedAutoIncrease',
   'pettyCash', 'qboOnly', 'okToContactAccountant', 'hasPayroll',
+  'wcAuditSupport', 'annualAuditSupport',
 ])
 
 // Date fields — sent as ISO date strings, stored as timestamptz

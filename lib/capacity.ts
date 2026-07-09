@@ -19,7 +19,8 @@ export interface CapacitySettings {
  *     Bkpr Hours = Pure Bookkeeping + Bank Feed + Rec + AP/AR (+ PR Rec)
  *
  * So the bookkeeper's own share is:
- *   pureBkpr = bkprHours − bankFeed − rec − apAr − prRec
+ *   pureBkpr = bkprHours − bankFeed − rec − prRec
+ *   (AR is currently included inside bkprHours — see routing note in code)
  */
 export interface ClientWorkload {
   id: string;
@@ -132,16 +133,22 @@ export function computeClient(
   const cs = c.csHours;
   const ye = c.yeHours;
   const audit = c.auditHours;
-  const apAr = c.apArHours;
+  // apAr is still on the input type (c.apArHours) but not consumed here —
+  // see the pureBkpr comment above for the business-rule context.
   const bankFeed = c.bankFeedHours;
   const rec = c.recHours;
   const prRec = c.prRecHours;
 
+  // AR is currently INCLUDED inside bkprHours per Dawn's business rule (July 2026).
+  // Kept as a client-form field for tracking, but NOT deducted from pureBkpr and
+  // NOT routed separately — it just lives inside the bookkeeper's container work.
+  // If this changes back, restore `- apAr` on the pureBkpr line and re-add
+  // `add("apAr", apAr)` on the routing line below.
   const bkprContainer = c.bkprHours;
-  const pureBkpr = round2(bkprContainer - bankFeed - rec - apAr - prRec);
+  const pureBkpr = round2(bkprContainer - bankFeed - rec - prRec);
   if (pureBkpr < 0) {
     warnings.push(
-      `Sub-tasks (Bank Feed ${bankFeed} + Rec ${rec} + AP/AR ${apAr}${prRec ? ` + PR ${prRec}` : ""}) ` +
+      `Sub-tasks (Bank Feed ${bankFeed} + Rec ${rec}${prRec ? ` + PR ${prRec}` : ""}) ` +
       `exceed Bkpr Hours (${bkprContainer}) — check the client's hours split`
     );
   }
@@ -163,12 +170,12 @@ export function computeClient(
   add("ye", ye + audit);
   add("bankFeed", bankFeed);
   add("rec", rec);
-  add("apAr", apAr);
+  // apAr NOT routed separately — see the pureBkpr note above.
   add("bkpr", Math.max(pureBkpr, 0));
 
   return {
     clientId: c.id, clientName: c.name,
-    qa, cs, ye, audit, bankFeed, rec, apAr, prRec,
+    qa, cs, ye, audit, bankFeed, rec, apAr: c.apArHours, prRec,
     pureBkpr, bkprContainer,
     totalEntered, totalOnClient: c.totalHrs,
     warnings, hoursByEmployee, isCleanup: false,

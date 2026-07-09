@@ -1281,7 +1281,9 @@ export default function ClientDirectory() {
               <option value="201-300">201–300</option>
               <option value="301-400">301–400</option>
               <option value="401-500">401–500</option>
-              <option value="500+">500+</option>
+              <option value="501-750">501–750</option>
+              <option value="751-1000">751–1000</option>
+              <option value="1000+">1000+</option>
             </select>
           </td>
         )
