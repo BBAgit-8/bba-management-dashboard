@@ -63,9 +63,56 @@ export default function AccountantsPage() {
   const [editingId,  setEditingId]  = useState<string | null>(null)
   const [statusFilter, setStatusFilter] = useState<'ACTIVE' | 'INACTIVE' | 'ALL'>('ACTIVE')
 
-  const [colOrder,  setColOrder]  = useState<ColKey[]>(ALL_COLS.map(c => c.key))
-  const [sortCol,   setSortCol]   = useState<ColKey | null>(null)
-  const [sortDir,   setSortDir]   = useState<SortDir>('asc')
+  // Column order + sort — persisted per browser in localStorage. Bump the key
+  // if ALL_COLS changes so stale saved orders don't reference removed columns.
+  const STORAGE_ORDER = 'bba.accountants.colOrder.v1'
+  const STORAGE_SORT  = 'bba.accountants.sort.v1'
+  const ALL_COL_KEYS  = ALL_COLS.map(c => c.key)
+
+  const [colOrder,  setColOrder]  = useState<ColKey[]>(() => {
+    if (typeof window === 'undefined') return ALL_COL_KEYS
+    try {
+      const saved = localStorage.getItem(STORAGE_ORDER)
+      if (saved) {
+        const parsed = JSON.parse(saved) as ColKey[]
+        // Sanity: only accept if every key still exists in ALL_COLS.
+        if (Array.isArray(parsed) && parsed.length === ALL_COL_KEYS.length
+            && parsed.every(k => ALL_COL_KEYS.includes(k))) return parsed
+      }
+    } catch { /* ignore corrupt storage */ }
+    return ALL_COL_KEYS
+  })
+
+  const [sortCol,   setSortCol]   = useState<ColKey | null>(() => {
+    if (typeof window === 'undefined') return null
+    try {
+      const raw = localStorage.getItem(STORAGE_SORT)
+      if (raw) {
+        const p = JSON.parse(raw) as { col: ColKey | null; dir: SortDir }
+        if (p && (p.col === null || ALL_COL_KEYS.includes(p.col))) return p.col
+      }
+    } catch { /* ignore */ }
+    return null
+  })
+  const [sortDir,   setSortDir]   = useState<SortDir>(() => {
+    if (typeof window === 'undefined') return 'asc'
+    try {
+      const raw = localStorage.getItem(STORAGE_SORT)
+      if (raw) {
+        const p = JSON.parse(raw) as { col: ColKey | null; dir: SortDir }
+        if (p && (p.dir === 'asc' || p.dir === 'desc')) return p.dir
+      }
+    } catch { /* ignore */ }
+    return 'asc'
+  })
+
+  // Persist on change.
+  useEffect(() => {
+    try { localStorage.setItem(STORAGE_ORDER, JSON.stringify(colOrder)) } catch {}
+  }, [colOrder])
+  useEffect(() => {
+    try { localStorage.setItem(STORAGE_SORT, JSON.stringify({ col: sortCol, dir: sortDir })) } catch {}
+  }, [sortCol, sortDir])
 
   // Pointer drag for col reorder
   const colDrag = useRef<{ key: string; idx: number } | null>(null)
