@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { computeHours, BANK_FEED_HRS, ANNUAL_1099_HRS } from "@/lib/pricing";
 
 type ProcessingCadence = 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY' | 'QUARTERLY';
@@ -87,8 +87,10 @@ const EMPTY = {
   selectedTags: [] as string[],
   // Software subscriptions
   qboTier: '' as '' | 'qbo_simple_start' | 'qbo_essentials' | 'qbo_plus' | 'qbo_advanced',
-  hasDouble: false,
-  otherSoftware: [] as { name: string; amount: string }[],
+  // Additional software pulled from the catalog. `key` refers to a settings
+  // row (e.g. "dext" or "software.gusto"). `amount` auto-fills from that
+  // setting's current price but stays overridable per client.
+  otherSoftware: [] as { key: string; amount: string }[],
 };
 
 function nextAnnualDate(from: string | null): string {
@@ -127,6 +129,18 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [prices, setPrices] = useState<Record<string,number>>({});
+  const [softwareLabels, setSoftwareLabels] = useState<Record<string,string>>({});
+
+  // Build the sorted catalog for the dropdown from settings: everything that
+  // is "dext" (legacy) or starts with "software." — QBO tiers are excluded
+  // because they're handled by their own picker.
+  const softwareCatalog = useMemo(() => {
+    const items = Object.keys(prices)
+      .filter(k => k === 'dext' || k.startsWith('software.'))
+      .map(k => ({ key: k, label: softwareLabels[k] || (k === 'dext' ? 'Double Receipts' : k), price: prices[k] ?? 0 }))
+    items.sort((a, b) => a.label.localeCompare(b.label))
+    return items
+  }, [prices, softwareLabels])
 
   useEffect(() => {
     fetch('/api/tags').then(r => r.json())
@@ -142,6 +156,7 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
           for (const [k,v] of Object.entries(d.map)) p[k] = parseFloat(v as string) || 0;
           setPrices(p);
         }
+        if (d.labels) setSoftwareLabels(d.labels);
       }).catch(() => {});
   }, []);
 
@@ -153,12 +168,13 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.autoPriceIncreasePercent, form.contractStartDate]);
 
-  // Auto-calculate software rate + monthly billing
+  // Auto-calculate software rate + monthly billing. QBO tier is picked
+  // separately; everything else (Double Receipts, Gusto, etc.) rides in
+  // otherSoftware with amounts pulled from the catalog but overridable.
   useEffect(() => {
-    const qboPrice  = form.qboTier ? (prices[form.qboTier] ?? 0) : 0;
-    const dextPrice  = form.hasDouble ? (prices['dext'] ?? 0) : 0;
-    const otherAmt   = form.otherSoftware.reduce((sum, o) => sum + (parseFloat(o.amount) || 0), 0);
-    const softTotal = qboPrice + dextPrice + otherAmt;
+    const qboPrice = form.qboTier ? (prices[form.qboTier] ?? 0) : 0;
+    const otherAmt = form.otherSoftware.reduce((sum, o) => sum + (parseFloat(o.amount) || 0), 0);
+    const softTotal = qboPrice + otherAmt;
     const bkRate    = parseFloat(form.bookkeepingRate) || 0;
     setForm(f => ({
       ...f,
@@ -166,7 +182,7 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
       totalMonthlyAmount: String(bkRate + softTotal),
     }));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form.qboTier, form.hasDouble, form.otherSoftware, form.bookkeepingRate, prices]);
+  }, [form.qboTier, form.otherSoftware, form.bookkeepingRate, prices]);
 
   function set<K extends keyof typeof EMPTY>(k: K, v: (typeof EMPTY)[K]) {
     setForm(f => ({ ...f, [k]: v }));
@@ -259,13 +275,10 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
         if (form.qboTier && prices[form.qboTier]) {
           subs.push({ softwareName: 'QuickBooks Online', tier: form.qboTier.replace('qbo_','').replace(/_/g,' '), ourCost: String(prices[form.qboTier]), clientPrice: String(prices[form.qboTier]), billingCadence: 'MONTHLY' })
         }
-        if (form.hasDouble && prices['dext']) {
-          subs.push({ softwareName: 'Double Receipts', tier: '', ourCost: String(prices['dext']), clientPrice: String(prices['dext']), billingCadence: 'MONTHLY' })
-        }
         for (const o of form.otherSoftware) {
-          if (o.name.trim() && o.amount) {
-            subs.push({ softwareName: o.name.trim(), tier: '', ourCost: o.amount, clientPrice: o.amount, billingCadence: 'MONTHLY' })
-          }
+          if (!o.key || !o.amount) continue
+          const label = softwareLabels[o.key] || (o.key === 'dext' ? 'Double Receipts' : o.key)
+          subs.push({ softwareName: label, tier: '', ourCost: o.amount, clientPrice: o.amount, billingCadence: 'MONTHLY' })
         }
         if (subs.length > 0) {
           await fetch('/api/clients/subscriptions', {
@@ -539,59 +552,84 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
                     )}
                   </div>
                 </div>
-                {/* Dext */}
-                <div className="px-4 py-3 flex items-center justify-between">
-                  <div>
-                    <span className="text-sm text-slate-700 font-medium">Double</span>
-                    {prices['dext'] ? <span className="ml-2 text-xs text-slate-400">${prices['dext']}/mo</span> : null}
-                  </div>
-                  <button type="button" onClick={() => set('hasDouble', !form.hasDouble)}
-                    className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors ${form.hasDouble ? 'bg-bba-action' : 'bg-slate-300'}`}>
-                    <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${form.hasDouble ? 'translate-x-5' : 'translate-x-0'}`} />
-                  </button>
-                </div>
-                {/* Other */}
+                {/* Additional software (pulled from the catalog under
+                    Settings → Software Pricing). Double Receipts, Gusto,
+                    Bill.com, etc. all live here. Price auto-fills from
+                    the catalog on selection but stays overridable. */}
                 <div className="px-4 py-3 space-y-2">
                   <div className="flex items-center justify-between">
-                    <p className="text-xs font-medium text-slate-500">Other</p>
+                    <p className="text-xs font-medium text-slate-500">Additional Software</p>
                     <button type="button"
-                      onClick={() => set('otherSoftware', [...form.otherSoftware, { name: '', amount: '' }])}
-                      className="inline-flex items-center gap-1 text-xs text-bba-action hover:text-purple-800 font-medium transition-colors">
+                      onClick={() => set('otherSoftware', [...form.otherSoftware, { key: '', amount: '' }])}
+                      disabled={softwareCatalog.length === 0}
+                      className="inline-flex items-center gap-1 text-xs text-bba-action hover:text-purple-800 font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
                       <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
                       Add
                     </button>
                   </div>
-                  {form.otherSoftware.length === 0 && (
-                    <p className="text-xs text-slate-400 italic">No other software — click Add to include one.</p>
+                  {softwareCatalog.length === 0 && (
+                    <p className="text-xs text-slate-400 italic">
+                      No catalog items yet — add software under{' '}
+                      <a href="/settings/software-pricing" target="_blank" rel="noreferrer" className="text-bba-action hover:underline">
+                        Settings → Software Pricing
+                      </a>.
+                    </p>
                   )}
-                  {form.otherSoftware.map((item, i) => (
-                    <div key={i} className="flex items-center gap-2">
-                      <input type="text" value={item.name}
-                        onChange={e => { const next = [...form.otherSoftware]; next[i] = { ...next[i], name: e.target.value }; set('otherSoftware', next); }}
-                        placeholder="Software name" className={`${inp} flex-1`} />
-                      <div className="relative w-28 shrink-0">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">$</span>
-                        <input type="number" step="0.01" min={0} value={item.amount}
-                          onChange={e => { const next = [...form.otherSoftware]; next[i] = { ...next[i], amount: e.target.value }; set('otherSoftware', next); }}
-                          placeholder="0.00" className={`${inp} pl-6`} />
+                  {softwareCatalog.length > 0 && form.otherSoftware.length === 0 && (
+                    <p className="text-xs text-slate-400 italic">No additional software — click Add to include one.</p>
+                  )}
+                  {form.otherSoftware.map((item, i) => {
+                    // Items already selected on other rows can't be picked again.
+                    const usedKeys = new Set(form.otherSoftware.map((o, j) => j !== i ? o.key : '').filter(Boolean))
+                    const options = softwareCatalog.filter(c => !usedKeys.has(c.key))
+                    return (
+                      <div key={i} className="flex items-center gap-2">
+                        <select
+                          value={item.key}
+                          onChange={e => {
+                            const key = e.target.value
+                            const price = softwareCatalog.find(c => c.key === key)?.price ?? 0
+                            const next = [...form.otherSoftware]
+                            next[i] = { key, amount: price > 0 ? String(price) : '' }
+                            set('otherSoftware', next)
+                          }}
+                          className={`${inp} flex-1`}
+                        >
+                          <option value="">Select software…</option>
+                          {options.map(o => (
+                            <option key={o.key} value={o.key}>
+                              {o.label}{o.price > 0 ? ` — $${o.price}/mo` : ''}
+                            </option>
+                          ))}
+                          {/* If a previously-selected key is no longer in the catalog
+                              (deleted from settings), still render it so the user knows. */}
+                          {item.key && !softwareCatalog.find(c => c.key === item.key) && (
+                            <option value={item.key}>(deleted: {item.key})</option>
+                          )}
+                        </select>
+                        <div className="relative w-28 shrink-0">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">$</span>
+                          <input type="number" step="0.01" min={0} value={item.amount}
+                            onChange={e => { const next = [...form.otherSoftware]; next[i] = { ...next[i], amount: e.target.value }; set('otherSoftware', next); }}
+                            placeholder="0.00" className={`${inp} pl-6`} />
+                        </div>
+                        <button type="button"
+                          onClick={() => set('otherSoftware', form.otherSoftware.filter((_, j) => j !== i))}
+                          className="text-slate-300 hover:text-red-400 transition-colors shrink-0">
+                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
                       </div>
-                      <button type="button"
-                        onClick={() => set('otherSoftware', form.otherSoftware.filter((_, j) => j !== i))}
-                        className="text-slate-300 hover:text-red-400 transition-colors shrink-0">
-                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                      </button>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </div>
               {/* Software rate summary */}
-              {(form.qboTier || form.hasDouble || form.otherSoftware.some(o => parseFloat(o.amount) > 0)) && (
+              {(form.qboTier || form.otherSoftware.some(o => parseFloat(o.amount) > 0)) && (
                 <div className="px-4 py-2.5 bg-purple-50 border-t border-purple-100 flex justify-between items-center">
                   <span className="text-xs text-bba-action font-medium">Software Rate</span>
                   <span className="text-sm font-semibold text-bba-action">
                     ${(
                       (form.qboTier ? (prices[form.qboTier] ?? 0) : 0) +
-                      (form.hasDouble ? (prices['dext'] ?? 0) : 0) +
                       form.otherSoftware.reduce((sum, o) => sum + (parseFloat(o.amount) || 0), 0)
                     ).toFixed(2)}/mo
                   </span>
