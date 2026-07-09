@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, useCallback } from "react";
+import Link from "next/link";
 import { broadcastBookkeeperChange, useBookkeeperSync } from "@/app/hooks/useBookkeeperSync";
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -814,6 +815,12 @@ function PodCapacityView() {
             Monthly hour capacity vs. assigned task hours per person and pod
           </p>
         </div>
+        <Link
+          href="/settings/pods"
+          className="shrink-0 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:text-bba-action transition-colors"
+        >
+          Manage Pods →
+        </Link>
       </div>
 
       {error && (
@@ -830,7 +837,10 @@ function PodCapacityView() {
 
       {data && !loading && (
         <>
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+          {/* Pod-scoped stat cards only. QA + CS are firm-wide (rotating pools
+              not attributable to any single pod), so they belong on a firm-level
+              dashboard — not here. Removed July 2026 per Dawn's QA pass. */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             <StatCard
               label="Pod Capacity"
               value={grouped.podMembers.reduce((s, e) => s + e.capacity, 0).toFixed(1)}
@@ -846,16 +856,6 @@ function PodCapacityView() {
               value={grouped.podMembers.reduce((s, e) => s + e.difference, 0).toFixed(1)}
               color={grouped.podMembers.reduce((s, e) => s + e.difference, 0) < 0 ? 'text-red-600' : 'text-green-700'}
               sub="Capacity − Assigned"
-            />
-            <StatCard
-              label="QA Pool"
-              value={(data.qaPool ?? 0).toFixed(2)}
-              sub="Quarterly rotating QA"
-            />
-            <StatCard
-              label="CS Pool"
-              value={data.csPool.toFixed(2)}
-              sub="Customer success hours"
             />
           </div>
 
