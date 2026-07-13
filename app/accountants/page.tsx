@@ -11,6 +11,7 @@ interface AccountantRow {
   status:           'ACTIVE' | 'ARCHIVED'
   okToContactAccountant?: boolean
   activeClientCount: number
+  activeClients?: { businessName: string; projectCode: string }[]
   derivedStatus:    'ACTIVE' | 'INACTIVE'
 }
 
@@ -49,6 +50,7 @@ function toRow(a: any): AccountantRow {
     status: a.status,
     okToContactAccountant: a.okToContactAccountant ?? false,
     activeClientCount: a.activeClientCount ?? 0,
+    activeClients: Array.isArray(a.activeClients) ? a.activeClients : [],
     derivedStatus: a.derivedStatus ?? (a.status === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE'),
   }
 }
@@ -221,7 +223,33 @@ export default function AccountantsPage() {
       case 'biz':     return <td key={key} className="px-5 py-3 text-slate-600">{acc.businessName ?? '—'}</td>
       case 'email':   return <td key={key} className="px-5 py-3 text-slate-600">{acc.email ?? '—'}</td>
       case 'phone':   return <td key={key} className="px-5 py-3 text-slate-600 tabular-nums">{acc.phoneNumber ? formatPhone(acc.phoneNumber) : '—'}</td>
-      case 'clients': return <td key={key} className="px-5 py-3 text-center tabular-nums text-slate-700">{acc.activeClientCount || '—'}</td>
+      case 'clients': return (
+        <td key={key} className="px-5 py-3 text-center tabular-nums text-slate-700">
+          {acc.activeClientCount > 0 ? (
+            <span
+              className="group relative inline-block cursor-help border-b border-dashed border-slate-300"
+              tabIndex={0}
+            >
+              {acc.activeClientCount}
+              {acc.activeClients && acc.activeClients.length > 0 && (
+                <span
+                  role="tooltip"
+                  className="pointer-events-none absolute left-1/2 top-full z-30 mt-2 hidden -translate-x-1/2 rounded-lg bg-slate-800 px-3 py-2 text-left text-xs text-white shadow-lg group-hover:block group-focus:block min-w-[160px] max-w-[280px] whitespace-normal"
+                >
+                  <span className="mb-1 block text-[10px] font-semibold uppercase tracking-widest text-slate-300">
+                    Active Clients
+                  </span>
+                  {acc.activeClients.map(c => (
+                    <span key={c.projectCode || c.businessName} className="block truncate">
+                      {c.businessName}
+                    </span>
+                  ))}
+                </span>
+              )}
+            </span>
+          ) : '—'}
+        </td>
+      )
       case 'status':
         return (
           <td key={key} className="px-5 py-3">
