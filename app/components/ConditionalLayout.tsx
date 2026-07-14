@@ -4,9 +4,23 @@ import { useEffect, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import Sidebar from './Sidebar'
 import ChangeRequestBubble from './ChangeRequestBubble'
+import DemoToggle from './DemoToggle'
+import { DemoModeProvider } from '@/lib/demo-mode'
 import { supabaseClient } from '@/lib/supabaseClient'
 
 export default function ConditionalLayout({ children }: { children: React.ReactNode }) {
+  // Demo mode + toggle wrap the entire app so both management routes and
+  // the /hub employee side inherit the same provider and toggle. The auth
+  // gate + management chrome live inside the inner component below.
+  return (
+    <DemoModeProvider>
+      <DemoToggle />
+      <ConditionalLayoutInner>{children}</ConditionalLayoutInner>
+    </DemoModeProvider>
+  )
+}
+
+function ConditionalLayoutInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
   const isHubRoute   = pathname.startsWith('/hub')
