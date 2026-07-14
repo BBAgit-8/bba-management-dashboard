@@ -10,6 +10,7 @@ interface AccountantRow {
   phoneNumber:      string | null
   status:           'ACTIVE' | 'ARCHIVED'
   okToContactAccountant?: boolean
+  hasSecurePortal?: boolean
   activeClientCount: number
   activeClients?: { businessName: string; projectCode: string }[]
   derivedStatus:    'ACTIVE' | 'INACTIVE'
@@ -49,6 +50,7 @@ function toRow(a: any): AccountantRow {
     phoneNumber: a.phoneNumber ?? null,
     status: a.status,
     okToContactAccountant: a.okToContactAccountant ?? false,
+    hasSecurePortal: a.hasSecurePortal ?? false,
     activeClientCount: a.activeClientCount ?? 0,
     activeClients: Array.isArray(a.activeClients) ? a.activeClients : [],
     derivedStatus: a.derivedStatus ?? (a.status === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE'),
@@ -60,7 +62,7 @@ export default function AccountantsPage() {
   const [loading,    setLoading]    = useState(true)
   const [modalOpen,  setModalOpen]  = useState(false)
   const [saving,     setSaving]     = useState(false)
-  const [form,       setForm]       = useState({ name: '', businessName: '', email: '', phoneNumber: '', okToContactAccountant: false })
+  const [form,       setForm]       = useState({ name: '', businessName: '', email: '', phoneNumber: '', okToContactAccountant: false, hasSecurePortal: false })
   const [error,      setError]      = useState<string | null>(null)
   const [editingId,  setEditingId]  = useState<string | null>(null)
   const [statusFilter, setStatusFilter] = useState<'ACTIVE' | 'INACTIVE' | 'ALL'>('ACTIVE')
@@ -160,10 +162,10 @@ export default function AccountantsPage() {
       .finally(() => setLoading(false))
   }, [])
 
-  function resetForm() { setForm({ name: '', businessName: '', email: '', phoneNumber: '', okToContactAccountant: false }); setError(null); setEditingId(null) }
+  function resetForm() { setForm({ name: '', businessName: '', email: '', phoneNumber: '', okToContactAccountant: false, hasSecurePortal: false }); setError(null); setEditingId(null) }
 
   function openEdit(acc: AccountantRow) {
-    setForm({ name: acc.name, businessName: acc.businessName ?? '', email: acc.email ?? '', phoneNumber: formatPhone(acc.phoneNumber ?? ''), okToContactAccountant: !!acc.okToContactAccountant })
+    setForm({ name: acc.name, businessName: acc.businessName ?? '', email: acc.email ?? '', phoneNumber: formatPhone(acc.phoneNumber ?? ''), okToContactAccountant: !!acc.okToContactAccountant, hasSecurePortal: !!acc.hasSecurePortal })
     setEditingId(acc.id); setModalOpen(true)
   }
 
@@ -403,6 +405,14 @@ export default function AccountantsPage() {
                     <span className={`inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${form.okToContactAccountant ? 'translate-x-5' : 'translate-x-0'}`} />
                   </button>
                   <span className="text-sm text-slate-700">Direct authorization <span className="text-xs text-slate-400">(OK to contact directly)</span></span>
+                </label>
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <button type="button"
+                    onClick={() => setForm(f => ({ ...f, hasSecurePortal: !f.hasSecurePortal }))}
+                    className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-bba-action focus:ring-offset-2 ${form.hasSecurePortal ? 'bg-bba-action' : 'bg-slate-300'}`}>
+                    <span className={`inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${form.hasSecurePortal ? 'translate-x-5' : 'translate-x-0'}`} />
+                  </button>
+                  <span className="text-sm text-slate-700">Secure portal <span className="text-xs text-slate-400">(files exchanged via portal URL)</span></span>
                 </label>
                 {error && <p className="text-xs text-red-500">{error}</p>}
                 <div className="flex items-center justify-end gap-3 pt-1">

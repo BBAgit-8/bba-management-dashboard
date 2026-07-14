@@ -95,6 +95,7 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
     recTime:                  String(client?.recTime ?? ''),
     // Accountant
     accountantId:             client?.accountantId ?? '',
+    accountantPortalUrl:      client?.accountantPortalUrl ?? '',
     okToContactAccountant:    client?.okToContactAccountant ?? false,
     processingCadence:        (client?.processingCadence ?? 'MONTHLY') as ProcessingCadence,
   });
@@ -178,6 +179,7 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
       guaranteedDeadlineDay:    String(client.guaranteedDeadlineDay ?? ''),
       recTime:                  String(client.recTime ?? ''),
       accountantId:             client.accountantId ?? '',
+      accountantPortalUrl:      client.accountantPortalUrl ?? '',
       okToContactAccountant:    client.okToContactAccountant ?? false,
       processingCadence:        (client.processingCadence ?? 'MONTHLY') as ProcessingCadence,
     });
@@ -259,6 +261,7 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
           guaranteedDeadlineDay:    ops.guaranteedDeadlineDay ? parseInt(ops.guaranteedDeadlineDay) : null,
           // Accountant
           accountantId:             ops.accountantId || null,
+          accountantPortalUrl:      ops.accountantPortalUrl || null,
           okToContactAccountant:    ops.okToContactAccountant,
           processingCadence:        ops.processingCadence,
         }),
@@ -701,6 +704,22 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
                     </option>
                   ))}
               </select>
+
+              {/* Secure Portal URL — only shown when the selected accountant is flagged as having a portal */}
+              {(() => {
+                const selected = accountants.find(a => a.id === ops.accountantId)
+                if (!selected?.hasSecurePortal) return null
+                return (
+                  <div>
+                    <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1">
+                      Secure Portal URL
+                    </label>
+                    <input type="url" value={ops.accountantPortalUrl}
+                      onChange={e => setOps(o => ({ ...o, accountantPortalUrl: e.target.value }))}
+                      placeholder="https://portal.example.com/…" className={inp} />
+                  </div>
+                )
+              })()}
 
               {/* Inline add accountant form */}
               {showAddAcct && (

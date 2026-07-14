@@ -51,7 +51,7 @@ const EMPTY = {
   contractStartDate: '', contractEndDate: '',
   referredBy: '',
   // Staff
-  bookkeeper: '', accountantName: '', accountantId: '',
+  bookkeeper: '', accountantName: '', accountantId: '', accountantPortalUrl: '',
   processingCadence: 'MONTHLY' as ProcessingCadence,
   projectType: 'RECURRING' as ProjectType,
   revType: '' as RevType | '',
@@ -105,7 +105,7 @@ function nextAnnualDate(from: string | null): string {
 export default function AddClientPanel({ open, onClose, onCreated }: AddClientPanelProps) {
   const [form, setForm] = useState(EMPTY);
   const [employees,   setEmployees]   = useState<{ id: string; name: string }[]>([]);
-  const [accountants,  setAccountants]  = useState<{ id: string; name: string; businessName?: string | null }[]>([]);
+  const [accountants,  setAccountants]  = useState<{ id: string; name: string; businessName?: string | null; hasSecurePortal?: boolean }[]>([]);
   const [showNewAcct,   setShowNewAcct]  = useState(false);
   const [addingAcct,    setAddingAcct]   = useState(false);
   const [referrerOptions, setReferrerOptions] = useState<string[]>([]);
@@ -444,6 +444,20 @@ export default function AddClientPanel({ open, onClose, onCreated }: AddClientPa
                       className="text-[11px] text-bba-action hover:text-purple-800 hover:underline font-medium transition-colors">
                       + Add new accountant
                     </button>
+                    {(() => {
+                      const selected = accountants.find(a => a.id === form.accountantId)
+                      if (!selected?.hasSecurePortal) return null
+                      return (
+                        <div className="pt-1">
+                          <label className="block text-[10px] font-semibold uppercase tracking-widest text-bba-action mb-1">
+                            Secure Portal URL
+                          </label>
+                          <input type="url" value={form.accountantPortalUrl}
+                            onChange={e => set('accountantPortalUrl', e.target.value)}
+                            placeholder="https://portal.example.com/…" className={inp} />
+                        </div>
+                      )
+                    })()}
                   </div>
                 ) : (
                   <div className="space-y-2 rounded-lg border border-purple-100 bg-purple-50/50 p-3">

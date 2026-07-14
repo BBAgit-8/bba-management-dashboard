@@ -24,6 +24,7 @@ export interface Accountant {
   email?: string
   phoneNumber?: string
   status: AccountantStatus
+  hasSecurePortal?: boolean
 }
 
 export interface Client {

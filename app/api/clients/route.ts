@@ -65,6 +65,7 @@ export async function GET(): Promise<NextResponse> {
     accountantName:           c.accountant?.businessName || c.accountant?.name || c.accountantName || null,
     accountantPersonName:     c.accountant?.name || null,
     accountantId:             c.accountantId        ?? null,
+    accountantPortalUrl:      c.accountantPortalUrl ?? null,
     // New fields
     clientGroupName:          c.clientGroupName     ?? null,
     doubleId:                 c.doubleId            ?? null,
@@ -125,6 +126,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     harvestProjectCode,
     accountantId:             typeof data.accountantId             === 'string' ? data.accountantId.trim()    || null : null,
     accountantName:           typeof data.accountantName           === 'string' ? data.accountantName.trim()  || null : null,
+    accountantPortalUrl:      typeof data.accountantPortalUrl      === 'string' ? data.accountantPortalUrl.trim() || null : null,
     "Bookkeeper":             typeof data.bookkeeper               === 'string' ? data.bookkeeper.trim()       || null : null,
     entityType:               typeof data.entityType               === 'string' ? data.entityType              : 'LLC',
     einNumber:                typeof data.einNumber                === 'string' ? data.einNumber.trim()        || null : null,
