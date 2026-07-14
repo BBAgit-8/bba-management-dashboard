@@ -19,9 +19,17 @@ export async function GET(): Promise<NextResponse> {
   // and every legitimately-assigned accountant appeared as "Inactive".
   // We also collect the client name+code list so the accountants page can show
   // a hover tooltip listing which clients each accountant is tied to.
-  const { data: clients } = await supabase
+  // NOTE: DB columns are `name` and `harvestProjectCode` (NOT businessName/projectCode).
+  // A prior commit selected the wrong names, which made Supabase return an error and
+  // caused every accountant to show as Inactive. We now surface the error so a
+  // regression like that fails loudly instead of silently emptying the count map.
+  const { data: clients, error: clientsError } = await supabase
     .from('clients')
-    .select('accountantId, accountantName, archiveStatus, businessName, projectCode')
+    .select('accountantId, accountantName, archiveStatus, name, harvestProjectCode')
+
+  if (clientsError) {
+    console.error('[GET /api/accountants] clients query failed:', clientsError)
+  }
 
   const activeCounts: Record<string, number> = {}
   const activeClients: Record<string, { businessName: string; projectCode: string }[]> = {}
@@ -31,8 +39,8 @@ export async function GET(): Promise<NextResponse> {
       activeCounts[c.accountantId] = (activeCounts[c.accountantId] ?? 0) + 1
       if (!activeClients[c.accountantId]) activeClients[c.accountantId] = []
       activeClients[c.accountantId].push({
-        businessName: c.businessName ?? c.projectCode ?? '(unnamed)',
-        projectCode: c.projectCode ?? '',
+        businessName: c.name ?? c.harvestProjectCode ?? '(unnamed)',
+        projectCode: c.harvestProjectCode ?? '',
       })
     }
   }
