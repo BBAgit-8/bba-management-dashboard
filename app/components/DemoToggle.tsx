@@ -53,18 +53,16 @@ export default function DemoToggle() {
     )
   }
 
-  // OFF: barely-there dot; hover reveals label
+  // OFF: small dark pill with a label — visible but out of the way
   return (
     <button
       type="button"
       onClick={toggle}
       title="Enable demo mode (⌘⇧D) — scrubs real data for presentations"
-      className="group fixed bottom-4 right-4 z-[9999] flex items-center gap-2 rounded-full bg-slate-200/70 px-2 py-2 text-[10px] font-medium text-slate-500 opacity-40 shadow-sm transition hover:bg-slate-100 hover:opacity-100 hover:px-3 active:scale-95"
+      className="group fixed bottom-4 right-4 z-[9999] flex items-center gap-2 rounded-full bg-slate-800/85 px-3 py-1.5 text-[11px] font-medium text-white shadow-lg ring-1 ring-white/10 backdrop-blur transition hover:bg-slate-900 active:scale-95"
     >
-      <span className="inline-flex h-2 w-2 rounded-full bg-slate-400" />
-      <span className="hidden max-w-0 overflow-hidden whitespace-nowrap transition-all group-hover:inline-block group-hover:max-w-[120px]">
-        Enable demo mode
-      </span>
+      <span className="inline-flex h-1.5 w-1.5 rounded-full bg-slate-400" />
+      Demo mode
     </button>
   )
 }
