@@ -302,16 +302,57 @@ function installFetchInterceptor() {
 
   const originalFetch = window.fetch.bind(window)
   window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
-    const res = await originalFetch(input, init)
-    if (!_demoActive) return res
-
-    // Only bother with our own API responses
+    // Resolve URL + method up front so we can decide whether to short-circuit
     let url = ''
     if (typeof input === 'string') url = input
     else if (input instanceof URL) url = input.toString()
     else if (input instanceof Request) url = input.url
-    if (!url.includes('/api/')) return res
 
+    const method = (init?.method
+      || (input instanceof Request ? input.method : 'GET')
+      || 'GET').toUpperCase()
+
+    // ── DEMO WRITE-INTERCEPT ────────────────────────────────────────────────
+    // In demo mode, any mutating request to our own API is swallowed and gets
+    // a synthetic success response. The calling component's optimistic UI
+    // update stays put, the "saved" indicator clears, and no real data is
+    // touched. Lets Dawn demo workflows (reassign clients on Capacity
+    // Planning, edit fields on client detail, etc.) without needing a demo
+    // database. Reloading the page reverts to real (scrubbed) data.
+    //
+    // Consumers of these endpoints in this codebase mostly only check
+    // res.ok, or read a light wrapper like { client } / { accountant } / { ok }
+    // - so an OK status with a generic body is safe. If a future consumer
+    // NEEDS a specific server-generated field back, add a case here.
+    const isMutation = method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS'
+    if (_demoActive && isMutation && url.includes('/api/')) {
+      let echo: any = null
+      try {
+        if (typeof init?.body === 'string') echo = JSON.parse(init.body)
+      } catch { /* non-JSON body — that's fine */ }
+
+      if (method === 'DELETE') {
+        return new Response(null, { status: 204, statusText: 'No Content (demo)' })
+      }
+      // Generic success shape. `ok` covers the client-side `if (!res.ok)` /
+      // `if (json.ok)` patterns; echoing the request body as `record` covers
+      // any consumer that reads back the saved fields.
+      const body = JSON.stringify({
+        ok: true,
+        demo: true,
+        record: echo && typeof echo === 'object' ? echo : null,
+      })
+      return new Response(body, {
+        status: 200,
+        statusText: 'OK (demo)',
+        headers: new Headers({ 'content-type': 'application/json' }),
+      })
+    }
+
+    // ── PASS-THROUGH + RESPONSE SCRUB (existing behavior for GETs) ──────────
+    const res = await originalFetch(input, init)
+    if (!_demoActive) return res
+    if (!url.includes('/api/')) return res
     if (!res.ok) return res
     const ct = res.headers.get('content-type') || ''
     if (!ct.includes('application/json')) return res
