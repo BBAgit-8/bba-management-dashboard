@@ -24,7 +24,11 @@ function ConditionalLayoutInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
   const isHubRoute   = pathname.startsWith('/hub')
-  const isLoginRoute = pathname === '/login'
+  // Includes /login itself, /login/forgot, and /login/reset. All three are
+  // public — the recovery-link landing at /login/reset needs to skip the auth
+  // gate so the recovery session established from the URL hash can be handled
+  // by the page itself.
+  const isLoginRoute = pathname === '/login' || pathname.startsWith('/login/')
 
   const [checking, setChecking] = useState(!isHubRoute && !isLoginRoute)
   const [authed,   setAuthed]   = useState(false)
