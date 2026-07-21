@@ -13,22 +13,57 @@ export default function HubConfirmPage() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    // Supabase can redirect with an error in the URL query (expired invite,
+    // access denied, etc.) — surface it instead of leaving the user staring at
+    // a spinner.
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search)
+      const hashParams = new URLSearchParams(window.location.hash.slice(1))
+      const urlError =
+        params.get('error_description') || params.get('error') ||
+        hashParams.get('error_description') || hashParams.get('error')
+      if (urlError) {
+        setStatus(decodeURIComponent(urlError.replace(/\+/g, ' ')))
+        return
+      }
+    }
+
+    // Any of these events can be the first indication the invite link produced
+    // a valid session. Historically we only handled SIGNED_IN, but Supabase JS
+    // v2 fires INITIAL_SESSION when the SDK restores a session from the URL
+    // hash before our listener attaches — which left new invitees stuck on a
+    // spinner. Treat any event that yields a session as "we're authenticated,
+    // show the password form."
     const { data: { subscription } } = supabaseClient.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN' && session) {
-        setStatus('Account activated! Redirecting…')
-        // New invite user — needs to set password
+      if (session && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED')) {
+        setStatus('Account activated! Set a password to finish.')
         setNeedsPassword(true)
       } else if (event === 'USER_UPDATED' && session) {
         router.replace('/hub/dashboard')
       }
     })
 
-    // Also check if already has session
+    // Also check synchronously — if the SDK already established the session
+    // before we attached the listener, no event will fire.
     supabaseClient.auth.getSession().then(({ data }) => {
       if (data.session) setNeedsPassword(true)
     })
 
-    return () => subscription.unsubscribe()
+    // Fallback: if nothing produces a session in 10s, tell the user instead
+    // of spinning forever.
+    const timeout = setTimeout(() => {
+      setNeedsPassword(prev => {
+        if (!prev) {
+          setStatus('This invite link may have expired. Please ask your admin to resend it.')
+        }
+        return prev
+      })
+    }, 10_000)
+
+    return () => {
+      subscription.unsubscribe()
+      clearTimeout(timeout)
+    }
   }, [router])
 
   async function handleSetPassword(e: React.FormEvent) {
