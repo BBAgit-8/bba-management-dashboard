@@ -4,10 +4,13 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
-    "seed": "npx prisma db seed"
+    "seed": "npx prisma db seed",
+    "cf:build": "opennextjs-cloudflare build",
+    "cf:preview": "opennextjs-cloudflare preview",
+    "cf:deploy": "opennextjs-cloudflare deploy"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -18,23 +21,25 @@
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "@supabase/supabase-js": "^2.107.0",
-    "next": "16.2.7",
+    "next": "16.2.11",
     "pg": "^8.21.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@opennextjs/cloudflare": "^1.20.2",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/pg": "^8.20.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.2.7",
+    "eslint-config-next": "16.2.11",
     "prisma": "^7.8.0",
     "tailwindcss": "^4",
     "tsx": "^4.22.4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "wrangler": "^4.113.0"
   }
 }
