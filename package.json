@@ -4,11 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && next build",
+    "build": "prisma generate && next build --webpack",
     "start": "next start",
     "lint": "eslint",
     "seed": "npx prisma db seed",
-    "cf:build": "opennextjs-cloudflare build",
+    "cf:build": "prisma generate && next build --webpack && opennextjs-cloudflare build --skipBuild",
     "cf:preview": "opennextjs-cloudflare preview",
     "cf:deploy": "opennextjs-cloudflare deploy"
   },
