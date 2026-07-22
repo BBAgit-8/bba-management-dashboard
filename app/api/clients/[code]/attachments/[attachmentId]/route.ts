@@ -1,14 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 
-// DELETE /api/clients/[id]/attachments/[attachmentId]
+// DELETE /api/clients/[code]/attachments/[attachmentId]
+// The outer [code] slot receives a UUID client id here — see caller in
+// clients/[projectCode]/tabs/NotesTab.tsx. Slug name is shared with the
+// PATCH handler at app/api/clients/[code]/route.ts.
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string; attachmentId: string }> }
+  { params }: { params: Promise<{ code: string; attachmentId: string }> }
 ): Promise<NextResponse> {
   try {
-    const { id: clientId, attachmentId } = await params
+    const { code: clientId, attachmentId } = await params
 
     // Look up the row so we know the storagePath
     const { data: row, error: selErr } = await supabase

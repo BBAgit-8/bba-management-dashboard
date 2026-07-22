@@ -2,15 +2,18 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import crypto from 'crypto'
 
-// GET  /api/clients/[id]/attachments — list attachments for a client
-// POST /api/clients/[id]/attachments — upload a file (multipart/form-data, field: file)
+// GET  /api/clients/[code]/attachments — list attachments for a client
+// POST /api/clients/[code]/attachments — upload a file (multipart/form-data, field: file)
+// The URL slot is [code] to satisfy Next's "single slug per position" rule
+// (shared with app/api/clients/[code]/route.ts), but callers still send the
+// client's UUID id here — see clients/[projectCode]/tabs/NotesTab.tsx.
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ code: string }> }
 ): Promise<NextResponse> {
   try {
-    const { id } = await params
+    const { code: id } = await params
     const { data, error } = await supabase
       .from('clientAttachments')
       .select('id, fileName, fileSize, mimeType, uploadedAt, uploadedBy')
@@ -28,10 +31,10 @@ export async function GET(
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ code: string }> }
 ): Promise<NextResponse> {
   try {
-    const { id: clientId } = await params
+    const { code: clientId } = await params
     const form = await req.formData()
     const file = form.get('file')
     if (!(file instanceof Blob) || !('name' in file)) {

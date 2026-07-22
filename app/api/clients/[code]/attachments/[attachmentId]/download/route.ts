@@ -1,15 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 
-// GET /api/clients/[id]/attachments/[attachmentId]/download
+// GET /api/clients/[code]/attachments/[attachmentId]/download
 // Returns a short-lived signed URL. Bucket is private so anon links won't work.
+// The outer [code] slot receives a UUID client id — slug name is shared with
+// the sibling handlers under app/api/clients/[code]/.
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string; attachmentId: string }> }
+  { params }: { params: Promise<{ code: string; attachmentId: string }> }
 ): Promise<NextResponse> {
   try {
-    const { id: clientId, attachmentId } = await params
+    const { code: clientId, attachmentId } = await params
 
     const { data: row, error: selErr } = await supabase
       .from('clientAttachments')
