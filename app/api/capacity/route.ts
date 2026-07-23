@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
       await Promise.all([
         supabase.from("capacitySettings").select("key, value"),
         supabase.from("clients").select(
-          `id, name, revenueType, assignedPodId, "Bookkeeper",
+          `id, name, revenueType, revType, projectType, qboOnly, assignedPodId, "Bookkeeper",
            totalHrsPerMonth, bkprHours, qaHours, custSuccessMgmtHrs, yeOrTaxHours,
            auditHours, apArHrs, bankFeedTime, recTime,
            numBanksAndCCs, numLoans, numPmtPortals`
@@ -66,7 +66,20 @@ export async function GET(req: NextRequest) {
 
     const num = (v: unknown) => v == null ? 0 : Number(v);
 
+    // Exclude QBO-only clients from capacity planning — they don't consume
+    // bookkeeper hours, so including them skews pod capacity math. We check
+    // every marker (boolean flag, current and legacy projectType values, both
+    // revenueType columns) because the data has drift across those fields.
+    const QBO_ONLY_PROJECT_TYPES = new Set(['QBO_ONLY', 'QBO']);
+    const QBO_ONLY_REVENUE_TYPES = new Set(['QBO_ONLY_ANCHOR', 'QBO_ONLY_QBO', 'QBO_ONLY_QB']);
+    const isQboOnly = (c: any) =>
+      c.qboOnly === true
+      || QBO_ONLY_PROJECT_TYPES.has(c.projectType)
+      || QBO_ONLY_REVENUE_TYPES.has(c.revenueType)
+      || QBO_ONLY_REVENUE_TYPES.has(c.revType);
+
     const breakdowns = (clientsRes.data ?? [])
+      .filter((c) => !isQboOnly(c))
       .map((c) => {
         const cleanup = activeCleanups.get(c.id);
         const workload: ClientWorkload = {
