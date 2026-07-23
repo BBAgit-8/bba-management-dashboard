@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
+import { requireAuth } from '@/lib/require-auth'
 
 export type ClientView = {
   id:          string
@@ -16,7 +17,9 @@ export type ClientView = {
 }
 
 // GET — load all views from settings table
-export async function GET(): Promise<NextResponse> {
+export async function GET(req: NextRequest): Promise<NextResponse> {
+  const gate = await requireAuth(req); if (gate) return gate;
+
   const { data } = await supabase
     .from('settings')
     .select('value')
@@ -33,6 +36,8 @@ export async function GET(): Promise<NextResponse> {
 
 // POST — save all views
 export async function POST(req: NextRequest): Promise<NextResponse> {
+  const gate = await requireAuth(req); if (gate) return gate;
+
   const body = await req.json().catch(() => null)
   if (!body?.views) return NextResponse.json({ error: 'Missing views' }, { status: 400 })
 

@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase'
 import { NextRequest, NextResponse } from 'next/server'
+import { requireAuth } from '@/lib/require-auth'
 
 // Assign or unassign a client's pod by client id.
 // The URL slot is [code] to satisfy Next's "single slug per position" rule
@@ -10,6 +11,8 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ code: string }> }
 ): Promise<NextResponse> {
+  const gate = await requireAuth(req); if (gate) return gate;
+
   const { code: id } = await params
   let body: { assignedPodId?: string | null }
   try { body = await req.json() }

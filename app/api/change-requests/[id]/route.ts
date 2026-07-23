@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
+import { requireAuth } from '@/lib/require-auth'
 
 const ALLOWED_STATUSES = new Set(['open', 'in-progress', 'done'])
 
@@ -7,6 +8,8 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
+  const gate = await requireAuth(req); if (gate) return gate;
+
   try {
     const { id } = await params
     let body: unknown
@@ -46,6 +49,8 @@ export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
+  const gate = await requireAuth(_req); if (gate) return gate;
+
   try {
     const { id } = await params
     const { error } = await supabase

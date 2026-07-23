@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
+import { requireAuth } from '@/lib/require-auth'
 
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ code: string }> }
 ) {
+  const gate = await requireAuth(_req); if (gate) return gate;
+
   const { code } = await params
 
   const { data, error } = await supabase

@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
+import { requireAuth } from '@/lib/require-auth'
 
 // GET /api/clients/subscriptions?clientId=xxx
 export async function GET(req: NextRequest): Promise<NextResponse> {
+  const gate = await requireAuth(req); if (gate) return gate;
+
   const clientId = req.nextUrl.searchParams.get('clientId')
   if (!clientId) return NextResponse.json({ error: 'Missing clientId' }, { status: 400 })
 
@@ -29,6 +32,8 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
 // POST — upsert all subs for a client
 export async function POST(req: NextRequest): Promise<NextResponse> {
+  const gate = await requireAuth(req); if (gate) return gate;
+
   const body = await req.json().catch(() => null)
   if (!body) return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
 

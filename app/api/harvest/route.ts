@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
+import { requireAuth } from '@/lib/require-auth'
 
 async function getHarvestCredentials() {
   const { data } = await supabase
@@ -25,6 +26,8 @@ async function harvestFetch(path: string, token: string, accountId: string) {
 }
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
+  const gate = await requireAuth(req); if (gate) return gate;
+
   const action = req.nextUrl.searchParams.get('action') ?? 'time_entries'
 
   try {

@@ -1,7 +1,10 @@
 import { supabase } from '@/lib/supabase'
 import { NextRequest, NextResponse } from 'next/server'
+import { requireAuth } from '@/lib/require-auth'
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const gate = await requireAuth(req); if (gate) return gate;
+
   const { data, error } = await supabase
     .from('employees')
     .select('*')
@@ -16,6 +19,8 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
+  const gate = await requireAuth(req); if (gate) return gate;
+
   let body: unknown
   try { body = await req.json() } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })

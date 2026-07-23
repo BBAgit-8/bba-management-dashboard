@@ -1,9 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
+import { requireAuthUser } from '@/lib/require-auth'
 
+// Return the employee record for the authenticated caller. Identity is taken
+// from the verified JWT — never from a query parameter — so one logged-in user
+// cannot look up another user's employee row by passing a different email.
 export async function GET(req: NextRequest) {
-  const email = req.nextUrl.searchParams.get('email')
-  if (!email) return NextResponse.json({ error: 'Missing email' }, { status: 400 })
+  const gate = await requireAuthUser(req)
+  if (gate instanceof NextResponse) return gate
+
+  const email = gate.user.email
+  if (!email) {
+    return NextResponse.json({ error: 'Authenticated user has no email' }, { status: 400 })
+  }
 
   const { data, error } = await supabase
     .from('employees')

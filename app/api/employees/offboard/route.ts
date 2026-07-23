@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
+import { requireAuth } from '@/lib/require-auth'
 
 // POST /api/employees/offboard
 // Marks employee inactive and unassigns all their clients
 export async function POST(req: NextRequest): Promise<NextResponse> {
+  const gate = await requireAuth(req); if (gate) return gate;
+
   const body = await req.json().catch(() => null)
   if (!body?.employeeId) return NextResponse.json({ error: 'Missing employeeId' }, { status: 400 })
 
@@ -46,6 +49,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 // POST /api/employees/offboard (reinstate)
 // Also handles reactivation
 export async function PATCH(req: NextRequest): Promise<NextResponse> {
+  const gate = await requireAuth(req); if (gate) return gate;
+
   const body = await req.json().catch(() => null)
   if (!body?.employeeId) return NextResponse.json({ error: 'Missing employeeId' }, { status: 400 })
 

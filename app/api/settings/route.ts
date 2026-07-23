@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
+import { requireAuth } from '@/lib/require-auth'
 
-export async function GET(): Promise<NextResponse> {
+export async function GET(req: NextRequest): Promise<NextResponse> {
+  const gate = await requireAuth(req); if (gate) return gate;
+
   const { data, error } = await supabase
     .from('settings')
     .select('key, value, label')
@@ -25,6 +28,8 @@ export async function GET(): Promise<NextResponse> {
 
 // Bulk update values. Body: [{ key, value, label? }]
 export async function PATCH(req: NextRequest): Promise<NextResponse> {
+  const gate = await requireAuth(req); if (gate) return gate;
+
   let body: unknown
   try { body = await req.json() } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
@@ -55,6 +60,8 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
 // Create a new setting row. Body: { key, value, label? }
 // Slug/key must be unique — returns 409 if the key already exists.
 export async function POST(req: NextRequest): Promise<NextResponse> {
+  const gate = await requireAuth(req); if (gate) return gate;
+
   let body: unknown
   try { body = await req.json() } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
@@ -87,6 +94,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 // Delete a setting by key (?key=software.gusto).
 // This is destructive — the caller is expected to confirm with the user.
 export async function DELETE(req: NextRequest): Promise<NextResponse> {
+  const gate = await requireAuth(req); if (gate) return gate;
+
   const key = req.nextUrl.searchParams.get('key')
   if (!key) return NextResponse.json({ error: 'key query param required' }, { status: 422 })
 

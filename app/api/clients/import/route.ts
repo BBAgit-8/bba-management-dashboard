@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
+import { requireAuth } from '@/lib/require-auth'
 
 export const maxDuration = 60 // Vercel max for hobby plan
 
@@ -105,6 +106,8 @@ const NUMERIC_FIELDS = new Set(['bookkeepingRate','softwareRate','totalHrsPerMon
 const DATE_FIELDS    = new Set(['contractStartDate','contractEndDate','priceAdjustmentDate'])
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
+  const gate = await requireAuth(req); if (gate) return gate;
+
   try {
     const body = await req.json().catch(() => null)
     if (!body?.rows || !Array.isArray(body.rows)) {

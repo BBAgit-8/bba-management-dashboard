@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
+import { requireAuth } from '@/lib/require-auth'
 
 const FIELD_MAP: Record<string, string> = {
   bookkeeper: 'Bookkeeper',
@@ -34,6 +35,8 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ code: string }> }
 ): Promise<NextResponse> {
+  const gate = await requireAuth(req); if (gate) return gate;
+
   try {
     const { code } = await params
     let body: unknown

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { requireAuth } from '@/lib/require-auth'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Domain constants
@@ -511,6 +512,8 @@ function validateRequest(body: unknown): { valid: true; data: FinancialsRequest 
  * employee billable capacity, and software subscription margins.
  */
 export async function POST(req: NextRequest): Promise<NextResponse> {
+  const gate = await requireAuth(req); if (gate) return gate;
+
   let rawBody: unknown
   try {
     rawBody = await req.json()
@@ -565,7 +568,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
  * Returns engine metadata — allocation constants and the full request/response
  * schema — useful for client-side tooling and developer reference.
  */
-export async function GET(): Promise<NextResponse> {
+export async function GET(req: NextRequest): Promise<NextResponse> {
+  const gate = await requireAuth(req); if (gate) return gate;
+
   return NextResponse.json({
     endpoint:    'POST /api/analytics/financials',
     description: 'Math engine for client financial analytics: budget splits, rolling pools, hybrid billing, subscription margins, and employee capacity.',

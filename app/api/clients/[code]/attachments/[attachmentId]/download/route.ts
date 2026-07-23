@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
+import { requireAuth } from '@/lib/require-auth'
 
 // GET /api/clients/[code]/attachments/[attachmentId]/download
 // Returns a short-lived signed URL. Bucket is private so anon links won't work.
@@ -10,6 +11,8 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ code: string; attachmentId: string }> }
 ): Promise<NextResponse> {
+  const gate = await requireAuth(req); if (gate) return gate;
+
   try {
     const { code: clientId, attachmentId } = await params
 

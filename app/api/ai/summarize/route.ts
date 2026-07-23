@@ -12,6 +12,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
+import { requireAuth } from '@/lib/require-auth'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SDK client  (instantiated once at module load — safe on the server)
@@ -152,6 +153,8 @@ interface SummarizeResponse {
  * Returns: SummarizeResponse — structured JSON extracted by Claude 3.5 Sonnet.
  */
 export async function POST(req: NextRequest): Promise<NextResponse> {
+  const gate = await requireAuth(req); if (gate) return gate;
+
   // ── Validate API key is configured ──────────────────────────────────────
   if (!process.env.ANTHROPIC_API_KEY) {
     console.error('[ai/summarize] ANTHROPIC_API_KEY is not set')
@@ -260,7 +263,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
  *
  * Returns endpoint metadata, the output schema, and an example response.
  */
-export async function GET(): Promise<NextResponse> {
+export async function GET(req: NextRequest): Promise<NextResponse> {
+  const gate = await requireAuth(req); if (gate) return gate;
+
   return NextResponse.json({
     endpoint:    'POST /api/ai/summarize',
     model:       'claude-3-5-sonnet-20241022',

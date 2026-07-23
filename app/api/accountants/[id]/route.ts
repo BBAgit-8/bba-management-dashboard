@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
+import { requireAuth } from '@/lib/require-auth'
 
 // Allowlist of fields the client can update on an accountant.
 // New columns get added here and to the accountants table via migration.
@@ -11,6 +12,8 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
+  const gate = await requireAuth(req); if (gate) return gate;
+
   const { id } = await params
   let body: unknown
   try { body = await req.json() } catch {
@@ -43,6 +46,8 @@ export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
+  const gate = await requireAuth(_req); if (gate) return gate;
+
   const { id } = await params
   const { error } = await supabase.from('accountants').delete().eq('id', id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

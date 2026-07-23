@@ -7,6 +7,14 @@ import ChangeRequestBubble from './ChangeRequestBubble'
 import DemoToggle from './DemoToggle'
 import { DemoModeProvider } from '@/lib/demo-mode'
 import { supabaseClient } from '@/lib/supabaseClient'
+import { installAuthedFetch } from '@/lib/authed-fetch'
+
+// Install the global fetch interceptor that attaches the Supabase JWT to
+// every /api/* request. This must run before any component fires off a fetch,
+// so it runs at module load (client-only) rather than inside a useEffect.
+if (typeof window !== 'undefined') {
+  installAuthedFetch()
+}
 
 export default function ConditionalLayout({ children }: { children: React.ReactNode }) {
   // Demo mode + toggle wrap the entire app so both management routes and

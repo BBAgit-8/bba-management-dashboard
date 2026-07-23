@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
+import { requireAuth } from '@/lib/require-auth'
 
 export async function GET(req: NextRequest) {
+  const gate = await requireAuth(req); if (gate) return gate;
+
   const bookkeeper = req.nextUrl.searchParams.get('bookkeeper')
   if (!bookkeeper) return NextResponse.json({ error: 'Missing bookkeeper' }, { status: 400 })
 

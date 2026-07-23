@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import crypto from 'crypto'
+import { requireAuth } from '@/lib/require-auth'
 
 // GET  /api/clients/[code]/attachments — list attachments for a client
 // POST /api/clients/[code]/attachments — upload a file (multipart/form-data, field: file)
@@ -12,6 +13,8 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ code: string }> }
 ): Promise<NextResponse> {
+  const gate = await requireAuth(req); if (gate) return gate;
+
   try {
     const { code: id } = await params
     const { data, error } = await supabase
@@ -33,6 +36,8 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ code: string }> }
 ): Promise<NextResponse> {
+  const gate = await requireAuth(req); if (gate) return gate;
+
   try {
     const { code: clientId } = await params
     const form = await req.formData()

@@ -1,9 +1,12 @@
 import { supabase } from '@/lib/supabase'
 import { NextRequest, NextResponse } from 'next/server'
+import { requireAuth } from '@/lib/require-auth'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const gate = await requireAuth(req); if (gate) return gate;
+
   const { data, error } = await supabase
     .from('pods')
     .select('*')
@@ -17,6 +20,8 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const gate = await requireAuth(req); if (gate) return gate;
+
   const body = await req.json().catch(() => null) as { name?: string } | null
   const name = body?.name?.trim()
   if (!name) return NextResponse.json({ error: 'Name required' }, { status: 400 })
@@ -33,6 +38,8 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
+  const gate = await requireAuth(req); if (gate) return gate;
+
   const body = await req.json().catch(() => null) as { id?: string; name?: string } | null
   if (!body?.id || !body?.name?.trim())
     return NextResponse.json({ error: 'id and name required' }, { status: 400 })
@@ -49,6 +56,8 @@ export async function PATCH(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  const gate = await requireAuth(req); if (gate) return gate;
+
   const { searchParams } = new URL(req.url)
   const id = searchParams.get('id')
   if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 })

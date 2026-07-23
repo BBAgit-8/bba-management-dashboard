@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
+import { requireAuth } from '@/lib/require-auth'
 
 export const maxDuration = 30 // Vercel max for hobby plan
 
@@ -15,6 +16,8 @@ async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs = 8
 }
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
+  const gate = await requireAuth(req); if (gate) return gate;
+
   const from = req.nextUrl.searchParams.get('from')
     ?? new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]
   const to = req.nextUrl.searchParams.get('to')

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
+import { requireAuth } from '@/lib/require-auth'
 
 // DELETE /api/clients/[code]/attachments/[attachmentId]
 // The outer [code] slot receives a UUID client id here — see caller in
@@ -10,6 +11,8 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ code: string; attachmentId: string }> }
 ): Promise<NextResponse> {
+  const gate = await requireAuth(req); if (gate) return gate;
+
   try {
     const { code: clientId, attachmentId } = await params
 

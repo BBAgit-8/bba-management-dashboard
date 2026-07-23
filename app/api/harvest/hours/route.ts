@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
+import { requireAuth } from '@/lib/require-auth'
 
 // Map Harvest task names to internal categories
 // Based on the task list exported from Harvest
@@ -63,6 +64,8 @@ async function fetchWithTimeout(url: string, options: RequestInit, ms = 8000) {
 }
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
+  const gate = await requireAuth(req); if (gate) return gate;
+
   const code = req.nextUrl.searchParams.get('code')
   const from = req.nextUrl.searchParams.get('from')
     ?? new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]

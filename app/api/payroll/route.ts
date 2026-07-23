@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
+import { requireAuth } from '@/lib/require-auth'
 
-export async function GET(): Promise<NextResponse> {
+export async function GET(req: NextRequest): Promise<NextResponse> {
+  const gate = await requireAuth(req); if (gate) return gate;
+
   const { data: payroll, error: pErr } = await supabase
     .from('payroll')
     .select('*')
@@ -90,6 +93,8 @@ export async function GET(): Promise<NextResponse> {
 }
 
 export async function PATCH(req: NextRequest): Promise<NextResponse> {
+  const gate = await requireAuth(req); if (gate) return gate;
+
   const body = await req.json().catch(() => null)
   if (!body?.id) return NextResponse.json({ error: 'Missing id' }, { status: 400 })
   const { id, ...fields } = body
@@ -104,6 +109,8 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
+  const gate = await requireAuth(req); if (gate) return gate;
+
   const body = await req.json().catch(() => null)
   if (!body?.employeeId) return NextResponse.json({ error: 'Missing employeeId' }, { status: 400 })
   const { data, error } = await supabase

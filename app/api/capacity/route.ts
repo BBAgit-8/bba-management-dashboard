@@ -1,17 +1,20 @@
 // app/api/capacity/route.ts
 // GET: full capacity rollup — per-client breakdowns + per-employee totals + pod rollup.
 // Reads client workload hours directly from the client form fields.
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import {
   computeClient, rollup,
   type CapacitySettings, type ClientWorkload,
   type EmployeeCapacityInputs, type TaskAssignmentMap, type TaskType,
 } from "@/lib/capacity";
+import { requireAuth } from '@/lib/require-auth'
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const gate = await requireAuth(req); if (gate) return gate;
+
   try {
     const [settingsRes, clientsRes, employeesRes, podDefaultsRes, overridesRes, engagementsRes, podsRes] =
       await Promise.all([
