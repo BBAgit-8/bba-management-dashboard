@@ -24,6 +24,9 @@ interface DbClient {
   archiveStatus: string
   processingCadence: string
   projectType: string | null
+  revenueType: string | null
+  revType: string | null
+  qboOnly: boolean | null
   accountantName: string | null
   bookkeeper: string | null
   bkprHours: number | null
@@ -277,7 +280,20 @@ function IndividualCapacityView() {
       .finally(() => setLoading(false))
   }, [])
 
-  const activeClients = useMemo(() => clients.filter(c => c.archiveStatus === 'ACTIVE'), [clients])
+  // Exclude QBO-only clients from capacity planning — they don't consume
+  // bookkeeper hours. Matches the same rules used server-side in
+  // /api/capacity so both views stay consistent.
+  const activeClients = useMemo(() => {
+    const QBO_PROJECT = new Set(['QBO_ONLY', 'QBO'])
+    const QBO_REV = new Set(['QBO_ONLY_ANCHOR', 'QBO_ONLY_QBO', 'QBO_ONLY_QB'])
+    return clients.filter(c =>
+      c.archiveStatus === 'ACTIVE'
+      && c.qboOnly !== true
+      && !(c.projectType && QBO_PROJECT.has(c.projectType))
+      && !(c.revenueType && QBO_REV.has(c.revenueType))
+      && !(c.revType && QBO_REV.has(c.revType))
+    )
+  }, [clients])
 
   const modifiedIds = useMemo(() => {
     const s = new Set<string>()
