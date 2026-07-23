@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import { useBookkeeperSync } from '@/app/hooks/useBookkeeperSync'
+import { usePersistedState } from '@/lib/use-persisted-state'
 
 type ProfitRow = {
   id: string; name: string; code: string; projectType: string | null
@@ -134,8 +135,8 @@ export default function ProfitabilityPage() {
   const [to,               setTo]               = useState(today())
   const [search,           setSearch]           = useState('')
   const [bkFilter,         setBkFilter]         = useState('all')
-  const [sortKey,          setSortKey]          = useState<ColKey>('profit')
-  const [sortDir,          setSortDir]          = useState<SortDir>('desc')
+  const [sortKey,          setSortKey]          = usePersistedState<ColKey>('profitability.sortKey', 'profit')
+  const [sortDir,          setSortDir]          = usePersistedState<SortDir>('profitability.sortDir', 'desc')
 
   // Column order & widths
   const [colOrder, setColOrder] = useState<ColKey[]>(() => {

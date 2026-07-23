@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { broadcastBookkeeperChange, useBookkeeperSync } from "@/app/hooks/useBookkeeperSync";
+import { usePersistedState } from "@/lib/use-persisted-state";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SHARED TYPES
@@ -249,13 +250,13 @@ function IndividualCapacityView() {
 
   const [assignments, setAssignments] = useState<Record<string, string>>({})
   const [savedAssignments, setSavedAssignments] = useState<Record<string, string>>({})
-  const [search, setSearch] = useState("")
-  const [empFilter, setEmpFilter] = useState<string>("all")
-  const [tagFilter, setTagFilter] = useState<string>("all")
-  const [ptFilter, setPtFilter] = useState<string>("all")
+  const [search, setSearch] = usePersistedState('planning.individual.search', "")
+  const [empFilter, setEmpFilter] = usePersistedState<string>('planning.individual.empFilter', "all")
+  const [tagFilter, setTagFilter] = usePersistedState<string>('planning.individual.tagFilter', "all")
+  const [ptFilter, setPtFilter] = usePersistedState<string>('planning.individual.ptFilter', "all")
   const [syncStatus, setSyncStatus] = useState<"idle" | "saving" | "saved">("idle")
-  const [sortCol, setSortCol] = useState<"name" | "hrs" | "employee" | "cadence">("name")
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc")
+  const [sortCol, setSortCol] = usePersistedState<"name" | "hrs" | "employee" | "cadence">('planning.individual.sortCol', "name")
+  const [sortDir, setSortDir] = usePersistedState<"asc" | "desc">('planning.individual.sortDir', "asc")
 
   useEffect(() => {
     Promise.all([
@@ -1033,7 +1034,7 @@ function EmployeeRow({ emp, rowIndex, inPod }: { emp: EmployeeRollup; rowIndex: 
 // ═══════════════════════════════════════════════════════════════════════════
 
 export default function CapacityPlanningPage() {
-  const [tab, setTab] = useState<'individual' | 'pod'>('individual')
+  const [tab, setTab] = usePersistedState<'individual' | 'pod'>('planning.tab', 'individual')
 
   return (
     <div>
@@ -1077,8 +1078,8 @@ function ClientPodAssignments({
   pods: PodRollup[]
   onChange: () => void
 }) {
-  const [filter, setFilter] = useState<'all' | 'unassigned' | string>('unassigned')
-  const [search, setSearch] = useState('')
+  const [filter, setFilter] = usePersistedState<'all' | 'unassigned' | string>('planning.pod.filter', 'unassigned')
+  const [search, setSearch] = usePersistedState('planning.pod.search', '')
   const [savingId, setSavingId] = useState<string | null>(null)
   const [expanded, setExpanded] = useState(false)
 
