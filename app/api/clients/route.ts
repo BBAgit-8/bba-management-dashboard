@@ -217,3 +217,4 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   return NextResponse.json({ client }, { status: 201 })
 }
+// test: verify secrets survive git-triggered deploy - 2026-07-23
