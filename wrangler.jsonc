@@ -7,5 +7,16 @@
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS"
+  },
+  // Public, non-secret configuration. Declared here so every deploy — including
+  // git-triggered builds under Cloudflare's Versions system — inherits them
+  // automatically. Previously these lived only in the dashboard, and each new
+  // version booted without them, taking every DB-touching route offline until
+  // secrets were manually re-attached. Rule of thumb: URLs go here, keys stay
+  // in the Cloudflare Secrets UI (rotation-friendly, never enters git).
+  "vars": {
+    "NEXT_PUBLIC_APP_URL":      "https://mgmt.bbabookkeeping.com",
+    "NEXT_PUBLIC_SUPABASE_URL": "https://tkhmfexhcdxwtpfiviyo.supabase.co",
+    "SUPABASE_URL":             "https://tkhmfexhcdxwtpfiviyo.supabase.co"
   }
 }
