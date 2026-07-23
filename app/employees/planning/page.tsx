@@ -344,7 +344,7 @@ function IndividualCapacityView() {
 
   const [savingClients, setSavingClients] = useState<Set<string>>(new Set())
 
-  async function handleAssign(clientId: string, projectCode: string, empId: string) {
+  async function handleAssign(clientId: string, _projectCode: string, empId: string) {
     setAssignments(prev => ({ ...prev, [clientId]: empId }))
     setSavingClients(prev => new Set(prev).add(clientId))
 
@@ -353,7 +353,9 @@ function IndividualCapacityView() {
       employees.forEach((e: any) => { empMap[e.id] = e.name })
       const bookkeeper = empId ? (empMap[empId] ?? null) : null
 
-      const res = await fetch(`/api/clients/${projectCode}`, {
+      // Use UUID instead of project code — codes like "N/A" contain a slash
+      // that would break Next.js dynamic route matching.
+      const res = await fetch(`/api/clients/${clientId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ bookkeeper }),
@@ -389,7 +391,7 @@ function IndividualCapacityView() {
         activeClients.map(client => {
           const empId = assignments[client.id] ?? ''
           const bookkeeper = empId ? (empMap[empId] ?? null) : null
-          return fetch(`/api/clients/${client.harvestProjectCode}`, {
+          return fetch(`/api/clients/${client.id}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ bookkeeper }),

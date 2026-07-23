@@ -74,10 +74,18 @@ export async function PATCH(
       return NextResponse.json({ ok: true, skipped: true })
     }
 
+    // The URL segment can be either a client UUID (preferred, always safe) or a
+    // legacy harvestProjectCode. Detect UUIDs by shape and route the lookup.
+    // Project codes with slashes (e.g. "N/A") never make it here — Next's router
+    // won't match `[code]` for a value containing "/" — so the code path is
+    // guaranteed to be either a UUID or a slash-free project code.
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    const lookupColumn = UUID_RE.test(code) ? 'id' : 'harvestProjectCode'
+
     const { data, error } = await supabase
       .from('clients')
       .update(mapped)
-      .eq('harvestProjectCode', code)
+      .eq(lookupColumn, code)
       .select()
       .single()
     if (error) {

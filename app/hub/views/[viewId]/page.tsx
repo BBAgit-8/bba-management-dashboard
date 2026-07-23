@@ -142,7 +142,9 @@ export default function HubViewPage() {
     setLocalEdits(prev => ({ ...prev, [client.id]: { ...(prev[client.id] ?? {}), [field]: value } }))
     setSavingId(client.id)
     try {
-      await fetch(`/api/clients/${client.harvestProjectCode}`, {
+      // Use UUID rather than harvestProjectCode: codes like "N/A" contain a
+      // slash that breaks Next.js dynamic route matching.
+      await fetch(`/api/clients/${client.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ [field]: value || null }),

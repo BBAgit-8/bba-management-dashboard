@@ -670,7 +670,10 @@ export default function ClientDirectory() {
     setInlineEdits(prev => ({ ...prev, [client.id]: { ...(prev[client.id] ?? {}), [field]: value } }))
     setSavingRows(prev => new Set(prev).add(client.id))
     try {
-      const res = await fetch(`/api/clients/${client.harvestProjectCode}`, {
+      // Use UUID rather than harvestProjectCode: some clients have codes like
+      // "N/A" whose slash breaks Next.js dynamic route matching (URL becomes
+      // /api/clients/N/A which is two segments, not one). UUID is always safe.
+      const res = await fetch(`/api/clients/${client.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ [field]: value || null }),

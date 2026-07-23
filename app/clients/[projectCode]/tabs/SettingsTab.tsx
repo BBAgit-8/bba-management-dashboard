@@ -213,7 +213,9 @@ export default function SettingsTab({ clientId, projectCode, client }: Props) {
     setSaveError('');
     try {
       // Save ops fields
-      const res = await fetch(`/api/clients/${projectCode}`, {
+      // Use UUID rather than project code — codes like "N/A" contain a slash
+      // that breaks Next.js dynamic route matching on the API side.
+      const res = await fetch(`/api/clients/${clientId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

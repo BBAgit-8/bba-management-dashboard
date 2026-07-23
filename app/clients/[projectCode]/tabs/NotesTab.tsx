@@ -74,13 +74,15 @@ export default function NotesTab({ clientId, client, projectCode }: Props) {
   const fileRef = useRef<HTMLInputElement>(null)
 
   const patchClient = useCallback(async (field: 'clientContext' | 'oddBookkeepingNotes', value: string) => {
-    const res = await fetch(`/api/clients/${projectCode}`, {
+    // Use UUID rather than project code — codes like "N/A" contain a slash
+    // that breaks Next.js dynamic route matching on the API side.
+    const res = await fetch(`/api/clients/${clientId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ [field]: value }),
     })
     if (!res.ok) throw new Error(`Failed to save ${field}`)
-  }, [projectCode])
+  }, [clientId])
 
   const ctxStatus = useDebouncedSave(context,  initialCtx, v => patchClient('clientContext',       v))
   const oddStatus = useDebouncedSave(oddNotes, initialOdd, v => patchClient('oddBookkeepingNotes', v))
