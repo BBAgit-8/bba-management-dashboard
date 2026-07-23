@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
+import { supabaseClient } from "@/lib/supabaseClient";
 
 const navItems = [
   {
@@ -67,8 +68,11 @@ const STORAGE_KEY = "bba-sidebar-collapsed";
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [userName, setUserName] = useState<string>("");
+  const [userEmail, setUserEmail] = useState<string>("");
 
   // Restore persisted state
   useEffect(() => {
@@ -78,6 +82,46 @@ export default function Sidebar() {
     } catch {}
     setMounted(true);
   }, []);
+
+  // Load current user's name from the employees table via the same
+  // /api/hub/me endpoint the Hub sidebar uses. Keeps the two sidebars
+  // in sync and avoids duplicating the lookup logic.
+  useEffect(() => {
+    supabaseClient.auth.getSession().then(async ({ data }) => {
+      const email = data.session?.user?.email ?? "";
+      if (!email) return;
+      setUserEmail(email);
+      try {
+        const res = await fetch(`/api/hub/me?email=${encodeURIComponent(email)}`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json.name) setUserName(json.name);
+        }
+      } catch {
+        // Non-fatal: user block will fall back to email. Sign-out still works.
+      }
+    });
+  }, []);
+
+  async function handleSignOut() {
+    try {
+      await supabaseClient.auth.signOut();
+    } finally {
+      // Always redirect, even if signOut throws (session already invalid, etc.).
+      // ConditionalLayout's onAuthStateChange will also fire and reinforce this.
+      router.replace("/login");
+    }
+  }
+
+  // Initials from name (e.g. "Dawn Ankiewicz" -> "DA"). Falls back to
+  // first two letters of the email local-part while name is loading.
+  const initials =
+    (userName
+      ? userName.split(" ").map(w => w[0]).filter(Boolean).slice(0, 2).join("")
+      : userEmail.slice(0, 2)
+    ).toUpperCase() || "?";
+
+  const displayName = userName || (userEmail ? userEmail.split("@")[0] : "Loading…");
 
   function toggle() {
     setCollapsed(c => {
@@ -211,15 +255,39 @@ export default function Sidebar() {
           <NavItem key={item.href} item={item} active={pathname === item.href} />
         ))}
 
-        {/* User avatar */}
+        {/* Sign out — mirrors the Hub sidebar's button (same icon + hover styling). */}
+        <button
+          onClick={handleSignOut}
+          title={collapsed ? "Sign out" : undefined}
+          className={`group relative flex items-center gap-3 rounded-lg py-2.5 text-sm font-medium text-[#eae6e5]/80 hover:bg-white/10 hover:text-[#eae6e5] transition-all duration-200 w-full ${
+            collapsed ? "justify-center px-0 mx-1" : "px-3"
+          }`}
+        >
+          <span className="text-white/40 group-hover:text-white/80">
+            <svg className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75}
+                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+          </span>
+          <span className={`whitespace-nowrap overflow-hidden transition-all duration-200 ${collapsed ? "w-0 opacity-0" : "opacity-100"}`}>
+            Sign out
+          </span>
+          {collapsed && (
+            <span className="pointer-events-none absolute left-full ml-3 z-50 whitespace-nowrap rounded-md bg-slate-900 px-2.5 py-1.5 text-xs font-medium text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
+              Sign out
+            </span>
+          )}
+        </button>
+
+        {/* User avatar — name/initials pulled from Supabase session + employees table. */}
         <div className={`mt-2 flex items-center gap-3 rounded-lg py-2 ${collapsed ? "justify-center px-0 mx-1" : "px-3"}`}
-          title={collapsed ? "Dawn A. — Administrator" : undefined}>
+          title={collapsed ? `${displayName} — Administrator` : undefined}>
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/15 text-xs font-semibold text-white">
-            DA
+            {initials}
           </div>
           {!collapsed && (
             <div className="min-w-0">
-              <p className="truncate text-xs font-medium text-white/90">Dawn A.</p>
+              <p className="truncate text-xs font-medium text-white/90">{displayName}</p>
               <p className="truncate text-[10px] text-white/50">Administrator</p>
             </div>
           )}
