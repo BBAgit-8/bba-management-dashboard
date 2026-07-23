@@ -15,6 +15,7 @@ interface DbEmployee {
   name: string
   contractedHours: number
   adminTimePercent: number
+  fixedDeduction: number | null
   effectiveHourlyRate: number
 }
 
@@ -93,7 +94,10 @@ type CapacityResponse = {
 // ═══════════════════════════════════════════════════════════════════════════
 
 const WEEKS_PER_MONTH = 52 / 12;
-const BILLABLE_FACTOR = 0.80;
+// NOTE: BILLABLE_FACTOR (previously hardcoded 0.80 = "20% admin for all") was
+// removed. Admin % is now per-employee via emp.adminTimePercent, and Deb's
+// non-pod QA hours come out as emp.fixedDeduction. Same formula as
+// lib/capacity.ts + /api/capacity so the two views on this page agree.
 
 const CADENCE_LABEL: Record<string, string> = {
   WEEKLY: "Weekly", BIWEEKLY: "Bi-Weekly", MONTHLY: "Monthly", QUARTERLY: "Quarterly",
@@ -115,10 +119,16 @@ function r2(n: number) { return Math.round((n + Number.EPSILON) * 100) / 100; }
 function initials(name: string) { return name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase(); }
 
 function billableMonthlyHrs(emp: DbEmployee): number {
-  return r2(Number(emp.contractedHours) * BILLABLE_FACTOR * WEEKS_PER_MONTH);
+  const pct = (Number(emp.adminTimePercent) || 0) / 100
+  const fixed = Number(emp.fixedDeduction) || 0
+  return r2(Number(emp.contractedHours) * WEEKS_PER_MONTH * (1 - pct) - fixed)
 }
 function billableWeeklyHrs(emp: DbEmployee): number {
-  return r2(Number(emp.contractedHours) * BILLABLE_FACTOR);
+  // Weekly view: same admin % applied, but the monthly fixed deduction is
+  // spread across weeks so a weekly bar is comparable to a monthly one.
+  const pct = (Number(emp.adminTimePercent) || 0) / 100
+  const fixedWeekly = (Number(emp.fixedDeduction) || 0) / WEEKS_PER_MONTH
+  return r2(Number(emp.contractedHours) * (1 - pct) - fixedWeekly)
 }
 function clientMonthlyHrs(client: DbClient): number {
   if (client.bkprHours != null && client.bkprHours > 0) return client.bkprHours;
