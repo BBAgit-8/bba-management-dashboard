@@ -27,7 +27,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   const [clientRes, empRes, settingsRes] = await Promise.all([
     supabase
       .from('clients')
-      .select('id, name, harvestProjectCode, totalMonthlyAmount, bookkeepingRate, softwareRate, "Bookkeeper", totalHrsPerMonth, projectType, revenueType')
+      .select('id, name, harvestProjectCode, totalMonthlyAmount, bookkeepingRate, softwareRate, "Bookkeeper", totalHrsPerMonth, projectType, revenueType, revType, qboOnly')
       .neq('archiveStatus', 'ARCHIVED')
       .order('name'),
     supabase
@@ -44,8 +44,17 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   // QBO-only clients don't generate bookkeeping revenue — exclude them from profitability entirely.
   // CLEANUP and HOURLY_CLEANUP are INCLUDED — they show as their own rows with real revenue.
   // FREE clients are also INCLUDED but their revenue is treated as $0 (see revenue calc below).
-  const EXCLUDED_REV_TYPES = new Set(['QBO_ONLY_ANCHOR', 'QBO_ONLY_QBO'])
-  const clients   = (clientRes.data ?? []).filter((c: any) => !EXCLUDED_REV_TYPES.has(c.revenueType))
+  //
+  // Match the same rules the capacity page uses so a QBO-only client can't
+  // slip through by having its markers on some fields but not others.
+  const QBO_PROJECT_TYPES = new Set(['QBO_ONLY', 'QBO'])
+  const QBO_REVENUE_TYPES = new Set(['QBO_ONLY_ANCHOR', 'QBO_ONLY_QBO', 'QBO_ONLY_QB'])
+  const isQboOnly = (c: any) =>
+    c.qboOnly === true
+    || QBO_PROJECT_TYPES.has(c.projectType)
+    || QBO_REVENUE_TYPES.has(c.revenueType)
+    || QBO_REVENUE_TYPES.has(c.revType)
+  const clients   = (clientRes.data ?? []).filter((c: any) => !isQboOnly(c))
   const employees = empRes.data ?? []
   const settings  = settingsRes.data ?? []
 
