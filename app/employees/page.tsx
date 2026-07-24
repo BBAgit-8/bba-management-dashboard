@@ -12,6 +12,7 @@ interface Employee {
   rateType: string; salary: number | null
   contractedHours: number; adminTimePercent: number; effectiveHourlyRate: number
   hubAccess: boolean; invitedAt: string | null
+  isActive?: boolean | null
   createdAt?: string; updatedAt?: string
 }
 
@@ -163,11 +164,17 @@ function EmployeesPageInner() {
         return (
           <td key={key} className="px-5 py-3">
             <div className="flex items-center gap-2.5">
-              <div className="h-8 w-8 rounded-full flex items-center justify-center text-[11px] font-bold text-bba-primary shrink-0"
-                style={{ backgroundColor: 'rgba(78,0,142,0.1)' }}>
+              <div className={`h-8 w-8 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 ${emp.isActive === false ? 'text-slate-500' : 'text-bba-primary'}`}
+                style={{ backgroundColor: emp.isActive === false ? 'rgba(100,116,139,0.1)' : 'rgba(78,0,142,0.1)' }}>
                 {initials(emp.name)}
               </div>
-              <span className="font-medium text-slate-800">{emp.name}</span>
+              <span className={`font-medium ${emp.isActive === false ? 'text-slate-500' : 'text-slate-800'}`}>{emp.name}</span>
+              {emp.isActive === false && (
+                <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500 bg-slate-100 border border-slate-200 rounded-full px-2 py-0.5">
+                  <svg className="h-2.5 w-2.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M3 3h14a1 1 0 011 1v3a1 1 0 01-1 1H3a1 1 0 01-1-1V4a1 1 0 011-1zm1 6h12v8a1 1 0 01-1 1H5a1 1 0 01-1-1V9zm4 3a1 1 0 100 2h4a1 1 0 100-2H8z" clipRule="evenodd" /></svg>
+                  Archived
+                </span>
+              )}
             </div>
           </td>
         )
@@ -339,11 +346,15 @@ function EmployeesPageInner() {
                   {sorted.length === 0 ? (
                     <tr><td colSpan={colOrder.length} className="px-5 py-10 text-center text-sm text-slate-400">No employees found.</td></tr>
                   ) : sorted.map((emp, i) => {
-                    const bg = i % 2 === 0 ? '#ffffff' : '#faf5ff'
+                    const archived = emp.isActive === false
+                    const bg = archived
+                      ? (i % 2 === 0 ? '#f8fafc' : '#f1f5f9')
+                      : (i % 2 === 0 ? '#ffffff' : '#faf5ff')
+                    const hoverBg = archived ? '#e2e8f0' : '#f3e8ff'
                     return (
                       <tr key={emp.id} onClick={() => setSelectedEmp(emp)}
-                        style={{ backgroundColor: bg, borderBottom: '1px solid #f0e8f8', cursor: 'pointer' }}
-                        onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#f3e8ff' }}
+                        style={{ backgroundColor: bg, borderBottom: '1px solid #f0e8f8', cursor: 'pointer', opacity: archived ? 0.75 : 1 }}
+                        onMouseEnter={e => { e.currentTarget.style.backgroundColor = hoverBg }}
                         onMouseLeave={e => { e.currentTarget.style.backgroundColor = bg }}>
                         {colOrder.map(key => renderCell(emp, key))}
                       </tr>
