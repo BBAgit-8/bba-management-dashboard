@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
       await Promise.all([
         supabase.from("capacitySettings").select("key, value"),
         supabase.from("clients").select(
-          `id, name, revenueType, revType, projectType, qboOnly, assignedPodId, "Bookkeeper",
+          `id, name, harvestProjectCode, revenueType, revType, projectType, qboOnly, assignedPodId, "Bookkeeper",
            totalHrsPerMonth, bkprHours, qaHours, custSuccessMgmtHrs, yeOrTaxHours,
            auditHours, apArHrs, bankFeedTime, recTime,
            numBanksAndCCs, numLoans, numPmtPortals`
@@ -139,6 +139,7 @@ export async function GET(req: NextRequest) {
       .map((c) => ({
         id: c.id,
         name: c.name,
+        harvestProjectCode: c.harvestProjectCode ?? null,
         bookkeeper: c.Bookkeeper ?? null,
         assignedPodId: c.assignedPodId ?? null,
         revenueType: c.revenueType ?? null,

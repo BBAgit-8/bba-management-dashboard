@@ -74,6 +74,7 @@ type ClientBreakdown = {
 type ClientAssignment = {
   id: string
   name: string
+  harvestProjectCode: string | null
   bookkeeper: string | null
   assignedPodId: string | null
   revenueType: string | null
@@ -681,7 +682,13 @@ function IndividualCapacityView() {
 
                       <td className="px-4 py-3">
                         <div className="min-w-0">
-                          <p className="font-medium text-slate-800 truncate">{client.name}</p>
+                          <p className="font-medium text-slate-800 truncate">
+                            {client.harvestProjectCode ? (
+                              <Link href={`/clients/${encodeURIComponent(client.harvestProjectCode)}`} className="hover:text-bba-primary hover:underline underline-offset-2">
+                                {client.name}
+                              </Link>
+                            ) : client.name}
+                          </p>
                           {client.tags.length > 0 && (
                             <div className="flex gap-1 mt-0.5">
                               {client.tags.slice(0, 2).map(tag => (
@@ -1183,7 +1190,13 @@ function ClientPodAssignments({
                 <tbody className="divide-y divide-slate-100">
                   {filtered.map(a => (
                     <tr key={a.id} className="hover:bg-purple-50/30">
-                      <td className="px-4 py-2 text-slate-800">{a.name}</td>
+                      <td className="px-4 py-2 text-slate-800">
+                        {a.harvestProjectCode ? (
+                          <Link href={`/clients/${encodeURIComponent(a.harvestProjectCode)}`} className="hover:text-bba-primary hover:underline underline-offset-2">
+                            {a.name}
+                          </Link>
+                        ) : a.name}
+                      </td>
                       <td className="px-4 py-2 text-slate-600">{a.bookkeeper ?? <span className="text-slate-400 italic">—</span>}</td>
                       <td className="px-4 py-2">
                         <select
