@@ -14,7 +14,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
   const { data: employees, error: eErr } = await supabase
     .from('employees')
-    .select('id, name, contractedHours, adminTimePercent, salary, rateType, employeeType, isActive')
+    .select('id, name, contractedHours, adminTimePercent, salary, rateType, employeeType, isActive, effectiveHourlyRate')
 
   if (eErr) return NextResponse.json({ error: eErr.message }, { status: 500 })
 
@@ -48,7 +48,13 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       isActive:        emp.isActive ?? true,
       hourlyRate2023:  p.hourlyRate2023,
       hourlyRate2024:  p.hourlyRate2024,
-      hourlyRate2025:  p.hourlyRate2025,
+      // For salaried employees, if payroll's stored 2025-26 rate is blank,
+      // fall back to the employee's computed effective hourly rate (salary /
+      // (hours * 52)) so the display isn't a dash. For hourly employees the
+      // stored value is the source of truth.
+      hourlyRate2025:  p.hourlyRate2025 != null
+        ? p.hourlyRate2025
+        : (!isHourly && emp.effectiveHourlyRate != null ? Number(emp.effectiveHourlyRate) : null),
       hoursPerWeek,
       isHourly,
       annualSalary,
