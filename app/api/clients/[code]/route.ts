@@ -77,6 +77,14 @@ export async function PATCH(
       return NextResponse.json({ ok: true, skipped: true })
     }
 
+    // If this update is flipping archiveStatus to INACTIVE, also null out
+    // Bookkeeper and bkprHours so the client stops consuming capacity/budget.
+    // (Auto-sunset via contract end date happens separately in GET /api/clients.)
+    if (mapped.archiveStatus === 'INACTIVE') {
+      mapped.Bookkeeper = null
+      mapped.bkprHours = null
+    }
+
     // The URL segment can be either a client UUID (preferred, always safe) or a
     // legacy harvestProjectCode. Detect UUIDs by shape and route the lookup.
     // Project codes with slashes (e.g. "N/A") never make it here — Next's router

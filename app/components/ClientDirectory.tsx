@@ -191,6 +191,12 @@ const STATUS_PILL: Record<StatusKey, { bg: string; text: string; ring: string; l
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function deriveStatus(client: ApiClient): StatusKey {
+  // Terminal DB states win over anything the contract dates might imply —
+  // an archived client with a past end date is still archived, not resurrected
+  // to "inactive." Same for a client already flagged INACTIVE.
+  if (client.archiveStatus === 'ARCHIVED')  return 'archived'
+  if (client.archiveStatus === 'INACTIVE')  return 'inactive'
+
   if (client.contractEndDate) {
     // Compare date strings directly to avoid timezone issues
     const todayStr = new Date().toISOString().slice(0, 10)
@@ -199,8 +205,6 @@ function deriveStatus(client: ApiClient): StatusKey {
   }
   switch (client.archiveStatus) {
     case 'ACTIVE':          return 'active'
-    case 'ARCHIVED':        return 'archived'
-    case 'INACTIVE':        return 'inactive'
     case 'OFF_BOARDING':    return 'offboarding'
     case 'PENDING_ARCHIVE': return 'pendingArchive'
     default:                return 'active'

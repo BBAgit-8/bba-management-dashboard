@@ -5,6 +5,23 @@ import { requireAuth } from '@/lib/require-auth'
 export async function GET(req: NextRequest): Promise<NextResponse> {
   const gate = await requireAuth(req); if (gate) return gate;
 
+  // Auto-inactive sweep: any client whose contract has ended should be
+  // moved to INACTIVE, freeing their bookkeeper assignment and hours budget
+  // from capacity/profitability calculations. Runs on every list fetch so
+  // there's no separate cron to maintain. Skips ARCHIVED and already-INACTIVE
+  // rows — the transition only fires ACTIVE → INACTIVE or OFF_BOARDING → INACTIVE.
+  const today = new Date().toISOString().slice(0, 10)
+  await supabase
+    .from('clients')
+    .update({
+      archiveStatus: 'INACTIVE',
+      Bookkeeper: null,
+      bkprHours: null,
+      updatedAt: new Date().toISOString(),
+    })
+    .lte('contractEndDate', today)
+    .in('archiveStatus', ['ACTIVE', 'OFF_BOARDING'])
+
   const { data, error } = await supabase
     .from('clients')
     .select(`
