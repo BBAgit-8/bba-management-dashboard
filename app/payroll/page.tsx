@@ -406,10 +406,16 @@ export default function PayrollPage() {
           <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl space-y-4">
             <h2 className="text-lg font-semibold text-slate-800">Offboard Employee</h2>
             <p className="text-sm text-slate-600">
-              This will mark the employee as <strong>inactive</strong> and set all their assigned clients to <strong>Unassigned</strong>.
+              This will archive the employee and, across the whole system:
             </p>
+            <ul className="text-sm text-slate-600 space-y-1 ml-4 list-disc marker:text-slate-400">
+              <li>Set all their assigned clients to <strong>Unassigned</strong></li>
+              <li>Remove their capacity-planning task assignments (pod defaults &amp; client overrides)</li>
+              <li>Revoke their Client Hub access and delete their login</li>
+              <li>Drop them from their pod</li>
+            </ul>
             <p className="text-sm text-amber-700 bg-amber-50 rounded-lg px-3 py-2">
-              You can reassign clients from the Client List after offboarding. This cannot be undone automatically.
+              Historical time logs and pay history are preserved. Reinstating restores the record but not their hub access or client assignments.
             </p>
             <div className="flex gap-3 justify-end pt-2">
               <button onClick={() => setOffboardId(null)}
