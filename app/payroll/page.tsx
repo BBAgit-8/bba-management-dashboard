@@ -10,11 +10,13 @@ type PayrollRow = {
   dept:           string
   isContractor:   boolean
   isActive:       boolean
-  hourlyRate2023: number | null
-  hourlyRate2024: number | null
-  hourlyRate2025: number | null
-  hourlyRate2026: number | null
-  /** Sandbox-only virtual field — % raise applied to hourlyRate2025 (or annualSalary for salaried). Not persisted. */
+  /** Second-most-recent rate from employee_rate_history. Readonly display. */
+  previousRate:   number | null
+  /** Current effective hourly rate — source of truth is employees.effectiveHourlyRate. */
+  currentRate:    number | null
+  /** Sandbox-only proposed next-year rate. Not persisted anywhere. */
+  proposedRate?:  number | null
+  /** Sandbox-only virtual — raise% applied to currentRate. Not persisted. */
   raisePercent?:  number | null
   hoursPerWeek:   number
   isHourly:       boolean
@@ -65,9 +67,10 @@ type ColDef = {
 
 const COLS: ColDef[] = [
   { key: 'dept',           label: 'Dept',           w: 64,  ro: false },
-  { key: 'hourlyRate2025', label: '2025-26 Rate',   w: 88,  ro: false },
+  { key: 'previousRate',   label: 'Previous Rate',  w: 100, ro: true  },  // label overridden at render time
+  { key: 'currentRate',    label: 'Current Rate',   w: 100, ro: false }, // label overridden at render time; edits → employees.effectiveHourlyRate
   { key: 'raisePercent',   label: 'Raise %',        w: 78,  ro: false, sandboxOnly: true },
-  { key: 'hourlyRate2026', label: '2026-27 Rate',   w: 88,  ro: false },
+  { key: 'proposedRate',   label: 'Proposed Rate',  w: 100, ro: false, sandboxOnly: true }, // label overridden at render time
   { key: 'hoursPerWeek',   label: 'Hrs/Wk',         w: 70,  ro: true  },
   { key: 'annualSalary',   label: 'Annual Salary',  w: 118, ro: false },
   { key: 'perPeriodRate',  label: 'Per Pd Rate',    w: 100, ro: true  },
@@ -82,7 +85,22 @@ const COLS: ColDef[] = [
   { key: 'booksCapMo',     label: 'Cap Hrs/Mo',     w: 88,  ro: true  },
 ]
 
-const DOLLAR_KEYS = new Set(['hourlyRate2023','hourlyRate2024','hourlyRate2025','hourlyRate2026','annualSalary','perPeriodRate','perPeriodTax','bonusCalc','bonusManual','retirement401k','techReimb'])
+const DOLLAR_KEYS = new Set(['previousRate','currentRate','proposedRate','annualSalary','perPeriodRate','perPeriodTax','bonusCalc','bonusManual','retirement401k','techReimb'])
+
+// Builds fiscal-year labels like "2025-26" from a start year.
+function fyLabel(startYear: number): string {
+  const nextTwo = String((startYear + 1) % 100).padStart(2, '0')
+  return `${startYear}-${nextTwo}`
+}
+
+// Given the base ColDef and the current fiscal year start, return the label
+// that should actually be shown. Year-dependent columns get dynamic labels.
+function labelFor(col: ColDef, fyStart: number): string {
+  if (col.key === 'previousRate') return `Prev Rate (${fyLabel(fyStart - 1)})`
+  if (col.key === 'currentRate')  return `Current Rate (${fyLabel(fyStart)})`
+  if (col.key === 'proposedRate') return `Proposed Rate (${fyLabel(fyStart + 1)})`
+  return col.label
+}
 
 function displayVal(col: ColDef, row: PayrollRow): string {
   const v = (row as any)[col.key]
@@ -120,25 +138,23 @@ function TotalsRow({ label, t, bg, cols }: { label: string; t: SectionTotals; bg
 }
 
 // Shared recalc — used by both actuals patch-in-place and sandbox edits.
-// Kept outside the component so it doesn't get re-created every render.
-// In sandbox mode: if hourlyRate2026 is set, sandbox annualSalary reflects it
-// (so totals preview the raise impact); baselineAnnual is captured to allow
-// salaried employees to scale from the pre-raise salary.
+// In sandbox with a proposedRate set, sandbox annualSalary reflects it (so
+// totals preview the raise impact). Salaried employees scale annualSalary
+// from the captured baseline (their pre-raise annual).
 function recalcRow(row: PayrollRow, mode: 'actuals' | 'sandbox' = 'actuals', baseline?: PayrollRow): PayrollRow {
   const hoursPerWeek  = Number(row.hoursPerWeek ?? 40)
   const adminPct      = Number(row.adminPercent ?? 0) / 100
 
-  // Which rate drives annualSalary? Sandbox with 26-27 set → 26-27; else 25-26.
-  const rateForCalc = mode === 'sandbox' && row.hourlyRate2026 != null
-    ? row.hourlyRate2026
-    : row.hourlyRate2025
+  // Which rate drives annualSalary? Sandbox with a proposed rate → proposed; else current.
+  const rateForCalc = mode === 'sandbox' && row.proposedRate != null
+    ? row.proposedRate
+    : row.currentRate
 
   let annualSalary: number
   if (row.isHourly) {
     annualSalary = Number(rateForCalc ?? 0) * hoursPerWeek * 52
   } else if (mode === 'sandbox' && row.raisePercent != null && baseline?.annualSalary) {
-    // Salaried: apply raise% to captured baseline (not to whatever's in row.annualSalary,
-    // which may already reflect a prior raise% multiply).
+    // Salaried: apply raise% to captured baseline annual so totals preview correctly.
     annualSalary = Number(baseline.annualSalary) * (1 + Number(row.raisePercent) / 100)
   } else {
     annualSalary = Number(row.annualSalary ?? 0)
@@ -153,15 +169,13 @@ function recalcRow(row: PayrollRow, mode: 'actuals' | 'sandbox' = 'actuals', bas
   return { ...row, annualSalary, perPeriodRate, perPeriodTax, retirement401k, bonusCalc, booksCapWk, booksCapMo }
 }
 
-// Fields that get shipped to the DB on Copy to Actuals — everything else is derived.
-// raisePercent is NOT included (virtual/sandbox-only). hourlyRate2024 stays writable in
-// case someone still needs to backfill it in actuals, but it's hidden from view.
+// Fields that write to the payroll DB row on individual sandbox → actuals patches.
+// currentRate + proposedRate route through a separate publish flow (see publishRaises).
 const SANDBOX_WRITABLE_FIELDS: (keyof PayrollRow)[] = [
-  'dept', 'hourlyRate2024', 'hourlyRate2025', 'hourlyRate2026', 'annualSalary',
-  'monthsExpected', 'bonusManual', 'techReimb', 'adminPercent',
+  'dept', 'annualSalary', 'monthsExpected', 'bonusManual', 'techReimb', 'adminPercent',
 ]
 
-const SANDBOX_STORAGE_KEY = 'bba.payroll.sandboxRows.v2'
+const SANDBOX_STORAGE_KEY = 'bba.payroll.sandboxRows.v3'
 
 function sumSection(subset: PayrollRow[]): SectionTotals {
   return {
@@ -188,16 +202,15 @@ export default function PayrollPage() {
   const [offboarding,    setOffboarding]    = useState(false)
 
   // Sandbox mode — a local copy of rows the user can play with. Changes stay
-  // in localStorage; nothing hits the DB until they click "Copy to Actuals."
+  // in localStorage; nothing hits the DB until they click "Publish Raises."
   const [mode,           setMode]           = useState<'actuals' | 'sandbox'>('actuals')
   const [sandboxRows,    setSandboxRows]    = useState<PayrollRow[]>([])
-  const [copyOpen,       setCopyOpen]       = useState(false)      // Copy-to-Actuals confirm modal
-  const [copying,        setCopying]        = useState(false)
+  const [fyStart,        setFyStart]        = useState<number>(new Date().getFullYear())
+  const [publishOpen,    setPublishOpen]    = useState(false)      // Publish confirm modal
+  const [publishing,     setPublishing]     = useState(false)
+  const [publishResult,  setPublishResult]  = useState<{ published: number; currentFiscalYearStart?: number; results?: { name: string; newRate: number }[]; errors?: string[] } | null>(null)
   const [resetOpen,      setResetOpen]      = useState(false)
   const [showArchived,   setShowArchived]   = useState(false)
-  const [promoteOpen,    setPromoteOpen]    = useState(false)      // Promote 2026-27 → Current confirm
-  const [promoting,      setPromoting]      = useState(false)
-  const [promoteResult,  setPromoteResult]  = useState<{ promoted: number; results?: { name: string; newRate: number }[]; errors?: string[] } | null>(null)
 
   // Employee quick-view drawer
   const [selectedEmp, setSelectedEmp] = useState<any | null>(null)
@@ -219,6 +232,9 @@ export default function PayrollPage() {
     setLoading(true)
     const res  = await fetch('/api/payroll')
     const json = await res.json()
+    if (typeof json.currentFiscalYearStart === 'number') {
+      setFyStart(json.currentFiscalYearStart)
+    }
     if (json.payroll) {
       const sorted = [...json.payroll].sort((a: PayrollRow, b: PayrollRow) => a.name.localeCompare(b.name))
       setRows(sorted)
@@ -327,16 +343,16 @@ export default function PayrollPage() {
         if (r.id !== id) return r
         const baseline = rows.find(x => x.id === id)  // pre-edit actuals row = raise% baseline
 
-        // Two-way binding between raisePercent and hourlyRate2026:
-        //   - Typing raisePercent → derive hourlyRate2026 from actuals hourlyRate2025
-        //   - Typing hourlyRate2026 → derive raisePercent from actuals hourlyRate2025
+        // Two-way binding between raisePercent and proposedRate:
+        //   - Typing raisePercent → derive proposedRate from actuals currentRate
+        //   - Typing proposedRate → derive raisePercent from actuals currentRate
         let next: any = { ...r, [field]: value }
-        if (field === 'raisePercent' && value != null && baseline?.hourlyRate2025 != null) {
-          next.hourlyRate2026 = Number((Number(baseline.hourlyRate2025) * (1 + Number(value) / 100)).toFixed(2))
-        } else if (field === 'hourlyRate2026' && value != null && baseline?.hourlyRate2025) {
-          const b = Number(baseline.hourlyRate2025)
+        if (field === 'raisePercent' && value != null && baseline?.currentRate != null) {
+          next.proposedRate = Number((Number(baseline.currentRate) * (1 + Number(value) / 100)).toFixed(2))
+        } else if (field === 'proposedRate' && value != null && baseline?.currentRate) {
+          const b = Number(baseline.currentRate)
           next.raisePercent = Number((((Number(value) - b) / b) * 100).toFixed(2))
-        } else if (field === 'hourlyRate2026' && value == null) {
+        } else if (field === 'proposedRate' && value == null) {
           next.raisePercent = null
         }
 
@@ -347,16 +363,37 @@ export default function PayrollPage() {
       return
     }
 
-    // Actuals: PATCH the DB, then recalc locally.
-    await fetch('/api/payroll', {
-      method:  'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ id, [field]: value }),
-    })
-    setRows(prev => prev.map(r => {
-      if (r.id !== id) return r
-      return recalcRow({ ...r, [field]: value } as PayrollRow, 'actuals')
-    }).sort((a, b) => a.name.localeCompare(b.name)))
+    // Actuals path.
+    // currentRate edits route through the employees endpoint (which also logs
+    // rate history and, for salaried folks, syncs salary). Everything else
+    // stays on the payroll table.
+    const row = rows.find(r => r.id === id)
+    if (field === 'currentRate' && row?.employeeId) {
+      await fetch(`/api/employees/${row.employeeId}`, {
+        method:  'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({
+          effectiveHourlyRate: value,
+          // For salaried: also update salary so it stays in sync.
+          ...(row.isHourly ? {} : value != null ? { salary: Number(value) * (row.hoursPerWeek ?? 40) * 52 } : {}),
+        }),
+      })
+      setRows(prev => prev.map(r => {
+        if (r.id !== id) return r
+        return recalcRow({ ...r, currentRate: value as number | null } as PayrollRow, 'actuals')
+      }).sort((a, b) => a.name.localeCompare(b.name)))
+    } else {
+      // All other payroll-table fields.
+      await fetch('/api/payroll', {
+        method:  'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ id, [field]: value }),
+      })
+      setRows(prev => prev.map(r => {
+        if (r.id !== id) return r
+        return recalcRow({ ...r, [field]: value } as PayrollRow, 'actuals')
+      }).sort((a, b) => a.name.localeCompare(b.name)))
+    }
     setSaved(id); setTimeout(() => setSaved(null), 1500)
     setSaving(null)
   }
@@ -371,9 +408,20 @@ export default function PayrollPage() {
   // Copy sandbox → actuals: diff each row against actuals, PATCH only changed
   // writable fields. Sequential to keep it simple; parallel would be faster
   // but harder to reason about if one fails midway.
-  async function copySandboxToActuals() {
-    setCopying(true)
-    let changedRows = 0
+  // Publish raises — the one-button flow that replaces Copy-to-Actuals + Promote.
+  //
+  // Also flushes any other sandbox edits (dept, monthsExpected, bonusManual, etc.)
+  // to the payroll table so those changes aren't lost.
+  async function publishRaises() {
+    setPublishing(true)
+
+    // Gather raises: any sandbox row with a proposedRate set.
+    const raises = sandboxRows
+      .filter(r => r.proposedRate != null)
+      .map(r => ({ employeeId: r.employeeId, newRate: Number(r.proposedRate) }))
+
+    // Flush non-rate sandbox edits to payroll table first.
+    let otherChanged = 0
     for (const s of sandboxRows) {
       const orig = rows.find(r => r.id === s.id)
       if (!orig) continue
@@ -382,36 +430,35 @@ export default function PayrollPage() {
         if (s[f] !== orig[f]) diff[f as string] = s[f]
       }
       if (Object.keys(diff).length === 0) continue
-      changedRows++
+      otherChanged++
       await fetch('/api/payroll', {
         method:  'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ id: s.id, ...diff }),
       })
     }
-    setCopying(false); setCopyOpen(false)
-    await load()          // reload actuals
-    setMode('actuals')    // snap back to actuals so the user sees what got saved
-    try { localStorage.removeItem(SANDBOX_STORAGE_KEY) } catch {}
-    // Small toast reuse — piggyback on the offboardResult toast slot
-    setOffboardResult({ name: 'Sandbox copied', count: changedRows })
-    setTimeout(() => setOffboardResult(null), 3000)
-  }
 
-  // Promote 2026-27 rates to current. Hits the backend, which updates the
-  // employees table (source of truth for capacity/profitability/drawer), logs
-  // rate history, and shifts the payroll year columns.
-  async function promoteRates() {
-    setPromoting(true)
-    try {
-      const res = await fetch('/api/payroll/promote', { method: 'POST' })
+    // Now publish raises through the atomic endpoint.
+    let published = 0
+    if (raises.length > 0) {
+      const res = await fetch('/api/payroll/publish', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ raises }),
+      })
       const json = await res.json()
-      setPromoteResult(json)
-      await load()  // reload — 2026-27 column will clear, 2025-26 shows the new rates
-    } catch (err) {
-      setPromoteResult({ promoted: 0, errors: [String(err)] })
-    } finally {
-      setPromoting(false)
+      published = json.published ?? 0
+      setPublishResult(json)
+    }
+
+    setPublishing(false); setPublishOpen(false)
+    await load()
+    setMode('actuals')
+    try { localStorage.removeItem(SANDBOX_STORAGE_KEY) } catch {}
+    if (raises.length === 0 && otherChanged > 0) {
+      // No raises but other edits shipped — reuse the offboard toast slot.
+      setOffboardResult({ name: 'Sandbox saved', count: otherChanged })
+      setTimeout(() => setOffboardResult(null), 3000)
     }
   }
 
@@ -647,22 +694,12 @@ export default function PayrollPage() {
             </button>
             <button
               type="button"
-              onClick={() => setCopyOpen(true)}
-              className="rounded-lg bg-bba-action px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90"
+              onClick={() => setPublishOpen(true)}
+              disabled={publishing}
+              className="rounded-lg bg-bba-action px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50"
+              title="Apply sandbox raises and flush edits. Updates employees, logs rate history, bumps fiscal year."
             >
-              Copy to Actuals →
-            </button>
-          </div>
-        )}
-        {mode === 'actuals' && rows.some(r => r.hourlyRate2026 != null) && (
-          <div className="flex items-center gap-2 pb-2">
-            <button
-              type="button"
-              onClick={() => setPromoteOpen(true)}
-              className="rounded-lg border-2 border-bba-action bg-white px-3 py-1.5 text-xs font-semibold text-bba-action hover:bg-purple-50"
-              title="Push 2026-27 rates into effective employee rates. Flows to capacity, profitability, drawer."
-            >
-              Promote 2026-27 → Current
+              Publish Raises →
             </button>
           </div>
         )}
@@ -671,76 +708,58 @@ export default function PayrollPage() {
       {/* Sandbox mode banner */}
       {mode === 'sandbox' && (
         <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-2.5 text-xs text-amber-900">
-          <span className="font-semibold">You're in Sandbox mode.</span> Edits stay in this browser — actuals are untouched until you click <span className="font-semibold">Copy to Actuals</span>. Use the <span className="font-semibold">Raise %</span> column to preview how a raise flows through Annual Salary and totals.
+          <span className="font-semibold">You're in Sandbox mode.</span> Edits stay in this browser until you click <span className="font-semibold">Publish Raises</span>. Use the <span className="font-semibold">Raise %</span> column to preview how a raise flows through Annual Salary and totals. Publish updates employee rates, logs history, and rolls the fiscal-year labels forward — no separate steps.
         </div>
       )}
 
-      {/* Promote confirm */}
-      {promoteOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl space-y-4">
-            <h2 className="text-lg font-semibold text-slate-800">Promote 2026-27 Rates to Current</h2>
-            <p className="text-sm text-slate-600">
-              For every employee with a 2026-27 rate set, this will:
-            </p>
-            <ul className="text-sm text-slate-600 list-disc pl-5 space-y-1">
-              <li>Update their effective hourly rate (and annual salary for salaried folks)</li>
-              <li>Add an entry to their rate history</li>
-              <li>Shift the 2026-27 rate into the 2025-26 column and clear 2026-27</li>
-            </ul>
-            <p className="text-sm text-amber-800 bg-amber-50 rounded-lg px-3 py-2">
-              This immediately flows to capacity planning, profitability, and employee profiles. Only run this after the raises are final.
-            </p>
-            <div className="flex gap-3 justify-end pt-2">
-              <button onClick={() => setPromoteOpen(false)} disabled={promoting}
-                className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50">
-                Cancel
-              </button>
-              <button onClick={async () => { await promoteRates(); setPromoteOpen(false); }} disabled={promoting}
-                className="rounded-lg bg-bba-action px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50">
-                {promoting ? 'Promoting…' : 'Confirm & Promote'}
-              </button>
+      {/* Publish confirm */}
+      {publishOpen && (() => {
+        const raiseCount = sandboxRows.filter(r => r.proposedRate != null).length
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+            <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl space-y-4">
+              <h2 className="text-lg font-semibold text-slate-800">Publish Raises</h2>
+              <p className="text-sm text-slate-600">
+                You're about to publish <span className="font-semibold">{raiseCount}</span> raise{raiseCount === 1 ? '' : 's'} from your sandbox. This will:
+              </p>
+              <ul className="text-sm text-slate-600 list-disc pl-5 space-y-1">
+                <li>Update each employee's effective hourly rate (and salary for salaried folks)</li>
+                <li>Log a rate history entry for every raise</li>
+                <li>Roll the fiscal-year labels forward ({fyLabel(fyStart)} → {fyLabel(fyStart + 1)})</li>
+                <li>Save any non-rate sandbox edits (dept, bonuses, etc.)</li>
+              </ul>
+              <p className="text-sm text-amber-800 bg-amber-50 rounded-lg px-3 py-2">
+                Rates take effect immediately across capacity planning, profitability, and employee profiles. Only publish once you're sure.
+              </p>
+              <div className="flex gap-3 justify-end pt-2">
+                <button onClick={() => setPublishOpen(false)} disabled={publishing}
+                  className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50">
+                  Cancel
+                </button>
+                <button onClick={publishRaises} disabled={publishing}
+                  className="rounded-lg bg-bba-action px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50">
+                  {publishing ? 'Publishing…' : 'Confirm & Publish'}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
 
-      {/* Promote result toast */}
-      {promoteResult && (
+      {/* Publish result toast */}
+      {publishResult && (
         <div className="fixed bottom-6 right-6 z-40 max-w-sm rounded-lg border border-green-300 bg-green-50 p-4 shadow-lg">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-sm font-semibold text-green-900">Promoted {promoteResult.promoted} rate{promoteResult.promoted === 1 ? '' : 's'}</p>
-              {promoteResult.errors && promoteResult.errors.length > 0 && (
-                <p className="text-xs text-red-700 mt-1">{promoteResult.errors.length} error(s): {promoteResult.errors[0]}</p>
+              <p className="text-sm font-semibold text-green-900">Published {publishResult.published} raise{publishResult.published === 1 ? '' : 's'}</p>
+              {publishResult.currentFiscalYearStart && (
+                <p className="text-xs text-green-800 mt-0.5">Fiscal year is now {fyLabel(publishResult.currentFiscalYearStart)}</p>
+              )}
+              {publishResult.errors && publishResult.errors.length > 0 && (
+                <p className="text-xs text-red-700 mt-1">{publishResult.errors.length} error(s): {publishResult.errors[0]}</p>
               )}
             </div>
-            <button onClick={() => setPromoteResult(null)} className="text-green-700 hover:text-green-900 text-lg leading-none">×</button>
-          </div>
-        </div>
-      )}
-
-      {/* Copy-to-Actuals confirm */}
-      {copyOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl space-y-4">
-            <h2 className="text-lg font-semibold text-slate-800">Copy Sandbox to Actuals</h2>
-            <p className="text-sm text-slate-600">
-              This will overwrite the real payroll rows with your sandbox values. Only fields that actually changed will be updated.
-            </p>
-            <p className="text-sm text-amber-800 bg-amber-50 rounded-lg px-3 py-2">
-              This cannot be automatically undone. If you're not sure, hit Cancel and double-check your numbers first.
-            </p>
-            <div className="flex gap-3 justify-end pt-2">
-              <button onClick={() => setCopyOpen(false)} disabled={copying}
-                className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50">
-                Cancel
-              </button>
-              <button onClick={copySandboxToActuals} disabled={copying}
-                className="rounded-lg bg-bba-action px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50">
-                {copying ? 'Copying…' : 'Confirm & Copy'}
-              </button>
-            </div>
+            <button onClick={() => setPublishResult(null)} className="text-green-700 hover:text-green-900 text-lg leading-none">×</button>
           </div>
         </div>
       )}
@@ -805,7 +824,7 @@ export default function PayrollPage() {
                     <th key={col.key}
                       className="px-3 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-white whitespace-nowrap"
                       style={{ minWidth: col.w }}>
-                      {col.label}
+                      {labelFor(col, fyStart)}
                       {(col.ro || col.key === 'annualSalary') && <span className="ml-1 text-white/40 text-[9px]">{col.key === 'annualSalary' ? 'hrly=calc' : 'calc'}</span>}
                     </th>
                   ))}

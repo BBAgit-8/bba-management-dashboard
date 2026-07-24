@@ -18,6 +18,29 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
   if (eErr) return NextResponse.json({ error: eErr.message }, { status: 500 })
 
+  // Pull rate history in one shot; we'll compute previousRate per employee
+  // as the second-most-recent entry (most-recent = current rate).
+  const { data: history } = await supabase
+    .from('employee_rate_history')
+    .select('employeeId, rate, rateType, effectiveDate')
+    .order('effectiveDate', { ascending: false })
+
+  // Group history by employeeId → chronological (desc) list of entries.
+  const historyByEmp: Record<string, { rate: number; rateType: string; effectiveDate: string }[]> = {}
+  for (const h of history ?? []) {
+    if (!historyByEmp[h.employeeId]) historyByEmp[h.employeeId] = []
+    historyByEmp[h.employeeId].push({ rate: Number(h.rate), rateType: h.rateType, effectiveDate: h.effectiveDate })
+  }
+
+  // Fiscal year setting drives the column labels shown on the client.
+  // If missing, default to the current calendar year.
+  const { data: fySetting } = await supabase
+    .from('settings')
+    .select('value')
+    .eq('key', 'payroll.currentFiscalYearStart')
+    .maybeSingle()
+  const currentFiscalYearStart = fySetting?.value ? Number(fySetting.value) : new Date().getFullYear()
+
   const empMap = Object.fromEntries((employees ?? []).map(e => [e.id, e]))
 
   const rows = (payroll ?? []).map(p => {
@@ -27,9 +50,26 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     const isHourly       = emp.rateType === 'hourly'
     const isContractor   = emp.employeeType === 'contractor'
 
-    // Salary: payroll.annualSalary overrides employee.salary
+    // Current rate: single source of truth is employees.effectiveHourlyRate.
+    // For salaried employees this is a derived hourly (salary / hours / 52).
+    const currentRate = emp.effectiveHourlyRate != null ? Number(emp.effectiveHourlyRate) : null
+
+    // Previous rate: second-most-recent rate history entry. May be null if
+    // the employee has never had a raise recorded — that's fine, display as —.
+    // Convert stored value to hourly for display: salaried entries are stored
+    // as annual salary; divide by hours*52.
+    const empHistory = historyByEmp[p.employeeId] ?? []
+    let previousRate: number | null = null
+    if (empHistory.length >= 2) {
+      const prev = empHistory[1]
+      previousRate = prev.rateType === 'salary'
+        ? prev.rate / (hoursPerWeek * 52)
+        : prev.rate
+    }
+
+    // Annual salary — always from employees table (or override if payroll has it explicitly)
     const annualSalary = isHourly
-      ? Number(p.hourlyRate2025 ?? 0) * hoursPerWeek * 52
+      ? Number(currentRate ?? 0) * hoursPerWeek * 52
       : Number(p.annualSalary ?? emp.salary ?? 0)
 
     const perPeriodRate  = annualSalary / 26
@@ -46,16 +86,9 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       dept:            p.dept ?? 'COGS',
       isContractor,
       isActive:        emp.isActive ?? true,
-      hourlyRate2023:  p.hourlyRate2023,
-      hourlyRate2024:  p.hourlyRate2024,
-      // For salaried employees, if payroll's stored 2025-26 rate is blank,
-      // fall back to the employee's computed effective hourly rate (salary /
-      // (hours * 52)) so the display isn't a dash. For hourly employees the
-      // stored value is the source of truth.
-      hourlyRate2025:  p.hourlyRate2025 != null
-        ? p.hourlyRate2025
-        : (!isHourly && emp.effectiveHourlyRate != null ? Number(emp.effectiveHourlyRate) : null),
-      hourlyRate2026:  p.hourlyRate2026 ?? null,
+      previousRate,       // readonly display, derived from rate history
+      currentRate,        // editable → writes to employees.effectiveHourlyRate
+      proposedRate:    null,  // sandbox-only; server never populates this
       hoursPerWeek,
       isHourly,
       annualSalary,
@@ -91,6 +124,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
   return NextResponse.json({
     payroll: rows,
+    currentFiscalYearStart,
     totals: {
       ee:   sumTotals(eeRows),
       cntr: sumTotals(cntrRows),
