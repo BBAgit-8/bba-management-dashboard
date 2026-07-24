@@ -1651,7 +1651,16 @@ export default function ClientDirectory() {
           <span className="text-[10px] font-medium text-white/70">Drag headers to reorder · click to sort</span>
         </div>
 
-        <div className="overflow-x-auto">
+        {/*
+          Internal scroll region so the sticky <th>s can pin to the top of the
+          table as you scroll. Page-level sticky wouldn't work here — the
+          overflow-x-auto silently makes this a scroll container in both axes
+          (per CSS spec), which would trap sticky-top inside the div without
+          any y-scroll to activate against. Switching to overflow-auto with a
+          viewport-based max-height gives sticky a real scroll port to stick to.
+          Header + toolbar above still stay put via the page's natural flow.
+        */}
+        <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 260px)' }}>
           <table className="w-full text-sm" style={{ tableLayout: 'fixed' }}>
               <colgroup>
                 <col style={{ width: '4px' }} />
@@ -1661,10 +1670,11 @@ export default function ClientDirectory() {
               </colgroup>
               <thead>
                 <tr style={{ backgroundColor: 'var(--bba-primary)', borderBottom: '2px solid rgba(78,0,142,0.3)' }}>
-                  <th className="w-1 px-0 shrink-0" />
+                  <th className="w-1 px-0 shrink-0 sticky top-0 z-10" style={{ backgroundColor: 'var(--bba-primary)' }} />
                   {activeColOrder.map((colKey, index) => {
                     const col = ALL_COLUMNS.find(c => c.key === colKey)!
                     const isDragOver = dragOverKey === colKey && colDrag.current?.key !== colKey
+                    const isNameCol  = colKey === 'name'
                     return (
                       <th
                         key={colKey}
@@ -1676,9 +1686,17 @@ export default function ClientDirectory() {
                           if (e.clientX > rect.right - 16) return
                           startColDrag(e, colKey, index)
                         }}
-                        className={`relative px-3 py-3 text-center text-[11px] font-semibold uppercase tracking-wider select-none transition-colors cursor-grab active:cursor-grabbing ${isDragOver ? 'bg-white/20' : ''} ${colKey === 'name' ? 'sticky left-0 z-20' : ''}`}
+                        // Sticky top pins the header row while the page scrolls; the
+                        // name column additionally pins left. Its z-index is bumped
+                        // above the rest of the header row so it stays on top in the
+                        // two-axis-sticky corner.
+                        className={`relative px-3 py-3 text-center text-[11px] font-semibold uppercase tracking-wider select-none transition-colors cursor-grab active:cursor-grabbing sticky top-0 ${isDragOver ? 'bg-white/20' : ''} ${isNameCol ? 'left-0 z-30' : 'z-20'}`}
                         style={{
-                          ...(colKey === 'name' ? { backgroundColor: 'var(--bba-primary)', boxShadow: '2px 0 4px -1px rgba(0,0,0,0.15)' } : {}),
+                          // Every header cell needs its own opaque background so scrolled
+                          // rows don't bleed through — sticky cells paint independently
+                          // of the <tr> row background.
+                          backgroundColor: 'var(--bba-primary)',
+                          ...(isNameCol ? { boxShadow: '2px 0 4px -1px rgba(0,0,0,0.15)' } : {}),
                         }}
                       >
                         <div className="flex items-center justify-center gap-1 w-full">
