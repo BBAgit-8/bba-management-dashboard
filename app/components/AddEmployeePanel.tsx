@@ -8,6 +8,7 @@ const EMPTY = {
   hourlyRate: '', salary: '',
   contractedHours: '',
   adminTimePercent: '20',
+  dept: 'COGS' as 'COGS' | 'GA' | 'CNTR',
 }
 
 interface Props {
@@ -113,6 +114,18 @@ export default function AddEmployeePanel({ open, onClose, onCreated }: Props) {
           <div>
             <p className="text-[10px] font-bold uppercase tracking-widest mb-3" style={{ color: 'var(--bba-secondary, #b20476)' }}>Compensation</p>
             <div className="space-y-4">
+              {/* Dept */}
+              <Field label="Department" hint="Determines which section they appear in on the Payroll page">
+                <div className="flex rounded-lg border border-slate-200 overflow-hidden">
+                  {(['COGS', 'GA', 'CNTR'] as const).map(v => (
+                    <button key={v} type="button" onClick={() => set('dept', v)}
+                      className={`flex-1 py-2 text-xs font-medium transition-colors ${form.dept === v ? 'bg-bba-action text-white' : 'text-slate-500 hover:bg-slate-50'}`}>
+                      {v === 'CNTR' ? 'Contractor' : v}
+                    </button>
+                  ))}
+                </div>
+              </Field>
+
               {/* Rate type toggle */}
               <Field label="Rate Type">
                 <div className="flex rounded-lg border border-slate-200 overflow-hidden">

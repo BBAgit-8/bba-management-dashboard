@@ -52,12 +52,19 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     ? parseFloat((salary / (contractedHours * weeksPerYear)).toFixed(2))
     : hourlyRate
 
+  // Dept + contractor classification: dept comes from the Add Employee panel.
+  // CNTR (contractor) sets employeeType so payroll routes them to the CNTR section.
+  const deptRaw = typeof d.dept === 'string' ? d.dept.toUpperCase() : 'COGS'
+  const dept: 'COGS' | 'GA' | 'CNTR' = (['COGS', 'GA', 'CNTR'] as const).includes(deptRaw as any) ? deptRaw as any : 'COGS'
+  const employeeType = dept === 'CNTR' ? 'contractor' : 'employee'
+
   const row = {
     id:                  crypto.randomUUID(),
     name,
     email:               typeof d.email === 'string' ? d.email.trim().toLowerCase() || null : null,
     title:               typeof d.title === 'string' ? d.title.trim() || null : null,
     rateType,
+    employeeType,
     salary:              salary ?? null,
     contractedHours,
     adminTimePercent:    typeof d.adminTimePercent === 'string' ? parseFloat(d.adminTimePercent) || 0 : 0,
@@ -88,6 +95,23 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     effectiveDate: new Date().toISOString().split('T')[0],
     notes:         'Initial rate',
   })
+
+  // Create the matching payroll row so this employee shows up on /payroll
+  // in the correct section (COGS / GA / CNTR). Failures are logged but not
+  // fatal — the employee record itself is still created.
+  const payrollRow: Record<string, unknown> = {
+    id:            crypto.randomUUID(),
+    employeeId:    data.id,
+    dept,
+    monthsExpected: 12,
+    adminPercent:  typeof d.adminTimePercent === 'string' ? parseFloat(d.adminTimePercent) || null : null,
+    createdAt:     new Date().toISOString(),
+    updatedAt:     new Date().toISOString(),
+  }
+  if (rateType === 'hourly') payrollRow.hourlyRate2025 = hourlyRate
+  else                       payrollRow.annualSalary   = salary
+  const { error: payrollErr } = await supabase.from('payroll').insert(payrollRow)
+  if (payrollErr) console.error('Payroll row insert failed (employee still created):', payrollErr)
 
   return NextResponse.json({ employee: data }, { status: 201 })
 }
