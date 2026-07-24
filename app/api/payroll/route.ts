@@ -55,6 +55,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       hourlyRate2025:  p.hourlyRate2025 != null
         ? p.hourlyRate2025
         : (!isHourly && emp.effectiveHourlyRate != null ? Number(emp.effectiveHourlyRate) : null),
+      hourlyRate2026:  p.hourlyRate2026 ?? null,
       hoursPerWeek,
       isHourly,
       annualSalary,

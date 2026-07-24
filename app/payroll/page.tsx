@@ -13,6 +13,9 @@ type PayrollRow = {
   hourlyRate2023: number | null
   hourlyRate2024: number | null
   hourlyRate2025: number | null
+  hourlyRate2026: number | null
+  /** Sandbox-only virtual field — % raise applied to hourlyRate2025 (or annualSalary for salaried). Not persisted. */
+  raisePercent?:  number | null
   hoursPerWeek:   number
   isHourly:       boolean
   annualSalary:   number
@@ -51,10 +54,20 @@ function fmtN(n: number | null | undefined, dec = 1) {
   return Number(n).toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec })
 }
 
-  const COLS = [
-  { key: 'dept',           label: 'Dept',          w: 64,  ro: false },
-  { key: 'hourlyRate2024', label: '2024-25 Rate',   w: 88,  ro: false },
+type ColDef = {
+  key: string
+  label: string
+  w: number
+  ro: boolean
+  sandboxOnly?: boolean
+  actualsOnly?: boolean
+}
+
+const COLS: ColDef[] = [
+  { key: 'dept',           label: 'Dept',           w: 64,  ro: false },
   { key: 'hourlyRate2025', label: '2025-26 Rate',   w: 88,  ro: false },
+  { key: 'raisePercent',   label: 'Raise %',        w: 78,  ro: false, sandboxOnly: true },
+  { key: 'hourlyRate2026', label: '2026-27 Rate',   w: 88,  ro: false },
   { key: 'hoursPerWeek',   label: 'Hrs/Wk',         w: 70,  ro: true  },
   { key: 'annualSalary',   label: 'Annual Salary',  w: 118, ro: false },
   { key: 'perPeriodRate',  label: 'Per Pd Rate',    w: 100, ro: true  },
@@ -62,33 +75,34 @@ function fmtN(n: number | null | undefined, dec = 1) {
   { key: 'monthsExpected', label: 'Months Exp.',    w: 78,  ro: false },
   { key: 'bonusCalc',      label: 'Bonus (3%)',     w: 96,  ro: true  },
   { key: 'bonusManual',    label: 'Bonus Manual',   w: 96,  ro: false },
-  { key: 'retirement401k', label: '401(k)',          w: 88,  ro: true  },
+  { key: 'retirement401k', label: '401(k)',         w: 88,  ro: true  },
   { key: 'techReimb',      label: 'Tech Reimb',     w: 88,  ro: false },
   { key: 'adminPercent',   label: 'Admin %',        w: 78,  ro: false },
-  { key: 'booksCapWk',     label: 'Cap Hrs/Wk',    w: 88,  ro: true  },
-  { key: 'booksCapMo',     label: 'Cap Hrs/Mo',    w: 88,  ro: true  },
+  { key: 'booksCapWk',     label: 'Cap Hrs/Wk',     w: 88,  ro: true  },
+  { key: 'booksCapMo',     label: 'Cap Hrs/Mo',     w: 88,  ro: true  },
 ]
 
-const DOLLAR_KEYS = new Set(['hourlyRate2023','hourlyRate2024','hourlyRate2025','annualSalary','perPeriodRate','perPeriodTax','bonusCalc','bonusManual','retirement401k','techReimb'])
+const DOLLAR_KEYS = new Set(['hourlyRate2023','hourlyRate2024','hourlyRate2025','hourlyRate2026','annualSalary','perPeriodRate','perPeriodTax','bonusCalc','bonusManual','retirement401k','techReimb'])
 
-function displayVal(col: typeof COLS[0], row: PayrollRow): string {
+function displayVal(col: ColDef, row: PayrollRow): string {
   const v = (row as any)[col.key]
   if (col.key === 'dept') return String(v ?? '—')
   if (col.key === 'adminPercent') return v != null ? `${Number(v).toFixed(0)}%` : '—'
+  if (col.key === 'raisePercent') return v != null ? `${Number(v).toFixed(1)}%` : '—'
   if (col.key === 'hoursPerWeek' || col.key === 'monthsExpected') return v != null ? fmtN(v, col.key === 'monthsExpected' ? 1 : 0) : '—'
   if (col.key === 'booksCapWk' || col.key === 'booksCapMo') return v != null ? fmtN(v) : '—'
   if (DOLLAR_KEYS.has(col.key)) return fmt$(v)
   return v != null ? String(v) : '—'
 }
 
-function TotalsRow({ label, t, bg }: { label: string; t: SectionTotals; bg: string }) {
+function TotalsRow({ label, t, bg, cols }: { label: string; t: SectionTotals; bg: string; cols: ColDef[] }) {
   return (
     <tr style={{ backgroundColor: bg }}>
       <td className="sticky left-0 z-10 px-4 py-2 text-xs font-bold text-bba-primary whitespace-nowrap"
         style={{ backgroundColor: bg, boxShadow: '2px 0 4px -1px rgba(0,0,0,0.06)' }}>
         {label}
       </td>
-      {COLS.map(col => {
+      {cols.map(col => {
         const v = (t as any)[col.key]
         return (
           <td key={col.key} className="px-3 py-2 text-right text-xs font-bold text-bba-primary whitespace-nowrap">
@@ -107,12 +121,29 @@ function TotalsRow({ label, t, bg }: { label: string; t: SectionTotals; bg: stri
 
 // Shared recalc — used by both actuals patch-in-place and sandbox edits.
 // Kept outside the component so it doesn't get re-created every render.
-function recalcRow(row: PayrollRow): PayrollRow {
+// In sandbox mode: if hourlyRate2026 is set, sandbox annualSalary reflects it
+// (so totals preview the raise impact); baselineAnnual is captured to allow
+// salaried employees to scale from the pre-raise salary.
+function recalcRow(row: PayrollRow, mode: 'actuals' | 'sandbox' = 'actuals', baseline?: PayrollRow): PayrollRow {
   const hoursPerWeek  = Number(row.hoursPerWeek ?? 40)
   const adminPct      = Number(row.adminPercent ?? 0) / 100
-  const annualSalary  = row.isHourly
-    ? Number(row.hourlyRate2025 ?? 0) * hoursPerWeek * 52
-    : Number(row.annualSalary ?? 0)
+
+  // Which rate drives annualSalary? Sandbox with 26-27 set → 26-27; else 25-26.
+  const rateForCalc = mode === 'sandbox' && row.hourlyRate2026 != null
+    ? row.hourlyRate2026
+    : row.hourlyRate2025
+
+  let annualSalary: number
+  if (row.isHourly) {
+    annualSalary = Number(rateForCalc ?? 0) * hoursPerWeek * 52
+  } else if (mode === 'sandbox' && row.raisePercent != null && baseline?.annualSalary) {
+    // Salaried: apply raise% to captured baseline (not to whatever's in row.annualSalary,
+    // which may already reflect a prior raise% multiply).
+    annualSalary = Number(baseline.annualSalary) * (1 + Number(row.raisePercent) / 100)
+  } else {
+    annualSalary = Number(row.annualSalary ?? 0)
+  }
+
   const perPeriodRate = annualSalary / 26
   const perPeriodTax  = perPeriodRate * 0.091
   const retirement401k = perPeriodRate * 0.04
@@ -123,12 +154,14 @@ function recalcRow(row: PayrollRow): PayrollRow {
 }
 
 // Fields that get shipped to the DB on Copy to Actuals — everything else is derived.
+// raisePercent is NOT included (virtual/sandbox-only). hourlyRate2024 stays writable in
+// case someone still needs to backfill it in actuals, but it's hidden from view.
 const SANDBOX_WRITABLE_FIELDS: (keyof PayrollRow)[] = [
-  'dept', 'hourlyRate2024', 'hourlyRate2025', 'annualSalary',
+  'dept', 'hourlyRate2024', 'hourlyRate2025', 'hourlyRate2026', 'annualSalary',
   'monthsExpected', 'bonusManual', 'techReimb', 'adminPercent',
 ]
 
-const SANDBOX_STORAGE_KEY = 'bba.payroll.sandboxRows.v1'
+const SANDBOX_STORAGE_KEY = 'bba.payroll.sandboxRows.v2'
 
 function sumSection(subset: PayrollRow[]): SectionTotals {
   return {
@@ -162,6 +195,9 @@ export default function PayrollPage() {
   const [copying,        setCopying]        = useState(false)
   const [resetOpen,      setResetOpen]      = useState(false)
   const [showArchived,   setShowArchived]   = useState(false)
+  const [promoteOpen,    setPromoteOpen]    = useState(false)      // Promote 2026-27 → Current confirm
+  const [promoting,      setPromoting]      = useState(false)
+  const [promoteResult,  setPromoteResult]  = useState<{ promoted: number; results?: { name: string; newRate: number }[]; errors?: string[] } | null>(null)
 
   // Employee quick-view drawer
   const [selectedEmp, setSelectedEmp] = useState<any | null>(null)
@@ -227,6 +263,8 @@ export default function PayrollPage() {
   // What the UI actually shows — one line for the whole file.
   const rawRows = mode === 'sandbox' ? sandboxRows : rows
   const displayedRows = showArchived ? rawRows : rawRows.filter(r => r.isActive)
+  // Show sandbox-only columns (raisePercent) only in sandbox mode.
+  const visibleCols: ColDef[] = COLS.filter(c => (!c.sandboxOnly || mode === 'sandbox') && (!c.actualsOnly || mode === 'actuals'))
 
   // Totals derived from displayedRows (used to be state; deriving is simpler
   // and can't fall out of sync).
@@ -249,7 +287,8 @@ export default function PayrollPage() {
     if (mode === 'sandbox') {
       setSandboxRows(prev => prev.map(r => {
         if (r.id !== row.id) return r
-        return recalcRow({ ...r, dept: newDept, isContractor: newDept === 'CNTR' } as PayrollRow)
+        const baseline = rows.find(x => x.id === r.id)
+        return recalcRow({ ...r, dept: newDept, isContractor: newDept === 'CNTR' } as PayrollRow, 'sandbox', baseline)
       }).sort((a, b) => a.name.localeCompare(b.name)))
       setSaved(row.id); setTimeout(() => setSaved(null), 1500)
       setSaving(null)
@@ -286,7 +325,22 @@ export default function PayrollPage() {
     if (mode === 'sandbox') {
       setSandboxRows(prev => prev.map(r => {
         if (r.id !== id) return r
-        return recalcRow({ ...r, [field]: value } as PayrollRow)
+        const baseline = rows.find(x => x.id === id)  // pre-edit actuals row = raise% baseline
+
+        // Two-way binding between raisePercent and hourlyRate2026:
+        //   - Typing raisePercent → derive hourlyRate2026 from actuals hourlyRate2025
+        //   - Typing hourlyRate2026 → derive raisePercent from actuals hourlyRate2025
+        let next: any = { ...r, [field]: value }
+        if (field === 'raisePercent' && value != null && baseline?.hourlyRate2025 != null) {
+          next.hourlyRate2026 = Number((Number(baseline.hourlyRate2025) * (1 + Number(value) / 100)).toFixed(2))
+        } else if (field === 'hourlyRate2026' && value != null && baseline?.hourlyRate2025) {
+          const b = Number(baseline.hourlyRate2025)
+          next.raisePercent = Number((((Number(value) - b) / b) * 100).toFixed(2))
+        } else if (field === 'hourlyRate2026' && value == null) {
+          next.raisePercent = null
+        }
+
+        return recalcRow(next as PayrollRow, 'sandbox', baseline)
       }).sort((a, b) => a.name.localeCompare(b.name)))
       setSaved(id); setTimeout(() => setSaved(null), 1500)
       setSaving(null)
@@ -301,7 +355,7 @@ export default function PayrollPage() {
     })
     setRows(prev => prev.map(r => {
       if (r.id !== id) return r
-      return recalcRow({ ...r, [field]: value } as PayrollRow)
+      return recalcRow({ ...r, [field]: value } as PayrollRow, 'actuals')
     }).sort((a, b) => a.name.localeCompare(b.name)))
     setSaved(id); setTimeout(() => setSaved(null), 1500)
     setSaving(null)
@@ -344,6 +398,23 @@ export default function PayrollPage() {
     setTimeout(() => setOffboardResult(null), 3000)
   }
 
+  // Promote 2026-27 rates to current. Hits the backend, which updates the
+  // employees table (source of truth for capacity/profitability/drawer), logs
+  // rate history, and shifts the payroll year columns.
+  async function promoteRates() {
+    setPromoting(true)
+    try {
+      const res = await fetch('/api/payroll/promote', { method: 'POST' })
+      const json = await res.json()
+      setPromoteResult(json)
+      await load()  // reload — 2026-27 column will clear, 2025-26 shows the new rates
+    } catch (err) {
+      setPromoteResult({ promoted: 0, errors: [String(err)] })
+    } finally {
+      setPromoting(false)
+    }
+  }
+
   async function doOffboard(employeeId: string) {
     setOffboarding(true)
     const res  = await fetch('/api/employees/offboard', {
@@ -366,7 +437,7 @@ export default function PayrollPage() {
   function SectionLabel({ label }: { label: string }) {
     return (
       <tr>
-        <td colSpan={COLS.length + 2}
+        <td colSpan={visibleCols.length + 2}
           className="px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest text-white/70"
           style={{ backgroundColor: 'rgba(78,0,142,0.75)' }}>
           {label}
@@ -399,7 +470,7 @@ export default function PayrollPage() {
         </td>
 
         {/* Data cells */}
-        {COLS.map(col => {
+        {visibleCols.map(col => {
           // Dept: inline select. Skips the generic click-to-edit path.
           if (col.key === 'dept') return (
             <td key={col.key} className="px-2 py-1 text-center">
@@ -583,12 +654,69 @@ export default function PayrollPage() {
             </button>
           </div>
         )}
+        {mode === 'actuals' && rows.some(r => r.hourlyRate2026 != null) && (
+          <div className="flex items-center gap-2 pb-2">
+            <button
+              type="button"
+              onClick={() => setPromoteOpen(true)}
+              className="rounded-lg border-2 border-bba-action bg-white px-3 py-1.5 text-xs font-semibold text-bba-action hover:bg-purple-50"
+              title="Push 2026-27 rates into effective employee rates. Flows to capacity, profitability, drawer."
+            >
+              Promote 2026-27 → Current
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Sandbox mode banner */}
       {mode === 'sandbox' && (
         <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-2.5 text-xs text-amber-900">
-          <span className="font-semibold">You're in Sandbox mode.</span> Edits stay in this browser — actuals are untouched until you click <span className="font-semibold">Copy to Actuals</span>.
+          <span className="font-semibold">You're in Sandbox mode.</span> Edits stay in this browser — actuals are untouched until you click <span className="font-semibold">Copy to Actuals</span>. Use the <span className="font-semibold">Raise %</span> column to preview how a raise flows through Annual Salary and totals.
+        </div>
+      )}
+
+      {/* Promote confirm */}
+      {promoteOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl space-y-4">
+            <h2 className="text-lg font-semibold text-slate-800">Promote 2026-27 Rates to Current</h2>
+            <p className="text-sm text-slate-600">
+              For every employee with a 2026-27 rate set, this will:
+            </p>
+            <ul className="text-sm text-slate-600 list-disc pl-5 space-y-1">
+              <li>Update their effective hourly rate (and annual salary for salaried folks)</li>
+              <li>Add an entry to their rate history</li>
+              <li>Shift the 2026-27 rate into the 2025-26 column and clear 2026-27</li>
+            </ul>
+            <p className="text-sm text-amber-800 bg-amber-50 rounded-lg px-3 py-2">
+              This immediately flows to capacity planning, profitability, and employee profiles. Only run this after the raises are final.
+            </p>
+            <div className="flex gap-3 justify-end pt-2">
+              <button onClick={() => setPromoteOpen(false)} disabled={promoting}
+                className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50">
+                Cancel
+              </button>
+              <button onClick={async () => { await promoteRates(); setPromoteOpen(false); }} disabled={promoting}
+                className="rounded-lg bg-bba-action px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50">
+                {promoting ? 'Promoting…' : 'Confirm & Promote'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Promote result toast */}
+      {promoteResult && (
+        <div className="fixed bottom-6 right-6 z-40 max-w-sm rounded-lg border border-green-300 bg-green-50 p-4 shadow-lg">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-green-900">Promoted {promoteResult.promoted} rate{promoteResult.promoted === 1 ? '' : 's'}</p>
+              {promoteResult.errors && promoteResult.errors.length > 0 && (
+                <p className="text-xs text-red-700 mt-1">{promoteResult.errors.length} error(s): {promoteResult.errors[0]}</p>
+              )}
+            </div>
+            <button onClick={() => setPromoteResult(null)} className="text-green-700 hover:text-green-900 text-lg leading-none">×</button>
+          </div>
         </div>
       )}
 
@@ -673,7 +801,7 @@ export default function PayrollPage() {
                     style={{ backgroundColor: '#4e008e', minWidth: 140, boxShadow: '2px 0 4px -1px rgba(0,0,0,0.15)' }}>
                     Employee
                   </th>
-                  {COLS.map(col => (
+                  {visibleCols.map(col => (
                     <th key={col.key}
                       className="px-3 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-white whitespace-nowrap"
                       style={{ minWidth: col.w }}>
@@ -704,7 +832,7 @@ export default function PayrollPage() {
                     bonusManual:    cogsRows.reduce((s, r) => s + Number(r.bonusManual ?? 0), 0),
                     retirement401k: cogsRows.reduce((s, r) => s + Number(r.retirement401k ?? 0), 0),
                     techReimb:      cogsRows.reduce((s, r) => s + Number(r.techReimb ?? 0), 0),
-                  }} bg="#ede9fe" />
+                  }} bg="#ede9fe" cols={visibleCols} />
                 )}
 
                 {/* GA */}
@@ -724,7 +852,7 @@ export default function PayrollPage() {
                     bonusManual:    gaRows.reduce((s, r) => s + Number(r.bonusManual ?? 0), 0),
                     retirement401k: gaRows.reduce((s, r) => s + Number(r.retirement401k ?? 0), 0),
                     techReimb:      gaRows.reduce((s, r) => s + Number(r.techReimb ?? 0), 0),
-                  }} bg="#ede9fe" />
+                  }} bg="#ede9fe" cols={visibleCols} />
                 )}
 
                 {/* CNTR */}
@@ -732,7 +860,7 @@ export default function PayrollPage() {
                 {cntrRows.map((row, i) => <DataRow key={row.id} row={row} idx={i} />)}
 
                 {/* Grand total */}
-                {totals && <TotalsRow label="GRAND TOTAL" t={totals.all} bg="#ddd6fe" />}
+                {totals && <TotalsRow label="GRAND TOTAL" t={totals.all} bg="#ddd6fe" cols={visibleCols} />}
               </tbody>
             </table>
           </div>
