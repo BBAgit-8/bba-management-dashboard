@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
+import EmployeeDrawer from '@/app/components/EmployeeDrawer'
 
 type PayrollRow = {
   id:             string
@@ -160,6 +161,23 @@ export default function PayrollPage() {
   const [copyOpen,       setCopyOpen]       = useState(false)      // Copy-to-Actuals confirm modal
   const [copying,        setCopying]        = useState(false)
   const [resetOpen,      setResetOpen]      = useState(false)
+  const [showArchived,   setShowArchived]   = useState(false)
+
+  // Employee quick-view drawer
+  const [selectedEmp, setSelectedEmp] = useState<any | null>(null)
+  const openEmp = useCallback(async (empId: string) => {
+    try {
+      // Include archived in case they clicked an inactive row (only visible with toggle on)
+      const res = await fetch('/api/employees?includeInactive=1')
+      const data = await res.json()
+      if (Array.isArray(data)) {
+        const full = data.find((e: any) => e.id === empId)
+        if (full) setSelectedEmp(full)
+      }
+    } catch (err) {
+      console.error('Failed to load employee:', err)
+    }
+  }, [])
 
   async function load() {
     setLoading(true)
@@ -207,7 +225,8 @@ export default function PayrollPage() {
   }, [sandboxRows])
 
   // What the UI actually shows — one line for the whole file.
-  const displayedRows = mode === 'sandbox' ? sandboxRows : rows
+  const rawRows = mode === 'sandbox' ? sandboxRows : rows
+  const displayedRows = showArchived ? rawRows : rawRows.filter(r => r.isActive)
 
   // Totals derived from displayedRows (used to be state; deriving is simpler
   // and can't fall out of sync).
@@ -333,10 +352,10 @@ export default function PayrollPage() {
               ? <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] font-bold text-amber-700">Hourly</span>
               : null}
             {!row.isActive && <span className="rounded-full bg-slate-200 px-1.5 py-0.5 text-[9px] font-bold text-slate-500">Inactive</span>}
-            <a href={`/employees?open=${row.employeeId}`}
-              className="hover:text-bba-action hover:underline underline-offset-2 transition-colors">
+            <button type="button" onClick={() => openEmp(row.employeeId)}
+              className="hover:text-bba-action hover:underline underline-offset-2 transition-colors bg-transparent p-0 border-0 cursor-pointer font-semibold text-slate-800">
               {row.name.split(' ')[0]}
-            </a>
+            </button>
           </div>
         </td>
 
@@ -449,11 +468,22 @@ export default function PayrollPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight" style={{ color: '#b20476' }}>Payroll</h1>
-          <p className="mt-1 text-sm text-slate-500">Click any white cell to edit · Shaded = calculated · {displayedRows.length} records</p>
+          <p className="mt-1 text-sm text-slate-500">Click any white cell to edit · Shaded = calculated · {displayedRows.length} records{showArchived ? ' (incl. archived)' : ''}</p>
         </div>
-        <div className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-center shadow-sm">
-          <p className="text-[10px] text-slate-400 uppercase tracking-wider">Total Annual Payroll</p>
-          <p className="mt-0.5 text-xl font-bold text-bba-primary">{fmt$(totalAnnual)}</p>
+        <div className="flex items-center gap-4">
+          <label className="flex items-center gap-1.5 text-xs text-slate-600 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={showArchived}
+              onChange={e => setShowArchived(e.target.checked)}
+              className="rounded border-slate-300 text-bba-action focus:ring-bba-action focus:ring-1"
+            />
+            Show archived
+          </label>
+          <div className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-center shadow-sm">
+            <p className="text-[10px] text-slate-400 uppercase tracking-wider">Total Annual Payroll</p>
+            <p className="mt-0.5 text-xl font-bold text-bba-primary">{fmt$(totalAnnual)}</p>
+          </div>
         </div>
       </div>
 
@@ -658,6 +688,12 @@ export default function PayrollPage() {
         Shaded (calc): Annual Salary = Rate × Hrs/Wk × 52 (hourly) or entered directly (salary). Per Period = Annual ÷ 26.
         Bonus 3% = Annual × (Months/12) × 3%. Books Cap = Hrs/Wk × (1 − Admin%) × 4.33.
       </p>
+
+      <EmployeeDrawer
+        employee={selectedEmp}
+        onClose={() => setSelectedEmp(null)}
+        onUpdated={() => { setSelectedEmp(null); load() }}
+      />
     </div>
   )
 }
