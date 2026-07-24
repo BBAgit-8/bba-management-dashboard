@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
         ),
         supabase.from("employees").select(
           `id, name, podId, contractedHours, adminTimePercent, fixedDeduction, fixedDeductionLabel`
-        ),
+        ).or('isActive.is.null,isActive.eq.true'),
         supabase.from("podTaskDefaults").select("podId, taskType, employeeId"),
         supabase.from("clientTaskOverrides").select("clientId, taskType, employeeId"),
         supabase.from("clientEngagements")

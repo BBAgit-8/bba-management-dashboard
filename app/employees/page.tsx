@@ -51,6 +51,7 @@ function EmployeesPageInner() {
   const [loading,      setLoading]      = useState(true)
   const [error,        setError]        = useState<string | null>(null)
   const [search,       setSearch]       = useState('')
+  const [showArchived, setShowArchived] = useState(false)
 
   // Column order + sort — persisted per browser in localStorage.
   const STORAGE_ORDER = 'bba.employees.colOrder.v1'
@@ -103,7 +104,8 @@ function EmployeesPageInner() {
 
   const loadEmployees = useCallback(() => {
     setLoading(true)
-    fetch('/api/employees')
+    const url = showArchived ? '/api/employees?includeInactive=1' : '/api/employees'
+    fetch(url)
       .then(r => r.json())
       .then(data => {
         if (Array.isArray(data)) {
@@ -119,7 +121,7 @@ function EmployeesPageInner() {
       })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false))
-  }, [])
+  }, [showArchived])
 
   useEffect(() => { loadEmployees() }, [loadEmployees])
 
@@ -282,14 +284,25 @@ function EmployeesPageInner() {
         <div className="rounded-xl overflow-hidden border border-slate-200">
           <div className="px-5 py-3.5 flex items-center justify-between border-b"
             style={{ backgroundColor: 'var(--bba-primary)' }}>
-            <h3 className="text-sm font-semibold text-white">{sorted.length} Employee{sorted.length !== 1 ? 's' : ''}</h3>
-            <div className="relative max-w-xs">
-              <svg className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              <input type="text" value={search} onChange={e => setSearch(e.target.value)}
-                placeholder="Search…"
-                className="rounded-lg bg-white/10 border border-white/20 pl-8 pr-3 py-1.5 text-xs text-white placeholder-white/50 focus:outline-none focus:ring-1 focus:ring-white/40 w-44" />
+            <h3 className="text-sm font-semibold text-white">{sorted.length} Employee{sorted.length !== 1 ? 's' : ''}{showArchived ? ' (incl. archived)' : ''}</h3>
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-1.5 text-xs text-white/90 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={showArchived}
+                  onChange={e => setShowArchived(e.target.checked)}
+                  className="rounded border-white/30 bg-white/10 text-bba-action focus:ring-white/40 focus:ring-1"
+                />
+                Show archived
+              </label>
+              <div className="relative max-w-xs">
+                <svg className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input type="text" value={search} onChange={e => setSearch(e.target.value)}
+                  placeholder="Search…"
+                  className="rounded-lg bg-white/10 border border-white/20 pl-8 pr-3 py-1.5 text-xs text-white placeholder-white/50 focus:outline-none focus:ring-1 focus:ring-white/40 w-44" />
+              </div>
             </div>
           </div>
           <div className="overflow-x-auto bg-white">

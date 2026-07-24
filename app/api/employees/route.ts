@@ -5,10 +5,19 @@ import { requireAuth } from '@/lib/require-auth'
 export async function GET(req: NextRequest) {
   const gate = await requireAuth(req); if (gate) return gate;
 
-  const { data, error } = await supabase
-    .from('employees')
-    .select('*')
-    .order('name', { ascending: true })
+  // Default: active roster only. Pass ?includeInactive=1 (or =true) to see
+  // archived/off-boarded employees — used by the Employees page's archive tab.
+  const url = new URL(req.url)
+  const includeInactive = ['1', 'true', 'yes'].includes((url.searchParams.get('includeInactive') ?? '').toLowerCase())
+
+  let query = supabase.from('employees').select('*').order('name', { ascending: true })
+  if (!includeInactive) {
+    // isActive can be null on legacy rows — treat null as active, only exclude
+    // rows explicitly marked false.
+    query = query.or('isActive.is.null,isActive.eq.true')
+  }
+
+  const { data, error } = await query
 
   if (error) {
     console.error('GET /api/employees error:', error)
