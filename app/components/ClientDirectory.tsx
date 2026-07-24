@@ -63,6 +63,7 @@ type ApiClient = {
 }
 
 import AddClientPanel from './AddClientPanel'
+import { computeBankAndRecTime } from '@/lib/pricing'
 
 // ── Saved View type ───────────────────────────────────────────────────────────
 type ClientView = {
@@ -673,27 +674,67 @@ export default function ClientDirectory() {
     // Optimistic update
     setInlineEdits(prev => ({ ...prev, [client.id]: { ...(prev[client.id] ?? {}), [field]: value } }))
     setSavingRows(prev => new Set(prev).add(client.id))
+
+    // ── Auto-recalculate bankFeedTime + recTime when a source field changes ─
+    // Editing transactions/mo, # banks & CCs, # loans, or # payment portals on
+    // the list flows straight into the two derived time fields — same math the
+    // detail page's "Recalculate" button runs, minus the downstream tier cascade
+    // (which depends on bkprHours/audit toggles the user manages separately).
+    const RECALC_TRIGGERS = new Set(['transactionsPerMonth', 'numBanksAndCCs', 'numLoans', 'numPmtPortals'])
+    let derived: { bankFeedTime: number; recTime: number } | null = null
+    if (RECALC_TRIGGERS.has(field)) {
+      const parseIntOrZero = (v: unknown): number => {
+        if (v == null || v === '') return 0
+        const n = typeof v === 'number' ? v : parseInt(String(v), 10)
+        return Number.isFinite(n) ? n : 0
+      }
+      derived = computeBankAndRecTime({
+        transactionsPerMonth: field === 'transactionsPerMonth'
+          ? (value || null)
+          : (client.transactionsPerMonth ?? null),
+        numBanksAndCCs: field === 'numBanksAndCCs' ? parseIntOrZero(value) : parseIntOrZero(client.numBanksAndCCs),
+        numLoans:       field === 'numLoans'       ? parseIntOrZero(value) : parseIntOrZero(client.numLoans),
+        numPmtPortals:  field === 'numPmtPortals'  ? parseIntOrZero(value) : parseIntOrZero(client.numPmtPortals),
+      })
+    }
+
     try {
       // Use UUID rather than harvestProjectCode: some clients have codes like
       // "N/A" whose slash breaks Next.js dynamic route matching (URL becomes
       // /api/clients/N/A which is two segments, not one). UUID is always safe.
+      const patchBody: Record<string, unknown> = { [field]: value || null }
+      if (derived) {
+        patchBody.bankFeedTime = String(derived.bankFeedTime)
+        patchBody.recTime      = String(derived.recTime)
+      }
       const res = await fetch(`/api/clients/${client.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ [field]: value || null }),
+        body: JSON.stringify(patchBody),
       })
       if (!res.ok) {
         const json = await res.json().catch(() => ({}))
         throw new Error(json.error ?? `HTTP ${res.status}`)
       }
       // Update clients array so the value persists without a full refresh
-      setClients(prev => prev.map(c => c.id === client.id ? { ...c, [field]: value || null } : c))
+      setClients(prev => prev.map(c => {
+        if (c.id !== client.id) return c
+        const next: ApiClient = { ...c, [field]: value || null }
+        if (derived) {
+          next.bankFeedTime = derived.bankFeedTime
+          next.recTime      = derived.recTime
+        }
+        return next
+      }))
       // Clear inlineEdit for this field since it's now in the source data
       setInlineEdits(prev => {
         const next = { ...prev }
         if (next[client.id]) {
           const fields = { ...next[client.id] }
           delete fields[field]
+          // Also drop any stale inline edits for the derived fields — the
+          // saved values now live in the clients array.
+          if (derived) { delete fields.bankFeedTime; delete fields.recTime }
           if (Object.keys(fields).length === 0) delete next[client.id]
           else next[client.id] = fields
         }

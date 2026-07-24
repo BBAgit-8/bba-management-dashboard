@@ -100,6 +100,26 @@ export interface HourCalcResult {
 
 function round2(n: number): number { return Math.round(n * 100) / 100 }
 
+// Lightweight helper for callers that only need the two "bank operations"
+// hour figures — no dependency on bkprHours, audit toggles, or 1099 range.
+// Used by the client list's inline-edit flow so editing raw counts flows
+// straight into the derived time fields without opening the detail page.
+export function computeBankAndRecTime(input: {
+  transactionsPerMonth: string | null
+  numBanksAndCCs:       number
+  numLoans:             number
+  numPmtPortals:        number
+}): { bankFeedTime: number; recTime: number } {
+  const bankFeedTime = input.transactionsPerMonth
+    ? (BANK_FEED_HRS[input.transactionsPerMonth] ?? 0)
+    : 0
+  const recTime =
+      REC_HRS_PER_BANK_OR_CC * (input.numBanksAndCCs || 0)
+    + REC_HRS_PER_LOAN       * (input.numLoans        || 0)
+    + REC_HRS_PER_PMT_PORTAL * (input.numPmtPortals   || 0)
+  return { bankFeedTime: round2(bankFeedTime), recTime: round2(recTime) }
+}
+
 export function computeHours(input: HourCalcInputs): HourCalcResult {
   const bankFeedTime = input.transactionsPerMonth
     ? (BANK_FEED_HRS[input.transactionsPerMonth] ?? 0)
