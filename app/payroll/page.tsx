@@ -138,25 +138,22 @@ function TotalsRow({ label, t, bg, cols }: { label: string; t: SectionTotals; bg
 }
 
 // Shared recalc — used by both actuals patch-in-place and sandbox edits.
-// In sandbox with a proposedRate set, sandbox annualSalary reflects it (so
-// totals preview the raise impact). Salaried employees scale annualSalary
-// from the captured baseline (their pre-raise annual).
-function recalcRow(row: PayrollRow, mode: 'actuals' | 'sandbox' = 'actuals', baseline?: PayrollRow): PayrollRow {
+// In sandbox with a proposedRate set, annualSalary is computed from
+// proposedRate * hours * 52 for BOTH hourly and salaried employees. This
+// matches how Dawn thinks about raises: "I'm giving them a raise from $30 to
+// $32/hr" — new salary is derived, not scaled from the old salary.
+function recalcRow(row: PayrollRow, mode: 'actuals' | 'sandbox' = 'actuals'): PayrollRow {
   const hoursPerWeek  = Number(row.hoursPerWeek ?? 40)
   const adminPct      = Number(row.adminPercent ?? 0) / 100
 
-  // Which rate drives annualSalary? Sandbox with a proposed rate → proposed; else current.
-  const rateForCalc = mode === 'sandbox' && row.proposedRate != null
-    ? row.proposedRate
-    : row.currentRate
-
   let annualSalary: number
-  if (row.isHourly) {
-    annualSalary = Number(rateForCalc ?? 0) * hoursPerWeek * 52
-  } else if (mode === 'sandbox' && row.raisePercent != null && baseline?.annualSalary) {
-    // Salaried: apply raise% to captured baseline annual so totals preview correctly.
-    annualSalary = Number(baseline.annualSalary) * (1 + Number(row.raisePercent) / 100)
+  if (mode === 'sandbox' && row.proposedRate != null) {
+    // Both hourly and salaried: proposed rate * hours * 52.
+    annualSalary = Number(row.proposedRate) * hoursPerWeek * 52
+  } else if (row.isHourly) {
+    annualSalary = Number(row.currentRate ?? 0) * hoursPerWeek * 52
   } else {
+    // Salaried in actuals: use the stored annual salary.
     annualSalary = Number(row.annualSalary ?? 0)
   }
 
@@ -303,8 +300,7 @@ export default function PayrollPage() {
     if (mode === 'sandbox') {
       setSandboxRows(prev => prev.map(r => {
         if (r.id !== row.id) return r
-        const baseline = rows.find(x => x.id === r.id)
-        return recalcRow({ ...r, dept: newDept, isContractor: newDept === 'CNTR' } as PayrollRow, 'sandbox', baseline)
+        return recalcRow({ ...r, dept: newDept, isContractor: newDept === 'CNTR' } as PayrollRow, 'sandbox')
       }).sort((a, b) => a.name.localeCompare(b.name)))
       setSaved(row.id); setTimeout(() => setSaved(null), 1500)
       setSaving(null)
@@ -341,22 +337,29 @@ export default function PayrollPage() {
     if (mode === 'sandbox') {
       setSandboxRows(prev => prev.map(r => {
         if (r.id !== id) return r
-        const baseline = rows.find(x => x.id === id)  // pre-edit actuals row = raise% baseline
+        const baseline = rows.find(x => x.id === id)  // pre-edit actuals row
 
-        // Two-way binding between raisePercent and proposedRate:
-        //   - Typing raisePercent → derive proposedRate from actuals currentRate
-        //   - Typing proposedRate → derive raisePercent from actuals currentRate
+        // Two-way binding between raisePercent and proposedRate.
+        // Clearing either field also clears its partner (so leaving raise% blank
+        // means the proposed rate reverts to whatever recalcRow computes without
+        // it — i.e. back to previous year's numbers).
         let next: any = { ...r, [field]: value }
-        if (field === 'raisePercent' && value != null && baseline?.currentRate != null) {
-          next.proposedRate = Number((Number(baseline.currentRate) * (1 + Number(value) / 100)).toFixed(2))
-        } else if (field === 'proposedRate' && value != null && baseline?.currentRate) {
-          const b = Number(baseline.currentRate)
-          next.raisePercent = Number((((Number(value) - b) / b) * 100).toFixed(2))
-        } else if (field === 'proposedRate' && value == null) {
-          next.raisePercent = null
+        if (field === 'raisePercent') {
+          if (value == null) {
+            next.proposedRate = null
+          } else if (baseline?.currentRate != null) {
+            next.proposedRate = Number((Number(baseline.currentRate) * (1 + Number(value) / 100)).toFixed(2))
+          }
+        } else if (field === 'proposedRate') {
+          if (value == null) {
+            next.raisePercent = null
+          } else if (baseline?.currentRate) {
+            const b = Number(baseline.currentRate)
+            next.raisePercent = Number((((Number(value) - b) / b) * 100).toFixed(2))
+          }
         }
 
-        return recalcRow(next as PayrollRow, 'sandbox', baseline)
+        return recalcRow(next as PayrollRow, 'sandbox')
       }).sort((a, b) => a.name.localeCompare(b.name)))
       setSaved(id); setTimeout(() => setSaved(null), 1500)
       setSaving(null)
