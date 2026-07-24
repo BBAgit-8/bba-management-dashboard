@@ -66,6 +66,8 @@ export default function AccountantsPage() {
   const [error,      setError]      = useState<string | null>(null)
   const [editingId,  setEditingId]  = useState<string | null>(null)
   const [statusFilter, setStatusFilter] = useState<'ACTIVE' | 'INACTIVE' | 'ALL'>('ACTIVE')
+  const [deleteTarget, setDeleteTarget] = useState<AccountantRow | null>(null)
+  const [deleting,     setDeleting]     = useState(false)
 
   // Column order + sort — persisted per browser in localStorage. Bump the key
   // if ALL_COLS changes so stale saved orders don't reference removed columns.
@@ -192,6 +194,22 @@ export default function AccountantsPage() {
       resetForm(); setModalOpen(false)
     } catch { setError('Network error') }
     finally { setSaving(false) }
+  }
+
+  async function handleDelete() {
+    if (!deleteTarget) return
+    setDeleting(true)
+    try {
+      const res = await fetch(`/api/accountants/${deleteTarget.id}`, { method: 'DELETE' })
+      if (!res.ok && res.status !== 204) {
+        const data = await res.json().catch(() => ({}))
+        setError(data.error ?? 'Delete failed')
+        return
+      }
+      setAccountants(prev => prev.filter(a => a.id !== deleteTarget.id))
+      setDeleteTarget(null)
+    } catch { setError('Network error') }
+    finally { setDeleting(false) }
   }
 
   function handleSort(key: ColKey) {
@@ -352,10 +370,15 @@ export default function AccountantsPage() {
                       onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#f3e8ff' }}
                       onMouseLeave={e => { e.currentTarget.style.backgroundColor = baseBg }}>
                       {colOrder.map(key => renderCell(acc, key))}
-                      <td className="px-5 py-3 text-right">
+                      <td className="px-5 py-3 text-right whitespace-nowrap">
                         <button onClick={() => openEdit(acc)}
                           className="text-xs text-bba-action underline underline-offset-2 hover:text-purple-800 transition-colors">
                           Edit
+                        </button>
+                        <span className="mx-2 text-slate-300">·</span>
+                        <button onClick={() => setDeleteTarget(acc)}
+                          className="text-xs text-red-500 underline underline-offset-2 hover:text-red-700 transition-colors">
+                          Delete
                         </button>
                       </td>
                     </tr>
@@ -422,6 +445,37 @@ export default function AccountantsPage() {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Delete confirm */}
+      {deleteTarget && (
+        <>
+          <div onClick={() => !deleting && setDeleteTarget(null)} className="fixed inset-0 z-40 bg-black/40" />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl border border-surface-border p-6 space-y-4">
+              <h2 className="text-base font-semibold text-slate-800">Delete Accountant</h2>
+              <p className="text-sm text-slate-600">
+                Delete <span className="font-semibold">{deleteTarget.name}</span>{deleteTarget.businessName ? ` (${deleteTarget.businessName})` : ''}? This cannot be undone.
+              </p>
+              {deleteTarget.activeClientCount > 0 && (
+                <p className="text-sm text-amber-800 bg-amber-50 rounded-lg px-3 py-2">
+                  Heads-up: {deleteTarget.activeClientCount} active client{deleteTarget.activeClientCount === 1 ? '' : 's'} reference this accountant. Their accountant assignment will be cleared.
+                </p>
+              )}
+              {error && <p className="text-xs text-red-500">{error}</p>}
+              <div className="flex items-center justify-end gap-3 pt-1">
+                <button type="button" onClick={() => setDeleteTarget(null)} disabled={deleting}
+                  className="rounded-lg px-4 py-2 text-sm text-slate-500 hover:text-slate-700 transition-colors disabled:opacity-50">
+                  Cancel
+                </button>
+                <button type="button" onClick={handleDelete} disabled={deleting}
+                  className="rounded-lg bg-red-600 px-5 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50 transition-colors">
+                  {deleting ? 'Deleting…' : 'Delete'}
+                </button>
+              </div>
             </div>
           </div>
         </>

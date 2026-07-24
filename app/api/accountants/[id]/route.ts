@@ -49,6 +49,16 @@ export async function DELETE(
   const gate = await requireAuth(_req); if (gate) return gate;
 
   const { id } = await params
+
+  // Null out any client references first so the delete never trips a FK.
+  // Both accountantId (the real FK) and accountantName (legacy denorm text)
+  // get cleared. Callers should have already warned the user if there were
+  // active clients attached; this is the safety net.
+  await supabase
+    .from('clients')
+    .update({ accountantId: null, accountantName: null, updatedAt: new Date().toISOString() })
+    .eq('accountantId', id)
+
   const { error } = await supabase.from('accountants').delete().eq('id', id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return new NextResponse(null, { status: 204 })
