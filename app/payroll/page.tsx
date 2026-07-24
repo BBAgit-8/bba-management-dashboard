@@ -239,6 +239,45 @@ export default function PayrollPage() {
     }
   }, [displayedRows])
 
+  // Special dept change: updates payroll.dept AND flips employees.employeeType
+  // so isContractor stays in sync (payroll's isContractor derives from employeeType).
+  async function patchDept(row: PayrollRow, newDept: 'COGS' | 'GA' | 'CNTR') {
+    if (row.dept === newDept) return
+    setSaving(row.id)
+
+    // Sandbox: mutate local only; also derive isContractor from new dept.
+    if (mode === 'sandbox') {
+      setSandboxRows(prev => prev.map(r => {
+        if (r.id !== row.id) return r
+        return recalcRow({ ...r, dept: newDept, isContractor: newDept === 'CNTR' } as PayrollRow)
+      }).sort((a, b) => a.name.localeCompare(b.name)))
+      setSaved(row.id); setTimeout(() => setSaved(null), 1500)
+      setSaving(null)
+      return
+    }
+
+    // Actuals: patch payroll AND employees in parallel.
+    const newEmployeeType = newDept === 'CNTR' ? 'contractor' : 'employee'
+    await Promise.all([
+      fetch('/api/payroll', {
+        method:  'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ id: row.id, dept: newDept }),
+      }),
+      fetch(`/api/employees/${row.employeeId}`, {
+        method:  'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ employeeType: newEmployeeType }),
+      }),
+    ])
+    setRows(prev => prev.map(r => {
+      if (r.id !== row.id) return r
+      return recalcRow({ ...r, dept: newDept, isContractor: newDept === 'CNTR' } as PayrollRow)
+    }).sort((a, b) => a.name.localeCompare(b.name)))
+    setSaved(row.id); setTimeout(() => setSaved(null), 1500)
+    setSaving(null)
+  }
+
   async function patchRow(id: string, field: string, raw: string) {
     setSaving(id)
     const value = raw === '' ? null : isNaN(Number(raw)) ? raw : Number(raw)
@@ -361,8 +400,24 @@ export default function PayrollPage() {
 
         {/* Data cells */}
         {COLS.map(col => {
+          // Dept: inline select. Skips the generic click-to-edit path.
+          if (col.key === 'dept') return (
+            <td key={col.key} className="px-2 py-1 text-center">
+              <select
+                value={row.dept}
+                onChange={e => patchDept(row, e.target.value as 'COGS' | 'GA' | 'CNTR')}
+                disabled={isSave}
+                className="rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[11px] font-semibold text-slate-700 focus:outline-none focus:ring-1 focus:ring-bba-action hover:border-purple-300 cursor-pointer"
+              >
+                <option value="COGS">COGS</option>
+                <option value="GA">G&amp;A</option>
+                <option value="CNTR">CNTR</option>
+              </select>
+            </td>
+          )
+
           const isEditing = editCell?.rowId === row.id && editCell?.field === col.key
-          const isRO = (col.ro || col.key === 'dept') ||
+          const isRO = col.ro ||
             (col.key === 'annualSalary' && row.isHourly) // hourly: calculated; salaried: editable
 
           if (isRO) return (
