@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect, useCallback } from "react";
 import Link from "next/link";
+import EmployeeDrawer from "@/app/components/EmployeeDrawer";
 import { broadcastBookkeeperChange, useBookkeeperSync } from "@/app/hooks/useBookkeeperSync";
 import { usePersistedState } from "@/lib/use-persisted-state";
 
@@ -171,11 +172,12 @@ function diffColor(diff: number): string {
 // SHARED COMPONENTS
 // ═══════════════════════════════════════════════════════════════════════════
 
-function CapacityCard({ emp, assignedHrs, assignedCount, capacityHrs }: {
+function CapacityCard({ emp, assignedHrs, assignedCount, capacityHrs, onOpen }: {
   emp: DbEmployee
   assignedHrs: number
   assignedCount: number
   capacityHrs: number
+  onOpen: (empId: string) => void
 }) {
   const pct = capacityHrs > 0 ? r2((assignedHrs / capacityHrs) * 100) : 0;
   const overloaded = pct > 100;
@@ -192,7 +194,13 @@ function CapacityCard({ emp, assignedHrs, assignedCount, capacityHrs }: {
             {initials(emp.name)}
           </div>
           <div>
-            <a href={`/employees?open=${emp.id}`} className={`text-sm font-semibold leading-tight hover:underline underline-offset-2 ${overloaded ? 'text-red-700' : 'text-bba-primary'}`}>{emp.name}</a>
+            <button
+              type="button"
+              onClick={() => onOpen(emp.id)}
+              className={`text-sm font-semibold leading-tight hover:underline underline-offset-2 cursor-pointer bg-transparent p-0 border-0 text-left ${overloaded ? 'text-red-700' : 'text-bba-primary'}`}
+            >
+              {emp.name}
+            </button>
             <p className={`text-[11px] mt-0.5 ${'text-slate-400'}`}>
               {emp.contractedHours}h/wk · 80% billable
             </p>
@@ -268,6 +276,21 @@ function IndividualCapacityView() {
   const [syncStatus, setSyncStatus] = useState<"idle" | "saving" | "saved">("idle")
   const [sortCol, setSortCol] = usePersistedState<"name" | "hrs" | "employee" | "cadence">('planning.individual.sortCol', "name")
   const [sortDir, setSortDir] = usePersistedState<"asc" | "desc">('planning.individual.sortDir', "asc")
+
+  // Employee quick-view drawer state
+  const [selectedEmp, setSelectedEmp] = useState<any | null>(null)
+  const openEmp = useCallback(async (empId: string) => {
+    try {
+      const res = await fetch('/api/employees')
+      const data = await res.json()
+      if (Array.isArray(data)) {
+        const full = data.find((e: any) => e.id === empId)
+        if (full) setSelectedEmp(full)
+      }
+    } catch (err) {
+      console.error('Failed to load employee:', err)
+    }
+  }, [])
 
   useEffect(() => {
     Promise.all([
@@ -550,7 +573,7 @@ function IndividualCapacityView() {
           ) : (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {employeeStats.map(stat => (
-                <CapacityCard key={stat.emp.id} {...stat} />
+                <CapacityCard key={stat.emp.id} {...stat} onOpen={openEmp} />
               ))}
             </div>
           )}
@@ -793,6 +816,12 @@ function IndividualCapacityView() {
           )}
         </section>
       </div>
+
+      <EmployeeDrawer
+        employee={selectedEmp}
+        onClose={() => setSelectedEmp(null)}
+        onUpdated={() => setSelectedEmp(null)}
+      />
     </div>
   )
 }
