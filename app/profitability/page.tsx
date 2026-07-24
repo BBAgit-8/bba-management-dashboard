@@ -133,8 +133,8 @@ export default function ProfitabilityPage() {
   const [error,            setError]            = useState<string | null>(null)
   const [from,             setFrom]             = useState(firstOfMonth())
   const [to,               setTo]               = useState(today())
-  const [search,           setSearch]           = useState('')
-  const [bkFilter,         setBkFilter]         = useState('all')
+  const [search,           setSearch]           = usePersistedState<string>('bba.profitability.search', '')
+  const [bkFilter,         setBkFilter]         = usePersistedState<string>('bba.profitability.bkFilter', 'all')
   const [sortKey,          setSortKey]          = usePersistedState<ColKey>('profitability.sortKey', 'profit')
   const [sortDir,          setSortDir]          = usePersistedState<SortDir>('profitability.sortDir', 'desc')
 

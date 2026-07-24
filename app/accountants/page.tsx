@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { usePersistedState } from '@/lib/use-persisted-state'
 
 interface AccountantRow {
   id:               string
@@ -65,7 +66,7 @@ export default function AccountantsPage() {
   const [form,       setForm]       = useState({ name: '', businessName: '', email: '', phoneNumber: '', okToContactAccountant: false, hasSecurePortal: false })
   const [error,      setError]      = useState<string | null>(null)
   const [editingId,  setEditingId]  = useState<string | null>(null)
-  const [statusFilter, setStatusFilter] = useState<'ACTIVE' | 'INACTIVE' | 'ALL'>('ACTIVE')
+  const [statusFilter, setStatusFilter] = usePersistedState<'ACTIVE' | 'INACTIVE' | 'ALL'>('bba.accountants.statusFilter', 'ACTIVE')
   const [deleteTarget, setDeleteTarget] = useState<AccountantRow | null>(null)
   const [deleting,     setDeleting]     = useState(false)
 

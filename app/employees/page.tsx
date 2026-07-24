@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd'
 import AddEmployeePanel from '@/app/components/AddEmployeePanel'
 import EmployeeDrawer   from '@/app/components/EmployeeDrawer'
+import { usePersistedState } from '@/lib/use-persisted-state'
 
 interface Employee {
   id: string; name: string; email: string | null; title: string | null
@@ -51,8 +52,8 @@ function EmployeesPageInner() {
   const [employees,    setEmployees]    = useState<Employee[]>([])
   const [loading,      setLoading]      = useState(true)
   const [error,        setError]        = useState<string | null>(null)
-  const [search,       setSearch]       = useState('')
-  const [showArchived, setShowArchived] = useState(false)
+  const [search,       setSearch]       = usePersistedState<string>('bba.employees.search', '')
+  const [showArchived, setShowArchived] = usePersistedState<boolean>('bba.employees.showArchived', false)
 
   // Column order + sort — persisted per browser in localStorage.
   const STORAGE_ORDER = 'bba.employees.colOrder.v1'

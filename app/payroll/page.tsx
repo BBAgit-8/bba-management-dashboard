@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, useCallback } from 'react'
 import EmployeeDrawer from '@/app/components/EmployeeDrawer'
+import { usePersistedState } from '@/lib/use-persisted-state'
 
 type PayrollRow = {
   id:             string
@@ -200,14 +201,14 @@ export default function PayrollPage() {
 
   // Sandbox mode — a local copy of rows the user can play with. Changes stay
   // in localStorage; nothing hits the DB until they click "Publish Raises."
-  const [mode,           setMode]           = useState<'actuals' | 'sandbox'>('actuals')
+  const [mode,           setMode]           = usePersistedState<'actuals' | 'sandbox'>('bba.payroll.mode', 'actuals')
   const [sandboxRows,    setSandboxRows]    = useState<PayrollRow[]>([])
   const [fyStart,        setFyStart]        = useState<number>(new Date().getFullYear())
   const [publishOpen,    setPublishOpen]    = useState(false)      // Publish confirm modal
   const [publishing,     setPublishing]     = useState(false)
   const [publishResult,  setPublishResult]  = useState<{ published: number; currentFiscalYearStart?: number; results?: { name: string; newRate: number }[]; errors?: string[] } | null>(null)
   const [resetOpen,      setResetOpen]      = useState(false)
-  const [showArchived,   setShowArchived]   = useState(false)
+  const [showArchived,   setShowArchived]   = usePersistedState<boolean>('bba.payroll.showArchived', false)
 
   // Employee quick-view drawer
   const [selectedEmp, setSelectedEmp] = useState<any | null>(null)
