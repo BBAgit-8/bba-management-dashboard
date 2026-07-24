@@ -773,6 +773,55 @@ export default function ClientDirectory() {
     setFn(prev => { const next = new Set(prev); next.has(val) ? next.delete(val) : next.add(val); return next })
   }
 
+  // ── Persist filter / search / sort state per browser ──────────────────────
+  // Everything the user tweaks (search box, sort, all filter chips) gets
+  // saved to one localStorage blob so leaving and returning to the page
+  // restores what they were looking at. Saved Views are separate — those are
+  // named server-side snapshots; this is just "remember my current filter state."
+  const FILTER_STORAGE_KEY = 'bba.clients.filterState.v1'
+  const filterHydrated = useRef(false)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    try {
+      const raw = localStorage.getItem(FILTER_STORAGE_KEY)
+      if (raw) {
+        const s = JSON.parse(raw)
+        if (typeof s.search === 'string') setSearch(s.search)
+        if (typeof s.sortKey === 'string') setSortKey(s.sortKey as SortKey)
+        if (s.sortDir === 'asc' || s.sortDir === 'desc') setSortDir(s.sortDir)
+        if (Array.isArray(s.statusFilters))     setStatusFilters(new Set(s.statusFilters))
+        if (Array.isArray(s.bookkeeperFilters)) setBookkeeperFilters(new Set(s.bookkeeperFilters))
+        if (Array.isArray(s.accountantFilters)) setAccountantFilters(new Set(s.accountantFilters))
+        if (Array.isArray(s.entityTypeFilters)) setEntityTypeFilters(new Set(s.entityTypeFilters))
+        if (Array.isArray(s.ptFilters))         setPtFilters(new Set(s.ptFilters))
+        if (Array.isArray(s.cadenceFilters))    setCadenceFilters(new Set(s.cadenceFilters))
+        if (Array.isArray(s.tagFilters))        setTagFilters(new Set(s.tagFilters))
+      }
+    } catch { /* ignore corrupt storage */ }
+    filterHydrated.current = true
+  }, [])
+
+  useEffect(() => {
+    // Skip the write on the very first render, before we've read anything.
+    if (!filterHydrated.current) return
+    if (typeof window === 'undefined') return
+    try {
+      localStorage.setItem(FILTER_STORAGE_KEY, JSON.stringify({
+        search,
+        sortKey,
+        sortDir,
+        statusFilters:     [...statusFilters],
+        bookkeeperFilters: [...bookkeeperFilters],
+        accountantFilters: [...accountantFilters],
+        entityTypeFilters: [...entityTypeFilters],
+        ptFilters:         [...ptFilters],
+        cadenceFilters:    [...cadenceFilters],
+        tagFilters:        [...tagFilters],
+      }))
+    } catch { /* ignore quota / private mode */ }
+  }, [search, sortKey, sortDir, statusFilters, bookkeeperFilters, accountantFilters, entityTypeFilters, ptFilters, cadenceFilters, tagFilters])
+
   // Visible columns — persisted
   const [visibleCols, setVisibleCols] = useState<Set<ColKey>>(() => {
     if (typeof window === 'undefined') return new Set(DEFAULT_VISIBLE)
